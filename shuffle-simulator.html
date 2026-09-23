@@ -61,7 +61,7 @@ button.run:disabled{opacity:0.5;cursor:wait;}
 .bigchart .bcval.pass{color:var(--accent);} .bigchart .bcval.fail{color:var(--bad);}
 .bigchart .bcsub{font-size:0.64rem;color:var(--dim);line-height:1.5;margin-top:0.3rem;}
 .bigchart svg{display:block;width:100%;height:130px;overflow:visible;}
-.bcaxis{font-family:'DM Mono',monospace;font-size:7px;fill:#b9ad99;}
+.bcaxis{font-family:'DM Mono',monospace;font-size:9px;fill:#b9ad99;}
 .keyline{font-family:'DM Mono',monospace;font-size:0.5rem;color:var(--dim);display:flex;gap:0.9rem;align-items:center;flex-wrap:wrap;}
 .kg{display:flex;align-items:center;gap:0.3rem;} .kg-sw{width:54px;height:9px;border-radius:2px;} .kg-box{width:11px;height:11px;border-radius:2px;background:#cbb;outline:2px solid var(--ink);outline-offset:1px;}
 @media (max-width:680px){ .main{flex-direction:column;} .left{align-items:center;width:100%;} .right{width:100%;} .charts{grid-template-columns:1fr 1fr;} }
@@ -403,9 +403,20 @@ let GEO=null;
 function buildStage(){}
 function placeStage(){}
 function applyFlags(){}
+// Width in CSS px the chart will actually occupy, so the viewBox maps 1:1 to the screen
+// (no stretching: text, dots and dashes keep their shape at any width). Falls back to the
+// old fixed widths when the container isn't laid out yet.
+function chartW(big){
+  const el=document.getElementById(big?'bigchart':'charts');if(!el)return big?260:120;
+  const cs=getComputedStyle(el);
+  if(big){const w=el.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);return w>0?w:260;}
+  const col=parseFloat(cs.gridTemplateColumns),rem=parseFloat(getComputedStyle(document.documentElement).fontSize)||16;
+  const w=col-1.1*rem-2;                                   // .chart padding (0.55rem each side) + 1px borders
+  return isFinite(w)&&w>0?w:120;
+}
 function chartSVG(m,big){
   const entries=allEntries();const L=DATA.L;const maxL=Math.max.apply(null,entries.map(e=>e.L).concat([L]));const pct=!m.raw;
-  const W=big?260:120,H=big?130:46,PL=big?30:2,PR=big?34:2,PT=big?10:4,PB=big?18:4,baseY=H-PB,plotR=W-PR;
+  const W=Math.round(chartW(big)),H=big?130:46,PL=big?34:2,PR=big?(pct?72:48):2,PT=big?10:4,PB=big?18:4,baseY=H-PB,plotR=W-PR;
   const ref=pct?100:DATA.base[m.k].mean;
   let vals=[ref];entries.forEach(e=>{for(let i=0;i<=e.L;i++)vals.push(dispVal(m,e.avg[m.k][i],e));});
   let lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals);if(lo===hi)hi=lo+1;
@@ -432,8 +443,10 @@ function chartSVG(m,big){
     g+='<path d="'+d+'" fill="none" stroke="'+e.color+'" stroke-width="'+(e.current?(big?2.4:1.8):(big?1.5:1.3))+'" stroke-linejoin="round" opacity="'+(e.current?1:0.85)+'"/>';});
   if(CMP_OPEN){entries.forEach(e=>{const s=Math.min(CMP_STEP,e.L);
     g+='<circle cx="'+X(s,maxL).toFixed(1)+'" cy="'+Y(dispVal(m,e.avg[m.k][s],e)).toFixed(1)+'" r="'+(big?3.4:2.6)+'" fill="'+e.color+'" stroke="#fff" stroke-width="'+(big?1.4:1)+'"/>';});}
-  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+g+'</svg>';
+  return '<svg viewBox="0 0 '+W+' '+H+'">'+g+'</svg>';
 }
+let chartRsz=null;
+window.addEventListener('resize',()=>{clearTimeout(chartRsz);chartRsz=setTimeout(refreshCharts,120);});
 function passWith(m,val,base){const b=base[m.k];if(m.side==='band')return val>=b.lo&&val<=b.hi;if(m.side==='high')return val>=b.thr;if(m.side==='low')return val<=b.thr;return Math.abs(val-b.mean)<=b.thr;}
 function passOf(m,val){return passWith(m,val,DATA.base);}
 function minFloor(m){return m.k==='corr'?-1:0;}
@@ -571,7 +584,8 @@ function stopCmpAnim(){}
 function toggleCmpAnim(id){if(CMP_OPEN===id){CMP_OPEN=null;document.querySelectorAll('.cmpanim.open').forEach(p=>p.classList.remove('open'));document.querySelectorAll('.cmprow.paneled').forEach(r=>r.classList.remove('paneled'));refreshCharts();return;}openCmpAnim(id);}
 function miniDeck(stage,n){
   const W=stage.parentElement.clientWidth-2*parseFloat(getComputedStyle(stage.parentElement).paddingLeft||'0')-18;
-  const cols=Math.max(10,Math.ceil(n/6));const gap=2;
+  const gap=2,maxCw=24;                                    // cap tile size: wide screens get more columns, not giant tiles
+  const cols=Math.min(n,Math.max(10,Math.ceil(n/6),Math.floor((W+gap)/(maxCw+gap))));
   const cw=Math.max(6,Math.floor((W-(cols-1)*gap)/cols));const ch=Math.round(cw*1.4);const rows=Math.ceil(n/cols);
   stage.style.position='relative';stage.style.zIndex='0';
   stage.style.width=(cols*cw+(cols-1)*gap)+'px';stage.style.height=(rows*ch+(rows-1)*gap)+'px';

@@ -140,8 +140,9 @@ function buildDeck(){
   const stage=document.getElementById('stage'); stage.innerHTML=''; cards=[]; lastDeck=null; lastCur=null;
   const frame=stage.parentElement;
   const W=frame.clientWidth-2*parseFloat(getComputedStyle(frame).paddingLeft);
-  const cols=Math.max(6,Math.min(Math.ceil(Math.sqrt(N*1.6)),Math.floor(W/22)));
-  const gap=3, cw=Math.floor((W-(cols-1)*gap)/cols), ch=Math.round(cw*1.4), rows=Math.ceil(N/cols);
+  const gap=3, maxCw=36;   // cap tile size: wide screens get more columns, not giant tiles
+  const cols=Math.min(N,Math.max(6,Math.min(Math.ceil(Math.sqrt(N*1.6)),Math.floor(W/22)),Math.ceil((W+gap)/(maxCw+gap))));
+  const cw=Math.floor((W-(cols-1)*gap)/cols), ch=Math.round(cw*1.4), rows=Math.ceil(N/cols);
   GEO={cols,cw,ch,gap};
   stage.style.width=(cols*cw+(cols-1)*gap)+'px';
   stage.style.height=(rows*ch+(rows-1)*gap)+'px';
