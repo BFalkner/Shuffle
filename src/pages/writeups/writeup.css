@@ -1,0 +1,118 @@
+/* Long-form pages (the three test write-ups and the sticky-ends study). Scoped under .writeup. */
+
+.writeup {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 1.4rem;
+  line-height: 1.55;
+}
+
+.writeup h1 {
+  font-family: var(--font-serif);
+  font-weight: 900;
+  font-size: 2rem;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.writeup h2 {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin: 2rem 0 0.5rem;
+}
+
+.writeup .sub {
+  color: var(--dim);
+  font-size: 0.9rem;
+  margin: 0.3rem 0 1.4rem;
+}
+
+.writeup p {
+  font-size: 0.9rem;
+  margin: 0.55rem 0;
+}
+
+.writeup .writeup-back {
+  margin: -0.4rem 0 1.4rem;
+}
+
+.writeup .small {
+  font-size: 0.78rem;
+  color: var(--dim);
+}
+
+.writeup .card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  margin: 0.9rem 0;
+  box-shadow: 0 8px 28px -12px var(--shadow);
+}
+
+.writeup .klabel {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--dim);
+  margin-bottom: 0.4rem;
+}
+
+.writeup .verdict {
+  border-left: 3px solid var(--accent);
+  padding: 0.6rem 0.9rem;
+  background: #f2f0e9;
+  border-radius: 0 8px 8px 0;
+  margin: 1rem 0;
+}
+
+.writeup .foot {
+  font-size: 0.72rem;
+  color: var(--dim);
+  border-top: 1px solid var(--rule);
+  margin-top: 2rem;
+  padding-top: 0.8rem;
+  line-height: 1.6;
+}
+
+.writeup table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.78rem;
+}
+
+.writeup th,
+.writeup td {
+  padding: 0.35rem 0.5rem;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+
+.writeup th {
+  color: var(--dim);
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.56rem;
+  letter-spacing: 0.07em;
+  border-bottom: 1px solid var(--rule);
+}
+
+.writeup td:first-child,
+.writeup th:first-child {
+  text-align: left;
+}
+
+.writeup tr.hl td {
+  background: #eef4ee;
+}
+
+.writeup .tablewrap {
+  overflow-x: auto;
+}
+
+.writeup .tablewrap table {
+  min-width: 560px;
+}

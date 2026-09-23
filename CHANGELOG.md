@@ -1,5 +1,29 @@
 # Changelog
 
+## React project
+
+- Converted the site from standalone HTML files into a Vite + React +
+  TypeScript project with React Router (one URL per page) and Vitest.
+- The engine (moves, diagnostics, calibration, classifier, scoring) is now
+  one set of TypeScript modules under `src/engine/`, shared by the
+  simulator and the sticky-ends page instead of being copied into each.
+  Checked against the original by running both side by side: scores match
+  within run-to-run noise.
+- The regression suite now tests the engine modules directly with Vitest,
+  replacing the Node `vm` harness and the in-browser test page.
+- Charts draw at their measured width everywhere, so nothing stretches on
+  wide screens.
+- Removed code the simulator no longer used (the old single-deck stage,
+  per-test card flagging, the experiments menu), along with the empty space
+  and help text that still referred to them.
+- Removed the standalone card tracker page (`shuffle-tracker.html`); the
+  simulator's method builder and animation panels already cover tracking
+  cards through a shuffle.
+- Fixed tapping two cards in quick succession tracking only one.
+- The original HTML pages were removed; they remain in git history.
+
+## Earlier work
+
 Covers the work done in this conversation, from the mid-project engine
 propagation through packaging for local development. Dates aren't tracked
 per-entry since this reflects one continuous working session; entries are

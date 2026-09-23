@@ -1,0 +1,52 @@
+.minideck {
+  width: 100%;
+}
+
+.minideck-stage {
+  position: relative;
+  z-index: 0;
+  margin: 0 auto;
+}
+
+.minideck-strip {
+  position: absolute;
+  left: -13px;
+  top: 0;
+  height: 100%;
+  width: 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.minideck-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: transform var(--dur) cubic-bezier(0.5, 0.05, 0.25, 1);
+  will-change: transform;
+  outline: 0 solid transparent;
+  outline-offset: 1px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.minideck--still .minideck-card {
+  transition: none;
+}
+
+.minideck-badge {
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}

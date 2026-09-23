@@ -1,0 +1,102 @@
+/* Sticky-ends page extras (the base layout comes from writeup.css). */
+
+.writeup .striplbl {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--dim);
+  margin: 0.55rem 0 0.2rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.writeup .strip {
+  display: flex;
+  height: 26px;
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+}
+
+.writeup .strip i {
+  flex: 1;
+}
+
+.writeup .dealbtn {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--ink);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 20px;
+  padding: 0.3rem 0.8rem;
+  cursor: pointer;
+  margin-top: 0.7rem;
+}
+
+.writeup .dealbtn:hover {
+  border-color: var(--ink);
+}
+
+.writeup .legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.6rem 0 0.2rem;
+}
+
+.writeup .lchip {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  border: 1.5px solid;
+  border-radius: 20px;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  opacity: 0.35;
+  user-select: none;
+  background: var(--surface);
+}
+
+.writeup .lchip.on {
+  opacity: 1;
+}
+
+.writeup .seg {
+  display: inline-flex;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  overflow: hidden;
+  margin-left: 0.6rem;
+}
+
+.writeup .seg button {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--dim);
+  background: none;
+  border: 0;
+  padding: 0.25rem 0.55rem;
+  cursor: pointer;
+}
+
+.writeup .seg button.on {
+  background: var(--accent);
+  color: #fff;
+}
+
+.writeup .chartrow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+}
+
+.writeup svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 640px) {
+  .writeup .chartrow {
+    grid-template-columns: 1fr;
+  }
+}

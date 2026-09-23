@@ -1,0 +1,50 @@
+/* Shared palette and base styles. Each page's own stylesheet is scoped under
+   that page's root class (e.g. .sim, .home) so class names can't collide. */
+
+:root {
+  --bg: #f7f3ed;
+  --ink: #18140f;
+  --dim: #8a7f72;
+  --rule: #ddd5c8;
+  --surface: #fff;
+  --accent: #1a6b3a;
+  --bad: #c0392b;
+  --shadow: rgba(60, 45, 20, 0.12);
+
+  --font-serif: 'Playfair Display', serif;
+  --font-mono: 'DM Mono', monospace;
+  --font-sans: 'DM Sans', sans-serif;
+
+  /* card-slide duration; scaled by the animation speed setting */
+  --dur: 0.95s;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+a {
+  color: var(--accent);
+}
+
+/* Small shared bits */
+
+.backlink {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: #2f7d54;
+  text-decoration: none;
+}
+
+.backlink:hover {
+  text-decoration: underline;
+}

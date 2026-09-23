@@ -1,0 +1,847 @@
+/* Simulator page. Everything is scoped under .sim. */
+
+.sim {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 1.4rem;
+}
+
+.sim .widget {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 1.3rem 1.4rem;
+  box-shadow: 0 8px 28px -10px var(--shadow);
+}
+
+.sim .header {
+  text-align: center;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.7rem;
+  margin-bottom: 0.9rem;
+}
+
+.sim h1 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.sim h1 em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.sim-backlink {
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* ---------- deck controls ---------- */
+
+.sim .runbar {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  margin: 0.3rem 0 0.4rem;
+  flex-wrap: wrap;
+}
+
+.sim .runbar select {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  padding: 0.22rem 0.4rem;
+}
+
+.sim .condlbl {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sim .status {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--dim);
+}
+
+.sim .animtoggle {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--dim);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.18rem 0.55rem;
+  cursor: pointer;
+}
+
+.sim .animtoggle:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.sim .anim-setting {
+  margin-left: 0;
+  min-width: 11em;
+  text-align: center;
+}
+
+/* ---------- summary panel (sticky) ---------- */
+
+.sim .bigsticky {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin-top: 0.7rem;
+}
+
+.sim .bigwrap {
+  background: var(--surface);
+  border-radius: 8px;
+}
+
+.sim .bigchart {
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 0.7rem 0.8rem 0.5rem;
+  background: linear-gradient(160deg, #fdfaf4, #f4eee2);
+}
+
+.sim .bigchart .bctitle {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dim);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.3rem;
+}
+
+.sim .bigchart .bcval {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.sim .bigchart .bcval.pass {
+  color: var(--accent);
+}
+
+.sim .bigchart .bcval.fail {
+  color: var(--bad);
+}
+
+.sim .bigchart .bcsub {
+  font-size: 0.64rem;
+  color: var(--dim);
+  line-height: 1.5;
+  margin-top: 0.3rem;
+}
+
+.sim .bigchart svg {
+  display: block;
+  width: 100%;
+  height: 130px;
+  overflow: visible;
+}
+
+.sim .bcaxis {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: #b9ad99;
+}
+
+.sim .oplg {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  color: var(--dim);
+  margin-top: 0.45rem;
+}
+
+.sim .oplg span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.sim .oplg i {
+  width: 13px;
+  height: 3px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.sim .oplg-clear {
+  cursor: pointer;
+  color: var(--accent);
+}
+
+/* ---------- diagnostics grid ---------- */
+
+.sim .diagh {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin: 0.9rem 0 0.4rem;
+}
+
+.sim .charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.sim .cgrouph {
+  grid-column: 1 / -1;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-top: 0.55rem;
+}
+
+.sim .chart {
+  min-width: 0;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  padding: 0.5rem 0.55rem 0.4rem;
+  cursor: pointer;
+  background: linear-gradient(160deg, #fdfaf4, #f4eee2);
+  transition:
+    border-color 0.2s,
+    transform 0.12s;
+}
+
+.sim .chart:hover {
+  transform: translateY(-1px);
+}
+
+.sim .chart.sel {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+
+.sim .chart .ctitle {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--dim);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.sim .chart .cval {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+
+.sim .chart .cval.pass {
+  color: var(--accent);
+}
+
+.sim .chart .cval.fail {
+  color: var(--bad);
+}
+
+.sim .chart svg {
+  display: block;
+  width: 100%;
+  height: 46px;
+  margin-top: 0.2rem;
+  overflow: visible;
+}
+
+/* ---------- head to head ---------- */
+
+.sim .hth-card {
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.6rem;
+}
+
+.sim .hth-lead {
+  font-size: 0.74rem;
+  line-height: 1.55;
+  color: var(--ink);
+  margin-bottom: 0.55rem;
+}
+
+.sim .hth-scroll {
+  overflow-x: auto;
+  margin: 0 -0.85rem;
+  padding: 0 0.85rem;
+}
+
+.sim table.hth {
+  min-width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+}
+
+.sim table.hth th {
+  color: var(--dim);
+  font-weight: 400;
+  text-align: right;
+  padding: 0.2rem 0.35rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 8em;
+}
+
+.sim table.hth td {
+  text-align: right;
+  padding: 0.22rem 0.35rem;
+  border-top: 1px solid var(--rule);
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.sim table.hth .hth-t {
+  text-align: left;
+  color: var(--ink);
+  white-space: normal;
+  min-width: 6.5em;
+}
+
+.sim table.hth .hth-win {
+  font-weight: 700;
+}
+
+.sim table.hth th .cmpsw {
+  margin-right: 0.3rem;
+}
+
+/* ---------- method list ---------- */
+
+.sim .cmplist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.sim .cmprow {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.sim .cmprow:hover {
+  border-color: var(--ink);
+}
+
+.sim .cmprow.sel {
+  background: #f3ede1;
+}
+
+.sim .cmprow.paneled {
+  border-radius: 8px 8px 0 0;
+}
+
+.sim .cmpsw {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+.sim .cmprank {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--dim);
+  width: 1.6rem;
+  flex: none;
+  text-align: center;
+}
+
+.sim .cmpname {
+  flex: 1;
+  font-size: 0.78rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sim .cmprow.paneled .cmpname {
+  white-space: normal;
+  overflow: visible;
+}
+
+.sim .cmpscore {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--dim);
+  flex: none;
+}
+
+.sim .cmphint {
+  font-size: 0.72rem;
+  color: var(--dim);
+  font-family: var(--font-mono);
+}
+
+.sim .cmpreset {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--dim);
+  cursor: pointer;
+  padding: 0.3rem 0.2rem 0;
+  align-self: flex-end;
+}
+
+.sim .cmpreset:hover {
+  color: var(--accent);
+}
+
+.sim .expmag,
+.sim .expov {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 2px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.sim .expmag:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sim .expov.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ---------- animation panel ---------- */
+
+.sim .cmpanim {
+  border: 1px solid var(--rule);
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+  background: linear-gradient(160deg, #efe7d8, #e7ddca);
+  margin: -0.3rem 0 0.3rem;
+  padding: 0.6rem;
+}
+
+.sim .panhead {
+  margin-bottom: 0.55rem;
+}
+
+.sim .panseq {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.sim .panmeta {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--dim);
+  line-height: 1.5;
+}
+
+.sim .panuntrack {
+  float: right;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.sim .cmpaniml {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--dim);
+  text-align: center;
+  min-height: 1.1em;
+}
+
+.sim .mininav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  margin-top: 0.5rem;
+}
+
+.sim .mininav button {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  width: 2rem;
+  height: 2rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.sim .mininav button:disabled {
+  color: var(--rule);
+  cursor: default;
+}
+
+.sim .btrack {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink);
+  margin-top: 0.3rem;
+  min-height: 1.2em;
+}
+
+/* ---------- move tokens (shared by panel and builder) ---------- */
+
+.sim .tok {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  padding: 0.18rem 0.4rem;
+  border-radius: 5px;
+  color: #fff;
+  cursor: pointer;
+  opacity: 0.55;
+}
+
+.sim .tok.curr {
+  opacity: 1;
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 3.5px currentColor;
+}
+
+.sim .tok.mash {
+  background: #1a6b3a;
+}
+
+.sim .tok.overhand {
+  background: #c0612a;
+}
+
+.sim .tok.pile {
+  background: #3a5f9e;
+}
+
+.sim .tok.ohr {
+  background: #2f8f7f;
+}
+
+.sim .tok.ohb {
+  background: #27796b;
+}
+
+/* ---------- builder ---------- */
+
+.sim .btitle {
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.sim .bframe {
+  background: linear-gradient(160deg, #efe7d8, #e7ddca);
+  border-radius: 12px;
+  padding: 0.8rem;
+  margin: 0.6rem 0;
+}
+
+.sim .seqrow {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.sim .bseqrow {
+  min-height: 1.7rem;
+  margin: 0.5rem 0 0.2rem;
+}
+
+.sim .seqslot {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sim .seqslot:empty {
+  display: none;
+}
+
+.sim .seqlabel {
+  cursor: pointer;
+  padding: 0.15rem 0.4rem 0.15rem 0.1rem;
+  border-radius: 6px;
+  user-select: none;
+}
+
+.sim .seqlabel:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.sim .seqlabel.curr {
+  background: var(--accent);
+  color: #fff;
+}
+
+.sim .caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  background: var(--accent);
+  border-radius: 1px;
+  animation: sim-blink 1s steps(2) infinite;
+  vertical-align: -2px;
+}
+
+@keyframes sim-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0.15;
+  }
+}
+
+.sim .bnav {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+
+.sim .navbtn {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0.4rem 0;
+  text-align: center;
+  background: linear-gradient(180deg, #fffdf8, #efe7d6);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  box-shadow:
+    0 2px 3px rgba(60, 45, 20, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.sim .navbtn:active {
+  box-shadow: inset 0 2px 4px rgba(60, 45, 20, 0.3);
+  transform: translateY(1px);
+}
+
+.sim .navbtn:disabled {
+  color: var(--rule);
+  cursor: default;
+  box-shadow: none;
+  background: var(--surface);
+}
+
+.sim .navbtn.navundo {
+  color: #a04a2a;
+  flex: 1.3;
+}
+
+.sim .builder2 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.sim .chip {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 0.28rem 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  cursor: pointer;
+  background: linear-gradient(180deg, #fffdf8, #efe7d6);
+  box-shadow:
+    0 2px 3px rgba(60, 45, 20, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.sim .chip:active {
+  box-shadow: inset 0 2px 4px rgba(60, 45, 20, 0.3);
+  transform: translateY(1px);
+}
+
+.sim .chip.mash {
+  color: #1a6b3a;
+}
+
+.sim .chip.pile {
+  color: #3a5f9e;
+}
+
+.sim .ohpill {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--rule);
+  border-radius: 20px;
+  overflow: hidden;
+  background: #f6f0e2;
+}
+
+.sim .ohlab {
+  display: flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: #c0612a;
+  padding: 0.32rem 0.7rem;
+}
+
+.sim .ohhalf {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #2f8f7f;
+  cursor: pointer;
+  user-select: none;
+  padding: 0.32rem 0.65rem;
+  background: linear-gradient(180deg, #fffdf8, #efe7d6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -2px 3px rgba(60, 45, 20, 0.15);
+}
+
+.sim .ohhalf.toph {
+  border-radius: 20px 0 0 20px;
+  border-right: 1.5px solid rgba(60, 45, 20, 0.3);
+}
+
+.sim .ohhalf:active {
+  box-shadow: inset 0 2px 4px rgba(60, 45, 20, 0.3);
+}
+
+.sim .bhint {
+  font-size: 0.72rem;
+  color: var(--dim);
+  line-height: 1.5;
+  margin: 0.4rem 0;
+}
+
+.sim button.run {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 0.45rem 0.9rem;
+  border: none;
+  border-radius: 7px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+/* ---------- key and footer ---------- */
+
+.sim .keyline {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: var(--dim);
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0.7rem;
+}
+
+.sim .kg {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.sim .kg-sw {
+  width: 54px;
+  height: 9px;
+  border-radius: 2px;
+}
+
+.sim .kg-dash {
+  display: inline-block;
+  width: 18px;
+  border-top: 2px dashed #1a6b3a;
+}
+
+.sim .desc {
+  font-size: 0.68rem;
+  color: var(--dim);
+  line-height: 1.55;
+  margin-top: 0.7rem;
+}
+
+.sim .simfoot {
+  margin-top: 1.1rem;
+  border-top: 1px solid var(--rule);
+  padding-top: 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  line-height: 1.55;
+  color: var(--dim);
+}
+
+.sim .simfoot b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+@media (max-width: 680px) {
+  .sim .charts {
+    grid-template-columns: 1fr 1fr;
+  }
+}
