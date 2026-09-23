@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The sticky ends — off-centre riffles</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600&display=swap');
+:root{--bg:#f7f3ed;--ink:#18140f;--dim:#8a7f72;--rule:#ddd5c8;--surface:#fff;--accent:#1a6b3a;--shadow:rgba(60,45,20,0.12);}
+*{box-sizing:border-box;}
+body{background:var(--bg);color:var(--ink);font-family:'DM Sans',sans-serif;padding:1.4rem;margin:0 auto;max-width:860px;line-height:1.55;}
+h1{font-family:'Playfair Display',serif;font-weight:900;font-size:2rem;margin:0;letter-spacing:-0.01em;}
+h2{font-family:'Playfair Display',serif;font-weight:700;font-size:1.25rem;margin:2rem 0 0.5rem;}
+.sub{color:var(--dim);font-size:0.9rem;margin:0.3rem 0 1.4rem;}
+p{font-size:0.9rem;margin:0.55rem 0;}
+.small{font-size:0.78rem;color:var(--dim);}
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:1rem 1.1rem;margin:0.9rem 0;box-shadow:0 8px 28px -12px var(--shadow);}
+.klabel{font-family:'DM Mono',monospace;font-size:0.58rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--dim);margin-bottom:0.4rem;}
+.striplbl{font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--dim);margin:0.55rem 0 0.2rem;display:flex;justify-content:space-between;}
+.strip{display:flex;height:26px;border-radius:5px;overflow:hidden;border:1px solid var(--rule);}
+.strip i{flex:1;}
+.dealbtn{font-family:'DM Mono',monospace;font-size:0.66rem;color:var(--ink);background:none;border:1px solid var(--rule);border-radius:20px;padding:0.3rem 0.8rem;cursor:pointer;margin-top:0.7rem;}
+.dealbtn:hover{border-color:var(--ink);}
+.legend{display:flex;flex-wrap:wrap;gap:0.45rem;margin:0.6rem 0 0.2rem;}
+.lchip{font-family:'DM Mono',monospace;font-size:0.62rem;border:1.5px solid;border-radius:20px;padding:0.2rem 0.6rem;cursor:pointer;opacity:0.35;user-select:none;background:var(--surface);}
+.lchip.on{opacity:1;}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:7px;overflow:hidden;margin-left:0.6rem;}
+.seg button{font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--dim);background:none;border:0;padding:0.25rem 0.55rem;cursor:pointer;}
+.seg button.on{background:var(--accent);color:#fff;}
+.chartrow{display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;}
+@media(max-width:640px){.chartrow{grid-template-columns:1fr;}}
+svg{display:block;width:100%;height:auto;}
+table{border-collapse:collapse;width:100%;font-size:0.78rem;}
+th,td{padding:0.35rem 0.5rem;text-align:right;font-family:'DM Mono',monospace;font-size:0.68rem;}
+th{color:var(--dim);font-weight:500;text-transform:uppercase;font-size:0.56rem;letter-spacing:0.07em;border-bottom:1px solid var(--rule);}
+td:first-child,th:first-child{text-align:left;}
+tr.hl td{background:#eef4ee;}
+.verdict{border-left:3px solid var(--accent);padding:0.6rem 0.9rem;background:#f2f0e9;border-radius:0 8px 8px 0;margin:1rem 0;}
+.foot{font-size:0.72rem;color:var(--dim);border-top:1px solid var(--rule);margin-top:2rem;padding-top:0.8rem;line-height:1.6;}
+a{color:var(--accent);}
+.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.tablewrap table{min-width:560px;}
+</style>
+</head>
+<body>
+<h1>The sticky ends</h1>
+<p class="sub">Off-centre riffles on 99 cards: what an offset merge buys against sticky ends, and what it costs.</p>
+
+<div class="verdict" id="verdict"></div>
+
+<h2>The move</h2>
+<p>Cut as normal, then let the two halves merge off centre by <b>g</b> cards. The interleave now misses the inner face of each half: the first g cards to fall are the solid block from just below the cut, and the last g are the block from just above it. Both new ends are therefore middle cards, delivered in order, while everything else &mdash; including both original end cards &mdash; lands inside the interleave. One pass looks like this, with every card coloured by where it started:</p>
+
+<div class="card">
+  <div class="klabel">One pass, coloured by where each card started (dark = near the front, light = near the back)</div>
+  <div class="striplbl"><span>plain riffle</span><span>ends barely move</span></div>
+  <div class="strip" id="s_mash"></div>
+  <div class="striplbl"><span>off-centre, g = 10</span><span>middle blocks at the ends; old ends inside the mix</span></div>
+  <div class="strip" id="s_off"></div>
+  <button class="dealbtn" id="deal" type="button">deal again</button>
+</div>
+
+<h2>Mobility by starting position</h2>
+<p>The chart shows how far cards actually travel, grouped by where they start. Each point averages five neighbouring starting positions, expressed as a share of the movement full randomization would produce &mdash; 1.0 means those cards move as though the deck were genuinely being randomized. A plain riffle traces a deep U: the middle travels freely while the ends barely move. The offsets lift the two arms of the U roughly in proportion to g.</p>
+
+<div class="card">
+  <div class="klabel">share of random-expected movement, by starting position (groups of 5) <span class="seg" id="passSeg"><button data-p="1" class="on">after 1</button><button data-p="3">after 3</button><button data-p="6">after 6</button></span></div>
+  <div id="mobchart"></div>
+  <div class="legend" id="legend"></div>
+</div>
+
+<h2>What it buys, what it costs</h2>
+<p>The cost of the offset is that every pass leaves 2g cards in two pristine, ordered blocks, and the diagnostics that look for surviving runs register it immediately. Even position bias only improves up to a point: always delivering middle cards to the ends is itself a positional signature, and at larger offsets it starts to show.</p>
+
+<div class="chartrow">
+  <div class="card"><div class="klabel">Ordering &mdash; descents (random &approx; 50, band shaded)</div><div id="c_ordering"></div></div>
+  <div class="card"><div class="klabel">Proximity &mdash; close pairs (pass &le; threshold, dashed)</div><div id="c_proximity"></div></div>
+  <div class="card"><div class="klabel">Longest chain (pass &le; threshold, dashed)</div><div id="c_chain"></div></div>
+  <div class="card"><div class="klabel">Position &chi;&sup2;, log scale (pass &le; threshold, dashed)</div><div id="c_position"></div></div>
+  <div class="card"><div class="klabel">End retention &mdash; original end cards still home (random 0.08; band = &plusmn;3 SE, dashed)</div><div id="c_endret"></div></div>
+</div>
+
+<div class="card">
+  <div class="klabel">Passes needed to clear each diagnostic (12-pass budget; every pass is one riffle &mdash; the alternating row simply switches type each pass)</div>
+  <div class="tablewrap"><table id="cleartab"></table></div>
+</div>
+
+<h2>The exploit the diagnostics miss</h2>
+<p>One failure does slip past the aggregate diagnostics. Position &chi;&sup2; spreads its evidence across all 9,801 card&ndash;position pairs, but the exploit that matters at a table is a single cell &mdash; the card you know is on the bottom, still being on the bottom. Measured directly, a plain riffle leaves that card findable at <b>three times</b> the random rate after five passes, the same depth at which &chi;&sup2; clears.</p>
+
+<div class="card">
+  <div class="klabel">P(original end card still within 3 of its end) &mdash; random = 4.0%</div>
+  <div class="tablewrap"><table>
+    <tr><th>method</th><th>3 passes</th><th>5 passes</th><th>6 passes</th><th>8 passes</th></tr>
+    <tr><td><span style="color:#8fb3d6">&#9632;</span> plain riffle</td><td>42.0%</td><td>12.3%</td><td>7.6%</td><td>5.0%</td></tr>
+    <tr class="hl"><td><span style="color:#c0612a">&#9632;</span> alternating (10 / plain)</td><td>0.5%</td><td>2.3%</td><td>3.5%</td><td>4.0%</td></tr>
+  </table></div>
+  <p class="small" style="margin-top:0.5rem">The alternating schedule&rsquo;s 0.5% after three passes is actually <i>below</i> the random rate: early on, the eviction is reliable enough to guarantee the card is not at the end. That is weak information of its own kind, and it fades to random by eight passes.</p>
+</div>
+
+<p>To make this failure count against a method, the page adds a diagnostic built for it. <b>End retention</b> is the expected number of original end cards still within three positions of their end &mdash; 0.08 for a random deck. Because the exploit is a rare-event rate rather than per-deck structure, it is judged on the trial-averaged rate, within three standard errors of random and two-sided, since reliably <i>missing</i> from the ends is a signature as well. Plain riffling fails it until pass eight, three passes after the rest of the suite has gone quiet. The offsets briefly fail low while the eviction is still guaranteed &mdash; and the larger ones echo a card back to the ends around pass three &mdash; before clearing between three and six; the alternating schedule clears from pass four.</p>
+
+<p>The two failure modes complement each other, which is why alternating works: the off-centre pass frees the ends but leaves tails, and the plain pass shreds the tails but re-pins the ends. Run in alternation, each pass cleans up after the other.</p>
+
+<p class="foot" id="foot"></p>
+
+<script>
+const DATA={"N":99,"T":300,"depth":12,"buckets":[[0,4],[5,9],[10,14],[15,19],[20,24],[25,29],[30,34],[35,39],[40,44],[45,49],[50,54],[55,59],[60,64],[65,69],[70,74],[75,79],[80,84],[85,89],[90,94],[95,98]],"thr":{"ordering":{"thr":8.71,"mean":50.1,"side":"two"},"proximity":{"thr":12.86,"mean":5.88,"side":"low"},"position":{"thr":11044.6,"mean":9604,"side":"low"},"chain":{"thr":6.87,"mean":4.6,"side":"low"},"endret":{"thr":0.0483,"mean":0.0807,"side":"two"}},"variants":{"mash":{"mob":[[0.057,0.181,0.329,0.511,0.721,0.959,1.211,1.432,1.574,1.636,1.614,1.532,1.355,1.13,0.894,0.673,0.475,0.305,0.166,0.059],[0.177,0.56,1.012,1.456,1.437,0.832,0.598,0.737,1.028,1.228,1.192,0.983,0.761,0.782,1.112,1.324,1.264,0.911,0.502,0.178],[0.414,1.181,1.023,0.854,1.151,0.92,1.007,1.029,0.937,0.954,1.03,1.011,0.967,0.979,1.106,0.954,0.904,1.139,0.968,0.397],[0.803,0.93,1.031,1.003,0.994,1.016,0.971,0.989,0.977,1.023,0.965,1.011,0.996,1.001,1.015,0.975,0.991,0.973,1.024,0.691],[0.896,0.979,0.986,1.001,1.001,0.995,0.991,1.002,0.996,1.004,0.999,1.005,1.017,1.005,0.984,0.996,0.982,0.998,0.974,0.87],[0.947,0.993,0.989,0.999,0.989,0.992,1.007,1.001,0.971,0.983,1.002,0.995,1.019,1.013,0.974,0.993,0.974,1.008,0.986,0.93],[0.968,0.974,0.995,1.005,1.015,1.005,1.006,0.991,0.993,1.012,0.997,0.982,1.009,1.002,0.984,0.984,0.998,1.008,0.994,0.964],[0.992,0.98,1.011,0.991,0.997,0.99,1.018,0.987,1.03,1.023,1.018,0.976,0.996,1.01,1.0,1.008,0.994,0.986,1.009,0.982],[0.987,1.008,1.018,0.989,0.992,0.978,1.005,1.016,1.012,0.972,1.032,0.999,0.999,0.983,1.0,0.997,0.984,0.985,1.002,0.987],[0.988,1.001,1.002,1.009,0.999,0.963,1.028,1.019,0.985,0.992,0.983,1.001,0.996,0.999,0.988,0.991,0.972,0.983,1.001,1.01],[1.002,0.991,0.997,1.02,0.99,0.987,0.988,1.0,0.996,0.966,1.016,0.988,1.01,1.023,0.98,0.999,0.988,0.979,1.013,0.983],[1.012,1.0,0.979,0.972,0.982,1.003,1.019,1.015,1.008,1.017,0.996,1.012,0.986,1.005,0.977,0.979,0.985,0.983,1.027,0.997]],"ordering":[2.0,4.0,8.0,15.96,30.69,46.06,49.43,49.88,49.74,49.91,49.91,50.04],"proximity":[92.06,44.22,14.12,4.15,1.61,3.35,5.61,6.18,6.26,5.97,5.81,5.56],"chain":[54.8,30.69,17.67,10.49,6.61,4.7,4.57,4.54,4.52,4.61,4.67,4.59],"position":[161127.0,54556.0,21935.0,12846.0,10598.0,9566.0,9763.0,9528.0,9445.0,9513.0,9608.0,9752.0],"endret":[1.87,1.4167,0.85,0.4667,0.2533,0.1667,0.1333,0.1267,0.09,0.07,0.08,0.09]},"off5":{"mob":[[0.166,0.307,0.471,0.666,0.887,1.136,1.402,1.622,1.741,1.758,1.75,1.711,1.563,1.344,1.09,0.853,0.636,0.447,0.288,0.169],[0.499,0.923,1.404,1.62,1.234,0.687,0.606,0.818,1.107,1.27,1.262,1.116,0.872,0.736,0.867,1.214,1.426,1.286,0.859,0.501],[1.158,1.181,0.736,1.106,1.098,0.924,1.042,1.111,0.951,0.805,0.881,0.964,1.015,1.049,1.008,1.03,0.95,0.949,1.203,1.07],[1.004,1.004,1.015,0.968,0.916,0.965,0.999,0.992,0.958,0.886,0.895,0.95,0.982,1.021,0.976,0.977,0.981,1.003,1.008,1.008],[1.023,0.989,1.015,0.966,0.99,0.999,1.007,0.97,1.074,1.096,1.106,1.058,1.013,1.005,0.973,0.968,0.982,0.998,0.998,0.984],[1.003,0.99,1.014,1.004,1.041,1.002,0.947,1.006,0.993,0.993,1.006,0.965,0.973,0.969,1.017,1.008,1.021,1.01,0.987,1.015],[0.991,0.98,0.988,0.998,1.018,0.973,0.982,1.013,0.996,0.981,0.981,0.994,0.978,0.995,0.979,0.993,0.982,1.002,1.011,1.028],[1.003,1.031,0.999,1.028,1.039,0.99,1.005,0.999,0.942,0.981,0.987,0.994,1.03,1.01,0.987,1.043,0.988,1.009,1.007,1.015],[1.01,0.998,0.998,1.001,1.044,1.011,1.0,1.006,1.025,1.02,1.027,0.998,0.982,1.008,0.994,1.018,0.991,1.012,1.007,1.017],[1.016,1.01,1.001,1.011,1.004,0.991,0.977,0.999,1.006,0.985,1.0,1.014,0.992,0.987,0.998,1.025,1.009,1.004,0.999,1.008],[1.001,0.994,1.003,1.015,1.005,0.998,0.999,1.0,0.997,1.013,1.008,0.997,1.033,1.006,0.984,1.006,1.011,0.986,0.983,1.005],[0.996,1.016,1.013,1.008,1.001,0.994,1.002,0.962,0.993,1.013,1.005,0.992,0.997,0.992,1.027,0.975,0.992,1.0,1.002,1.014]],"ordering":[2.0,4.0,7.99,15.22,26.82,40.51,47.63,49.33,49.96,49.69,50.0,49.89],"proximity":[92.25,52.99,21.63,7.53,3.04,3.1,4.83,5.64,6.09,6.05,6.16,5.96],"chain":[54.74,31.62,18.36,11.16,7.39,5.35,4.72,4.66,4.59,4.66,4.59,4.59],"position":[157112.0,46634.0,18127.0,11852.0,10103.0,9765.0,9711.0,9557.0,9835.0,9699.0,9570.0,9681.0],"endret":[0.0,0.0,0.0067,0.13,0.06,0.0767,0.07,0.0867,0.0567,0.07,0.0933,0.07]},"off10":{"mob":[[0.271,0.421,0.598,0.802,1.039,1.316,1.577,1.751,1.803,1.779,1.767,1.768,1.683,1.496,1.243,0.993,0.768,0.573,0.404,0.275],[0.826,1.292,1.671,1.497,0.88,0.601,0.688,0.89,1.058,1.108,1.099,1.033,0.864,0.741,0.771,1.08,1.406,1.473,1.188,0.823],[1.349,0.664,0.978,1.101,0.845,0.96,1.08,0.949,0.754,0.641,0.62,0.811,0.998,1.012,0.952,0.947,0.986,0.897,0.925,1.311],[1.021,0.979,0.959,0.909,1.002,1.066,1.036,1.086,1.175,1.214,1.252,1.167,1.086,1.016,1.002,0.987,0.965,0.944,0.99,0.991],[0.952,1.022,1.037,1.062,1.055,0.992,0.92,0.915,0.978,0.966,0.914,0.915,0.95,0.984,1.04,1.015,1.044,1.052,0.99,0.962],[1.007,0.981,0.962,0.986,0.957,0.974,1.023,1.042,0.944,0.949,0.948,1.005,1.027,1.015,0.996,0.957,0.964,0.975,0.977,1.018],[1.015,0.986,0.988,1.002,0.996,0.983,1.004,1.015,1.05,1.064,1.087,1.027,1.009,1.009,1.001,0.971,0.994,1.013,0.993,1.006],[1.016,0.979,1.015,1.007,1.021,0.992,0.971,0.976,0.975,0.978,0.95,0.978,0.988,0.991,1.008,0.99,1.006,0.987,1.001,0.99],[1.024,0.955,0.986,1.034,0.949,0.991,1.01,1.001,0.974,0.986,1.012,1.017,1.012,1.001,1.003,0.984,0.999,0.966,1.024,0.971],[0.999,0.959,1.031,1.004,0.987,1.011,0.989,0.997,1.048,0.991,1.004,1.009,1.01,0.983,1.011,1.013,0.995,0.964,1.023,0.979],[0.954,0.972,1.039,1.017,1.021,1.021,1.026,1.003,0.987,1.0,0.986,1.011,0.994,1.013,0.994,0.982,1.019,0.994,1.0,1.001],[0.994,1.001,0.998,0.994,0.999,0.989,1.008,0.993,0.99,0.996,1.008,1.01,1.004,1.019,1.0,0.983,1.033,0.983,0.969,0.985]],"ordering":[2.0,4.0,7.87,12.89,21.77,33.01,41.81,46.76,48.7,49.37,49.79,49.87],"proximity":[92.8,63.51,32.13,13.91,5.95,3.61,4.12,5.14,5.7,5.84,5.86,5.71],"chain":[55.09,33.74,20.26,13.28,9.24,6.63,5.35,4.82,4.7,4.56,4.53,4.57],"position":[151757.0,44104.0,20227.0,12834.0,11213.0,10276.0,9987.0,9807.0,9938.0,9574.0,9575.0,9512.0],"endret":[0.0,0.0,0.0633,0.0567,0.0867,0.0833,0.1033,0.09,0.0867,0.09,0.1,0.0633]},"off15":{"mob":[[0.379,0.539,0.735,0.968,1.235,1.501,1.711,1.8,1.82,1.773,1.774,1.803,1.776,1.621,1.394,1.147,0.911,0.704,0.523,0.384],[1.161,1.598,1.668,1.099,0.636,0.559,0.681,0.815,0.909,0.924,0.924,0.908,0.827,0.704,0.643,0.836,1.229,1.578,1.45,1.141],[0.746,0.764,1.081,0.878,0.815,1.092,1.171,1.039,0.885,0.775,0.787,0.905,1.048,1.095,0.992,0.942,0.97,0.992,0.73,0.911],[0.979,0.969,0.88,1.04,1.199,1.074,0.903,0.925,1.043,1.188,1.151,1.024,0.969,0.966,1.029,1.106,0.968,0.832,0.961,1.025],[1.085,1.028,1.044,0.99,0.979,0.949,1.023,1.068,1.036,0.912,0.997,1.03,1.019,1.009,0.974,1.031,1.031,1.051,1.053,0.972],[0.991,1.015,1.007,1.021,0.971,0.999,1.003,0.968,0.929,1.023,0.987,0.978,0.995,1.001,0.985,0.974,0.986,0.997,1.0,0.992],[1.009,0.966,0.974,1.025,1.024,1.023,0.974,0.992,1.064,1.001,1.014,1.012,1.003,1.022,0.993,1.007,1.011,0.967,0.99,0.993],[0.997,1.008,1.002,1.019,0.99,0.977,1.033,1.024,0.956,1.008,1.015,1.006,1.019,0.991,1.009,0.989,0.986,1.022,1.023,0.997],[1.012,1.013,0.982,0.999,1.01,1.0,1.007,0.991,1.011,0.999,0.963,1.002,0.986,0.999,1.008,0.973,1.029,1.014,1.011,0.985],[0.997,1.018,1.006,0.952,1.031,1.008,1.004,0.969,0.978,0.975,1.037,0.993,0.976,1.007,0.999,1.019,1.014,0.99,0.986,0.98],[1.0,1.002,1.001,0.995,1.011,0.978,1.015,0.999,0.993,1.016,0.976,1.012,1.018,0.98,0.993,1.017,0.974,1.011,0.963,1.015],[1.018,0.97,1.026,0.993,0.976,0.987,0.973,1.011,0.995,0.991,1.009,1.002,0.99,1.002,0.977,0.991,1.01,1.022,1.011,1.021]],"ordering":[2.0,4.0,6.63,10.22,15.54,23.1,32.17,40.48,45.79,48.58,49.8,49.87],"proximity":[93.3,74.14,45.47,24.11,12.25,6.31,3.92,3.49,4.04,4.88,5.47,5.69],"chain":[55.32,36.64,24.82,17.85,12.65,9.26,7.08,5.54,4.86,4.58,4.57,4.54],"position":[145246.0,43654.0,20632.0,12070.0,10179.0,9649.0,9684.0,9718.0,9834.0,9610.0,9785.0,9716.0],"endret":[0.0,0.0,0.3167,0.0,0.0633,0.0933,0.0433,0.0867,0.0933,0.08,0.0767,0.09]},"off20":{"mob":[[0.486,0.659,0.866,1.111,1.381,1.617,1.776,1.855,1.857,1.793,1.8,1.835,1.814,1.715,1.526,1.296,1.058,0.838,0.644,0.496],[1.467,1.733,1.417,0.757,0.463,0.49,0.594,0.7,0.768,0.755,0.746,0.717,0.638,0.566,0.522,0.594,0.969,1.421,1.605,1.417],[0.575,0.946,1.013,0.891,1.064,1.276,1.32,1.255,1.134,1.147,1.161,1.22,1.315,1.309,1.214,1.037,0.991,0.999,0.849,0.612],[1.148,0.948,0.928,1.154,1.1,0.884,0.74,0.803,0.81,0.804,0.789,0.771,0.757,0.832,1.0,1.084,1.004,0.923,1.031,1.11],[0.977,0.973,0.99,0.916,0.964,1.056,1.155,1.129,1.17,1.139,1.152,1.187,1.186,1.065,1.011,0.962,0.992,0.982,0.972,1.013],[1.023,1.037,0.992,1.039,1.058,0.935,0.874,0.904,0.877,0.927,0.899,0.887,0.86,0.926,0.93,1.025,1.019,1.0,0.984,1.035],[0.988,0.993,0.979,0.975,0.947,1.049,1.103,1.089,1.099,1.052,1.063,1.085,1.106,1.052,1.072,0.969,0.979,1.035,1.004,0.992],[1.005,1.027,1.024,0.988,1.016,0.977,0.951,0.932,0.922,0.964,0.966,0.928,0.933,0.958,0.985,1.024,0.998,0.999,0.986,1.022],[0.985,0.996,0.979,1.007,0.983,1.001,1.068,1.051,1.06,1.032,1.031,1.047,1.055,1.021,1.0,0.996,0.978,0.99,0.999,1.022],[0.99,0.995,1.003,0.965,1.034,0.988,0.967,0.984,0.968,0.967,0.98,0.965,0.975,1.0,0.991,0.995,1.029,0.976,0.979,1.011],[1.006,0.982,0.984,0.994,0.993,0.995,1.024,1.007,1.008,1.036,1.035,1.018,1.016,0.99,1.014,1.007,1.011,1.004,1.005,0.973],[0.989,1.013,1.032,1.012,1.005,0.995,0.983,0.996,0.99,0.972,0.968,1.005,0.998,0.98,0.982,1.026,0.997,1.024,1.005,0.979]],"ordering":[2.0,4.0,5.18,8.07,12.29,17.49,25.27,33.03,40.01,45.03,47.7,48.93],"proximity":[93.85,83.23,57.44,34.96,20.15,10.61,6.08,3.86,3.93,4.42,5.02,5.38],"chain":[54.84,38.52,29.74,19.21,15.85,11.03,9.15,6.79,5.79,4.96,4.69,4.59],"position":[151446.0,47497.0,24580.0,15728.0,12620.0,11255.0,10512.0,10306.0,10064.0,9872.0,9691.0,9578.0],"endret":[0.0,0.0,0.1767,0.0267,0.14,0.0533,0.0967,0.1133,0.0667,0.0767,0.0833,0.0633]},"hybrid":{"mob":[[0.27,0.421,0.602,0.817,1.063,1.343,1.611,1.786,1.809,1.778,1.771,1.758,1.667,1.469,1.218,0.976,0.754,0.56,0.397,0.273],[0.599,1.025,1.433,1.358,0.805,0.638,0.897,1.251,1.465,1.53,1.498,1.345,1.092,0.822,0.727,0.936,1.317,1.329,0.962,0.607],[1.387,1.004,0.662,0.948,1.017,1.134,1.148,1.021,0.859,0.838,0.898,0.983,1.06,1.098,1.089,0.961,0.871,0.793,1.111,1.291],[1.025,1.03,0.894,0.979,1.01,1.082,1.037,0.991,0.864,0.861,0.863,0.891,1.029,1.04,1.079,0.971,0.958,0.906,1.045,1.05],[1.051,0.972,1.012,1.038,1.006,0.982,0.975,0.985,1.052,1.028,1.03,1.022,1.003,0.991,1.015,1.018,1.002,0.996,1.0,1.024],[1.007,0.998,1.048,1.001,0.986,0.975,0.992,0.998,1.031,1.02,1.043,1.01,0.987,0.978,1.023,1.032,1.014,1.003,0.979,0.98],[0.993,0.999,1.003,0.974,0.996,0.991,1.011,0.99,0.973,1.007,0.964,1.0,0.987,0.977,0.985,1.005,0.989,1.007,1.038,0.988],[0.981,0.994,0.998,0.992,1.011,0.998,1.027,1.017,0.988,0.975,1.01,1.005,0.999,0.977,1.018,0.972,0.981,1.036,1.002,0.984],[0.975,0.986,1.0,1.026,0.998,1.021,1.031,0.967,0.985,0.998,0.985,0.994,1.013,0.978,0.975,0.976,1.018,1.011,1.013,0.994],[0.958,1.023,1.008,1.008,1.014,1.006,1.006,0.971,1.005,1.007,1.021,0.991,1.008,0.987,0.995,1.021,0.979,1.007,1.018,0.982],[1.019,1.001,1.017,1.032,0.989,0.99,1.006,0.994,0.987,0.995,0.98,0.992,1.028,0.992,0.986,1.007,0.961,1.032,1.011,0.995],[1.019,1.014,1.006,1.013,1.013,0.998,1.03,0.964,0.994,0.991,0.996,1.019,1.027,1.002,1.002,0.988,0.987,1.019,0.993,1.042]],"ordering":[2.0,4.0,7.98,14.54,24.62,38.49,46.48,48.9,49.96,49.93,50.16,49.99],"proximity":[92.98,54.44,25.91,7.83,3.33,2.74,4.03,5.54,5.77,5.95,5.93,6.01],"chain":[55.07,34.03,20.32,12.26,8.66,6.01,4.71,4.55,4.58,4.59,4.51,4.5],"position":[158337.0,40051.0,18760.0,11344.0,9996.0,9765.0,9597.0,9686.0,9775.0,9739.0,9559.0,9538.0],"endret":[0.0,0.0,0.0,0.1267,0.05,0.0567,0.1033,0.09,0.0733,0.0533,0.1067,0.0733]}}};
+const V=DATA.variants, DEPTH=DATA.depth, B=DATA.buckets;
+const META={
+ mash:{name:'plain riffle (g = 0)',color:'#8fb3d6'},
+ off5:{name:'off-centre 5',color:'#5f92c4'},
+ off10:{name:'off-centre 10',color:'#3a6fae'},
+ off15:{name:'off-centre 15',color:'#245493'},
+ off20:{name:'off-centre 20',color:'#123a72'},
+ hybrid:{name:'alternating (10 / plain)',color:'#c0612a'}
+};
+const ORDER=['mash','off5','off10','off15','off20','hybrid'];
+const show={mash:true,off5:false,off10:true,off15:false,off20:true,hybrid:true};
+let mobPass=1;
+
+/* ---------- tiny engine for the strips ---------- */
+function gauss(m,s){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();return m+s*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function cut(n){const lo=Math.floor(n/3),hi=Math.floor(2*n/3);return Math.max(lo,Math.min(hi,Math.round(gauss(n/2,n*0.07))));}
+const PV=[1,2,3,4],PW=[80,15,4,1];const PC=(function(){let s=0,c=[];for(const w of PW){s+=w;c.push(s);}return{c:c,t:s};})();
+function drawPacket(){const r=Math.random()*PC.t;for(let i=0;i<PV.length;i++)if(r<PC.c[i])return PV[i];return 1;}
+function riffle(a,b){const s=[a.slice(),b.slice()];let c=Math.random()<0.5?0:1;const r=[];
+  while(s[0].length&&s[1].length){
+    const share=s[c].length/((s[0].length+s[1].length)/2);
+    const x=drawPacket()*share;let k=Math.floor(x);if(Math.random()<x-k)k++;
+    k=Math.max(1,Math.min(s[c].length,k));
+    for(let i=0;i<k;i++)r.push(s[c].shift());c^=1;}
+  while(s[0].length)r.push(s[0].shift());while(s[1].length)r.push(s[1].shift());return r;}
+function mash(d){const k=cut(d.length);return riffle(d.slice(0,k),d.slice(k));}
+function offR(d,g){const n=d.length,k=cut(n),o=Math.min(g,k-1,n-k-1);const A=d.slice(0,k),Bh=d.slice(k);
+  return Bh.slice(0,o).concat(riffle(A.slice(0,A.length-o),Bh.slice(o)),A.slice(A.length-o));}
+function colorFor(id,n){const t=id/(n-1);return 'hsl('+(150+(t-0.5)*30).toFixed(0)+',42%,'+(24+t*56).toFixed(0)+'%)';}
+function strip(el,d){el.innerHTML=d.map(v=>'<i style="background:'+colorFor(v,d.length)+'"></i>').join('');}
+function deal(){const n=DATA.N,base=Array.from({length:n},(_,i)=>i);
+  strip(document.getElementById('s_mash'),mash(base));
+  strip(document.getElementById('s_off'),offR(base,10));}
+document.getElementById('deal').addEventListener('click',deal);
+
+/* ---------- chart helper ---------- */
+function line(pts,W,H,xmin,xmax,ymin,ymax){return pts.map((p,i)=>(i?'L':'M')+(( (p[0]-xmin)/(xmax-xmin)*(W-46)+38 ).toFixed(1))+','+(( H-20-(p[1]-ymin)/(ymax-ymin)*(H-34) ).toFixed(1))).join('');}
+function chart(el,series,opts){
+  const W=440,H=opts.h||190,ymin=opts.ymin,ymax=opts.ymax,xmin=opts.xmin,xmax=opts.xmax;
+  let s='<svg viewBox="0 0 '+W+' '+H+'" font-family="DM Mono,monospace" font-size="9">';
+  s+='<line x1="38" y1="'+(H-20)+'" x2="'+(W-8)+'" y2="'+(H-20)+'" stroke="#ccc3b4" stroke-width="1"/>';
+  s+='<line x1="38" y1="14" x2="38" y2="'+(H-20)+'" stroke="#ccc3b4" stroke-width="1"/>';
+  (opts.hlines||[]).forEach(hl=>{const y=H-20-(hl.y-ymin)/(ymax-ymin)*(H-34);
+    s+='<line x1="38" y1="'+y.toFixed(1)+'" x2="'+(W-8)+'" y2="'+y.toFixed(1)+'" stroke="'+(hl.color||'#7fae8f')+'" stroke-width="1" stroke-dasharray="4 3"/>';
+    if(hl.lab)s+='<text x="'+(W-9)+'" y="'+(y-3).toFixed(1)+'" text-anchor="end" fill="#7fae8f">'+hl.lab+'</text>';});
+  series.forEach(sr=>{s+='<path d="'+line(sr.pts,W,H,xmin,xmax,ymin,ymax)+'" fill="none" stroke="'+sr.color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';});
+  s+='<text x="36" y="12" text-anchor="end" fill="#8a7f72">'+(opts.ytop!==undefined?opts.ytop:ymax)+'</text>';
+  s+='<text x="36" y="'+(H-22)+'" text-anchor="end" fill="#8a7f72">'+(opts.ybot!==undefined?opts.ybot:ymin)+'</text>';
+  s+='<text x="40" y="'+(H-8)+'" fill="#8a7f72">'+opts.xlabL+'</text>';
+  s+='<text x="'+(W-8)+'" y="'+(H-8)+'" text-anchor="end" fill="#8a7f72">'+opts.xlabR+'</text>';
+  s+='</svg>';el.innerHTML=s;
+}
+function activeVariants(){return ORDER.filter(v=>show[v]);}
+
+/* ---------- mobility chart ---------- */
+function drawMob(){
+  const series=activeVariants().map(v=>({color:META[v].color,
+    pts:V[v].mob[mobPass-1].map((y,i)=>[i,y])}));
+  chart(document.getElementById('mobchart'),series,{h:220,xmin:0,xmax:B.length-1,ymin:0,ymax:1.15,
+    hlines:[{y:1,lab:'moves like random'}],ytop:'1.0',ybot:'0',xlabL:'front of deck',xlabR:'back of deck'});
+}
+
+/* ---------- metric charts ---------- */
+function drawMetric(k,el,opts){
+  const log=k==='position';
+  const tr=x=>log?Math.log10(x):x;
+  let ymin=Infinity,ymax=-Infinity;
+  activeVariants().forEach(v=>V[v][k].forEach(x=>{ymin=Math.min(ymin,tr(x));ymax=Math.max(ymax,tr(x));}));
+  const t=DATA.thr[k];const hl=[];
+  if(t.side==='two'){hl.push({y:t.mean-t.thr,lab:'band'});hl.push({y:t.mean+t.thr});ymin=Math.min(ymin,t.mean-t.thr);ymax=Math.max(ymax,t.mean+t.thr);}
+  else{hl.push({y:tr(t.thr),lab:'pass'});ymin=Math.min(ymin,tr(t.thr));ymax=Math.max(ymax,tr(t.thr));}
+  const pad=(ymax-ymin)*0.06;ymin-=pad;ymax+=pad;
+  const series=activeVariants().map(v=>({color:META[v].color,pts:V[v][k].map((y,i)=>[i+1,tr(y)])}));
+  chart(el,series,{h:180,xmin:1,xmax:DEPTH,ymin:ymin,ymax:ymax,hlines:hl,
+    ytop:log?('10^'+ymax.toFixed(1)):Math.round(ymax),ybot:log?('10^'+ymin.toFixed(1)):Math.round(ymin),
+    xlabL:'1 pass',xlabR:DEPTH+' passes'});
+}
+function drawMetrics(){
+  drawMetric('ordering',document.getElementById('c_ordering'),{});
+  drawMetric('proximity',document.getElementById('c_proximity'),{});
+  drawMetric('chain',document.getElementById('c_chain'),{});
+  drawMetric('position',document.getElementById('c_position'),{});
+  drawMetric('endret',document.getElementById('c_endret'),{});
+}
+
+/* ---------- clears table ---------- */
+function clears(v,k){const t=DATA.thr[k];const arr=V[v][k];
+  for(let i=0;i<arr.length;i++){const val=arr[i];
+    const ok=t.side==='low'?val<=t.thr:(t.side==='high'?val>=t.thr:Math.abs(val-t.mean)<=t.thr);
+    if(ok)return i+1;}
+  return null;}
+function edgeMob(v,pass){const m=V[v].mob[pass-1];return (m[0]+m[m.length-1])/2;}
+function buildTable(){
+  const cols=['ordering','proximity','position','chain','endret'];const LBL={endret:'end retention'};
+  let h='<tr><th>method</th><th>edge mobility, 1 pass</th>'+cols.map(c=>'<th>'+(LBL[c]||c)+'</th>').join('')+'<th>core three</th></tr>';
+  ORDER.forEach(v=>{
+    const cl=cols.map(c=>clears(v,c));
+    const core=['ordering','proximity','position'].map(c=>clears(v,c));
+    const all=core.every(x=>x!==null)?Math.max.apply(null,core):null;
+    h+='<tr'+(v==='hybrid'?' class="hl"':'')+'><td><span style="color:'+META[v].color+'">&#9632;</span> '+META[v].name+'</td>'
+      +'<td>'+Math.round(edgeMob(v,1)*100)+'%</td>'
+      +cl.map(x=>'<td>'+(x===null?'&gt;12':x)+'</td>').join('')
+      +'<td><b>'+(all===null?'&gt;12':all)+'</b></td></tr>';});
+  document.getElementById('cleartab').innerHTML=h;
+}
+
+/* ---------- legend ---------- */
+function buildLegend(){
+  const el=document.getElementById('legend');
+  el.innerHTML=ORDER.map(v=>'<span class="lchip'+(show[v]?' on':'')+'" data-v="'+v+'" style="border-color:'+META[v].color+';color:'+META[v].color+'">'+META[v].name+'</span>').join('');
+  el.querySelectorAll('.lchip').forEach(c=>c.addEventListener('click',()=>{const v=c.dataset.v;show[v]=!show[v];buildLegend();drawMob();drawMetrics();}));
+}
+document.getElementById('passSeg').addEventListener('click',e=>{const p=e.target.dataset.p;if(!p)return;
+  document.querySelectorAll('#passSeg button').forEach(b=>b.classList.toggle('on',b===e.target));mobPass=+p;drawMob();});
+
+/* ---------- verdict + foot ---------- */
+(function(){
+  const em=x=>Math.round(edgeMob(x,1)*100)+'%';
+  const core=v=>{const c=['ordering','proximity','position'].map(k=>clears(v,k));return c.every(x=>x!==null)?Math.max.apply(null,c):null;};
+  document.getElementById('verdict').innerHTML=
+    'A riffle shuffle mixes the middle of a deck far faster than its ends. In the model used here &mdash; packet sizes fitted to a real hand &mdash; the outermost cards move at about '+em('mash')+' of the pace full randomization would give them after one pass, and the practical consequence is sharper than that number sounds: a card you know to be on the bottom is still findable at three times the random rate after five passes, by which point every aggregate diagnostic in this project already reads clean. '
+   +'This page tests a correction: riffles whose merge point is deliberately off centre, so that the sticky ends are forced into the interleave, with the offset swept from 5 to 20 cards in steps of five. '
+   +'The offsets do fix the ends, roughly in proportion to their size, but they slow overall mixing &mdash; and six or more plain passes dissolve the problem on their own. The offset earns its place below that budget, where most real shuffling happens: alternating one off-centre pass with one plain pass removes the end-card exploit immediately and costs a single extra pass on the core diagnostics ('+core('hybrid')+' versus '+core('mash')+'). A purpose-built end-retention diagnostic makes the gap visible: plain riffling fails it until pass eight, the alternating schedule clears it by four.';
+  document.getElementById('foot').innerHTML=
+    'Model: gaussian cut (&sigma; = 7% of deck); packet sizes fitted to a hand-measured mash (of the first twenty packets, roughly 80% were single cards, four were pairs, one a triple; max 4 &rarr; weights 80 / 15 / 4 / 1). Halves strictly alternate, and each drop is scaled by that side&rsquo;s share of the cards still held (with stochastic rounding), so the thicker half releases faster and the two deplete together &mdash; the spatial feedback a real hand applies. This keeps the accidental solid block at the back of a pass to &approx;3 cards on average (the older chunky-packet model without feedback averaged 13, and this page is currently the only one using the corrected model). The off-centre variant leads with the lower half&rsquo;s top g cards and trails with the upper half&rsquo;s bottom g, so both solid tails come from the middle of the deck. '
+   +'Mobility = mean |displacement| of a starting position divided by its expectation under a uniformly random permutation (position-dependent: end cards are <i>expected</i> to travel further than middle cards when fully mixed). '
+   +DATA.T+' trials per method, measured at every depth to '+DEPTH+' passes on '+DATA.N+' cards; positions bucketed in groups of five. '
+   +'End retention counts the original top card within three of the top plus the original bottom card within three of the bottom; random mean 0.081. Unlike the other diagnostics, whose thresholds scale with per-deck spread, it is judged on the trial-averaged rate &mdash; within three standard errors of random at 300 trials, band 0.03&ndash;0.13, two-sided &mdash; because a per-deck threshold cannot detect a shifted probability of a rare event. The end-card table measures, over 6,000 trials, whether the original top card sits within 3 of the top or the original bottom card within 3 of the bottom (window of four positions each; random = 4/99). Thresholds come from this run&rsquo;s own random-deck calibration and differ fractionally from the main page&rsquo;s (clearing depths here may read one pass earlier or later).';
+})();
+
+deal();buildLegend();drawMob();drawMetrics();buildTable();
+</script>
+</body>
+</html>

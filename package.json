@@ -1,0 +1,15 @@
+{
+  "name": "shuffle-randomization-project",
+  "version": "1.0.0",
+  "description": "Empirical analysis of Commander (99-card) shuffle randomization: a live simulator, a battery of statistical diagnostics, and write-ups explaining what each test catches and why.",
+  "private": true,
+  "scripts": {
+    "test": "node tests/suite.js",
+    "serve": "node -e \"require('http').createServer((req,res)=>{const fs=require('fs'),path=require('path');let f=req.url==='/'?'/index.html':decodeURIComponent(req.url.split('?')[0]);let p=path.join(process.cwd(),f);fs.readFile(p,(err,data)=>{if(err){res.writeHead(404);res.end('Not found: '+f);return;}const ext=path.extname(p);const type=ext==='.html'?'text/html':ext==='.js'?'text/javascript':ext==='.json'?'application/json':'text/plain';res.writeHead(200,{'Content-Type':type});res.end(data);});}).listen(8080,()=>console.log('Serving at http://localhost:8080'))\""
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
