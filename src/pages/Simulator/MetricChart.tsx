@@ -15,7 +15,7 @@ interface Props {
 /** One diagnostic over the course of each overlaid method, with the random baseline dashed. */
 export default function MetricChart({ metric: m, series, width, big = false, step }: Props) {
   const first = series[0]
-  const maxL = Math.max(...series.map((e) => e.L))
+  const maxL = Math.max(...series.map((e) => e.moveCount))
   const pct = !m.raw
 
   const W = Math.round(width)
@@ -27,18 +27,18 @@ export default function MetricChart({ metric: m, series, width, big = false, ste
   const baseY = H - PB
   const plotR = W - PR
 
-  const ref = pct ? 100 : first.base[m.k].mean
-  const disp = (e: Series, i: number) => displayValue(m, e.avg[m.k][i], e.avg, e.base)
+  const ref = pct ? 100 : first.base[m.key].mean
+  const disp = (e: Series, i: number) => displayValue(m, e.avg[m.key][i], e.avg, e.base)
 
   // y range: all data plus the reference line, padded, never past the metric's physical limits
   const vals = [ref]
   series.forEach((e) => {
-    for (let i = 0; i <= e.L; i++) vals.push(disp(e, i))
+    for (let i = 0; i <= e.moveCount; i++) vals.push(disp(e, i))
   })
   let lo = Math.min(...vals)
   let hi = Math.max(...vals)
   if (lo === hi) hi = lo + 1
-  const b0 = first.base[m.k]
+  const b0 = first.base[m.key]
   const floor = m.raw ? minFloor(m) : 0
   const ceiling = m.raw ? Infinity : 100
   if (!m.raw) {
@@ -85,12 +85,12 @@ export default function MetricChart({ metric: m, series, width, big = false, ste
       )}
       {series.map((e) => {
         let d = ''
-        for (let i = 0; i <= e.L; i++) d += `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(disp(e, i)).toFixed(1)} `
+        for (let i = 0; i <= e.moveCount; i++) d += `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(disp(e, i)).toFixed(1)} `
         return <path key={e.id} d={d} fill="none" stroke={e.color} strokeWidth={big ? 1.5 : 1.3} strokeLinejoin="round" opacity={0.85} />
       })}
       {step !== null &&
         series.map((e) => {
-          const s = Math.min(step, e.L)
+          const s = Math.min(step, e.moveCount)
           return (
             <circle
               key={e.id}

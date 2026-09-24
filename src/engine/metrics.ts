@@ -1,122 +1,122 @@
 // The twelve randomness diagnostics. Each per-deck metric takes the deck, its
 // size and the card-type bounds and returns one number; position and
-// classifier are computed across a whole batch of trials instead (fn: null).
+// classifier are computed across a whole batch of trials instead (measure: null).
 import { catOf, catSizes, posOf } from './decks'
 import type { Deck } from './moves'
 
-export function mOrdering(a: Deck): number {
-  const p = posOf(a)
-  let r = 1
-  for (let v = 1; v < a.length; v++) if (p[v] < p[v - 1]) r++
-  return r
+export function mOrdering(deck: Deck): number {
+  const positions = posOf(deck)
+  let runs = 1
+  for (let card = 1; card < deck.length; card++) if (positions[card] < positions[card - 1]) runs++
+  return runs
 }
 
-export function mProximity(a: Deck): number {
-  const p = posOf(a)
-  let c = 0
-  for (let v = 0; v < a.length - 1; v++) if (Math.abs(p[v] - p[v + 1]) <= 3) c++
-  return c
+export function mProximity(deck: Deck): number {
+  const positions = posOf(deck)
+  let closePairs = 0
+  for (let card = 0; card < deck.length - 1; card++) if (Math.abs(positions[card] - positions[card + 1]) <= 3) closePairs++
+  return closePairs
 }
 
-export function mDrift(a: Deck): number {
-  const n = a.length
-  let s = 0
-  for (let i = 0; i < n - 1; i++) s += Math.abs(a[i] - a[i + 1]) - 1
-  return s / (n - 1)
+export function mDrift(deck: Deck): number {
+  const deckSize = deck.length
+  let total = 0
+  for (let position = 0; position < deckSize - 1; position++) total += Math.abs(deck[position] - deck[position + 1]) - 1
+  return total / (deckSize - 1)
 }
 
-export function mChain(a: Deck): number {
-  const p = posOf(a)
+export function mChain(deck: Deck): number {
+  const positions = posOf(deck)
   let best = 1
   let run = 1
-  for (let v = 1; v < a.length; v++) {
-    run = p[v] > p[v - 1] ? run + 1 : 1
+  for (let card = 1; card < deck.length; card++) {
+    run = positions[card] > positions[card - 1] ? run + 1 : 1
     best = Math.max(best, run)
   }
   return best
 }
 
-export function mStrided(a: Deck): number {
-  const p = posOf(a)
+export function mStrided(deck: Deck): number {
+  const positions = posOf(deck)
   let best = 2
   let run = 2
-  let d = p[1] - p[0]
-  for (let v = 2; v < a.length; v++) {
-    const dd = p[v] - p[v - 1]
-    if (dd === d) run++
+  let step = positions[1] - positions[0]
+  for (let card = 2; card < deck.length; card++) {
+    const nextStep = positions[card] - positions[card - 1]
+    if (nextStep === step) run++
     else run = 2
-    d = dd
+    step = nextStep
     best = Math.max(best, run)
   }
   return best
 }
 
-export function mGradient(a: Deck): number {
-  const n = a.length
-  let c = 0
-  for (let i = 0; i + 2 < n; i++) if (a[i + 1] === a[i] + 1 && a[i + 2] === a[i + 1] + 1) c++
-  return c / n
+export function mGradient(deck: Deck): number {
+  const deckSize = deck.length
+  let triples = 0
+  for (let position = 0; position + 2 < deckSize; position++) if (deck[position + 1] === deck[position] + 1 && deck[position + 2] === deck[position + 1] + 1) triples++
+  return triples / deckSize
 }
 
-export function mClump(a: Deck, n: number, b: number[]): number {
-  const cs = catSizes(n)
-  const w = 10
-  const exp = cs.map((x) => (w * x) / n)
-  let s = 0
-  let m = 0
-  for (let i = 0; i + w <= n; i += 1) {
-    const cnt = [0, 0, 0, 0]
-    for (let j = 0; j < w; j++) cnt[catOf(a[i + j], b)]++
-    let dd = 0
-    for (let k = 0; k < 4; k++) dd += (cnt[k] - exp[k]) * (cnt[k] - exp[k])
-    s += dd
-    m++
+export function mClump(deck: Deck, deckSize: number, bounds: number[]): number {
+  const sizes = catSizes(deckSize)
+  const windowSize = 10
+  const expected = sizes.map((size) => (windowSize * size) / deckSize)
+  let total = 0
+  let windows = 0
+  for (let start = 0; start + windowSize <= deckSize; start += 1) {
+    const counts = [0, 0, 0, 0]
+    for (let offset = 0; offset < windowSize; offset++) counts[catOf(deck[start + offset], bounds)]++
+    let deviation = 0
+    for (let category = 0; category < 4; category++) deviation += (counts[category] - expected[category]) * (counts[category] - expected[category])
+    total += deviation
+    windows++
   }
-  return m ? s / m : 0
+  return windows ? total / windows : 0
 }
 
-export function mSpacing(a: Deck, n: number, b: number[]): number {
-  const pos: number[] = []
-  for (let i = 0; i < n; i++) if (catOf(a[i], b) === 0) pos.push(i)
-  if (pos.length < 3) return 0
-  const g: number[] = []
-  for (let i = 1; i < pos.length; i++) g.push(pos[i] - pos[i - 1])
-  const mn = g.reduce((x, y) => x + y, 0) / g.length
-  let v = 0
-  g.forEach((x) => (v += (x - mn) * (x - mn)))
-  return Math.sqrt(v / g.length)
+export function mSpacing(deck: Deck, deckSize: number, bounds: number[]): number {
+  const landPositions: number[] = []
+  for (let position = 0; position < deckSize; position++) if (catOf(deck[position], bounds) === 0) landPositions.push(position)
+  if (landPositions.length < 3) return 0
+  const gaps: number[] = []
+  for (let land = 1; land < landPositions.length; land++) gaps.push(landPositions[land] - landPositions[land - 1])
+  const meanGap = gaps.reduce((total, gap) => total + gap, 0) / gaps.length
+  let variance = 0
+  gaps.forEach((gap) => (variance += (gap - meanGap) * (gap - meanGap)))
+  return Math.sqrt(variance / gaps.length)
 }
 
-export function mCorr(a: Deck, n: number): number {
-  let sx = 0
-  let sy = 0
-  let sxy = 0
-  let sxx = 0
-  let syy = 0
-  const m = n - 1
-  for (let i = 0; i < n - 1; i++) {
-    const x = a[i]
-    const y = a[i + 1]
-    sx += x
-    sy += y
-    sxy += x * y
-    sxx += x * x
-    syy += y * y
+export function mCorr(deck: Deck, deckSize: number): number {
+  let sumCurrent = 0
+  let sumNext = 0
+  let sumProduct = 0
+  let sumCurrentSquared = 0
+  let sumNextSquared = 0
+  const pairCount = deckSize - 1
+  for (let position = 0; position < deckSize - 1; position++) {
+    const current = deck[position]
+    const next = deck[position + 1]
+    sumCurrent += current
+    sumNext += next
+    sumProduct += current * next
+    sumCurrentSquared += current * current
+    sumNextSquared += next * next
   }
-  const cov = sxy / m - (sx / m) * (sy / m)
-  const vx = sxx / m - (sx / m) * (sx / m)
-  const vy = syy / m - (sy / m) * (sy / m)
-  return vx > 0 && vy > 0 ? cov / Math.sqrt(vx * vy) : 0
+  const covariance = sumProduct / pairCount - (sumCurrent / pairCount) * (sumNext / pairCount)
+  const varianceCurrent = sumCurrentSquared / pairCount - (sumCurrent / pairCount) * (sumCurrent / pairCount)
+  const varianceNext = sumNextSquared / pairCount - (sumNext / pairCount) * (sumNext / pairCount)
+  return varianceCurrent > 0 && varianceNext > 0 ? covariance / Math.sqrt(varianceCurrent * varianceNext) : 0
 }
 
 /** Original end cards still within three of their end. */
-export function mEndRetention(d: Deck, n: number): number {
-  let c = 0
-  for (let i = 0; i <= 3; i++) {
-    if (d[i] === 0) c++
-    if (d[n - 1 - i] === n - 1) c++
+export function mEndRetention(deck: Deck, deckSize: number): number {
+  let count = 0
+  for (let depth = 0; depth <= 3; depth++) {
+    if (deck[depth] === 0) count++
+    if (deck[deckSize - 1 - depth] === deckSize - 1) count++
   }
-  return c
+  return count
 }
 
 export type MetricKey =
@@ -137,17 +137,17 @@ export type MetricGroup = 'order' | 'structure' | 'holistic' | 'composition'
 
 /**
  * How a metric passes:
- * - two:  within ±thr of the random mean
- * - band: between lo and hi
- * - low:  ≤ thr
- * - high: ≥ thr
+ * - two:  within ±threshold of the random mean
+ * - band: between low and high
+ * - low:  ≤ threshold
+ * - high: ≥ threshold
  */
 export type Side = 'two' | 'band' | 'low' | 'high'
 
 export type WriteupRoute = '/order-tests' | '/global-tests' | '/mana-tests' | '/sticky-ends'
 
 export interface Metric {
-  k: MetricKey
+  key: MetricKey
   group: MetricGroup
   title: string
   /** core metrics count double in the composite score */
@@ -158,7 +158,7 @@ export interface Metric {
   side: Side
   /** excluded from the composite score cap */
   noCap?: boolean
-  fn: ((d: Deck, n: number, bounds: number[]) => number) | null
+  measure: ((deck: Deck, deckSize: number, bounds: number[]) => number) | null
   /** Short description. `<i>…</i>` marks italics; nothing else is markup. */
   desc: string
   writeup: { to: WriteupRoute; label: string }
@@ -168,62 +168,62 @@ const FULL = 'Full write-up'
 
 export const METRICS: Metric[] = [
   {
-    k: 'ordering', group: 'order', core: true, raw: false, unit: '%', side: 'two', title: 'Ordering', fn: mOrdering,
+    key: 'ordering', group: 'order', core: true, raw: false, unit: '%', side: 'two', title: 'Ordering', measure: mOrdering,
     desc: 'Counts the rising runs the deck breaks into: one when sorted, about fifty when random, more when stacked or reversed. Too few and too many are both structure, so the test is two-sided.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    k: 'proximity', group: 'order', core: true, raw: false, unit: '%', side: 'band', title: 'Proximity', fn: mProximity,
+    key: 'proximity', group: 'order', core: true, raw: false, unit: '%', side: 'band', title: 'Proximity', measure: mProximity,
     desc: 'Counts originally adjacent pairs still within three positions. Too many means clumps survived; too few means the riffle spread neighbours <i>too</i> evenly, which is why the band is asymmetric.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    k: 'drift', group: 'order', core: false, raw: true, unit: 'avg', side: 'band', title: 'Global proximity', fn: mDrift,
+    key: 'drift', group: 'order', core: false, raw: true, unit: 'avg', side: 'band', title: 'Global proximity', measure: mDrift,
     desc: 'For each pair of cards now side by side, how far apart they started, minus one, so pairs that never separated count as 0. Proximity as a distance rather than a threshold count.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    k: 'position', group: 'structure', core: true, raw: false, unit: '%', side: 'low', title: 'Position', fn: null,
+    key: 'position', group: 'structure', core: true, raw: false, unit: '%', side: 'low', title: 'Position', measure: null,
     desc: 'Asks whether any card favours a fixed slot across many trials, using a chi-square over every card–position pair. A single deterministic pile deal fails it outright.',
     writeup: { to: '/global-tests', label: FULL },
   },
   {
-    k: 'endret', group: 'structure', core: false, raw: true, unit: 'cards', side: 'two', title: 'End retention', fn: mEndRetention,
+    key: 'endret', group: 'structure', core: false, raw: true, unit: 'cards', side: 'two', title: 'End retention', measure: mEndRetention,
     desc: 'Original end cards still within three of their end: 0.08 when random. It is judged two-sided on the trial-averaged rate. Riffles pin the ends.',
     writeup: { to: '/sticky-ends', label: 'The sticky-ends write-up' },
   },
   {
-    k: 'corr', group: 'order', core: true, raw: true, unit: 'r', side: 'two', title: 'Neighbour correlation', fn: mCorr,
+    key: 'corr', group: 'order', core: true, raw: true, unit: 'r', side: 'two', title: 'Neighbour correlation', measure: mCorr,
     desc: 'Correlation between adjacent card values: +1 sorted, −1 reversed, 0 random. Correlation in either direction means neighbours are not independent, so the test is two-sided.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    k: 'classifier', group: 'holistic', core: false, raw: true, unit: '% detect', side: 'low', title: 'Distinguishability', fn: null,
+    key: 'classifier', group: 'holistic', core: false, raw: true, unit: '% detect', side: 'low', title: 'Distinguishability', measure: null,
     desc: 'A classifier trained live to tell this deck from a truly random one; 50% is a coin flip. Readings under about 53% are within its own training noise and mean nothing.',
     writeup: { to: '/global-tests', label: FULL },
   },
   {
-    k: 'chain', group: 'order', core: false, raw: true, unit: 'cards', side: 'low', title: 'Longest chain', fn: mChain,
+    key: 'chain', group: 'order', core: false, raw: true, unit: 'cards', side: 'low', title: 'Longest chain', measure: mChain,
     desc: 'The longest run of consecutive cards still in order anywhere in the deck. Random decks show four or five; anything longer is a surviving fragment.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    k: 'strided', group: 'structure', core: false, raw: true, unit: 'cards', side: 'low', title: 'Strided chain', fn: mStrided,
+    key: 'strided', group: 'structure', core: false, raw: true, unit: 'cards', side: 'low', title: 'Strided chain', measure: mStrided,
     desc: 'The longest evenly spaced run still in order. A pile deal leaves this lattice behind, and reading the deck straight through will not reveal it.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    k: 'gradient', group: 'order', core: false, raw: true, unit: 'density', side: 'low', title: 'Local order', fn: mGradient,
+    key: 'gradient', group: 'order', core: false, raw: true, unit: 'density', side: 'low', title: 'Local order', measure: mGradient,
     desc: 'The density of three or more consecutive cards still sitting together. It is near zero when random, so any reading is leftover sequence.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    k: 'spacing', group: 'structure', core: false, raw: false, unit: '%', side: 'two', title: 'Land spacing', fn: mSpacing,
+    key: 'spacing', group: 'structure', core: false, raw: false, unit: '%', side: 'two', title: 'Land spacing', measure: mSpacing,
     desc: 'How evenly the lands are spread. Clumped lands read high; lands spaced <i>too</i> regularly read low, which is the mana-weave signature. The test is two-sided.',
     writeup: { to: '/mana-tests', label: FULL },
   },
   {
-    k: 'clump', group: 'composition', core: false, noCap: true, raw: true, unit: 'dev', side: 'band', title: 'Clump rate', fn: mClump,
+    key: 'clump', group: 'composition', core: false, noCap: true, raw: true, unit: 'dev', side: 'band', title: 'Clump rate', measure: mClump,
     desc: 'How much the deck clumps by card type, averaged over trials, against the rate a random deck clumps at. It is two-sided: too little clumping means the shuffle spreads lands more evenly than chance.',
     writeup: { to: '/mana-tests', label: FULL },
   },
@@ -236,6 +236,6 @@ export const GROUPS: [MetricGroup, string][] = [
   ['composition', 'Composition'],
 ]
 
-export function metricByKey(k: MetricKey): Metric {
-  return METRICS.find((m) => m.k === k)!
+export function metricByKey(key: MetricKey): Metric {
+  return METRICS.find((metric) => metric.key === key)!
 }

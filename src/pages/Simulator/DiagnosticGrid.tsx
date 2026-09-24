@@ -23,7 +23,7 @@ export default function DiagnosticGrid({ series, selected, onSelect, step }: Pro
             {label}
           </div>,
           ...ms.map((m) => (
-            <ChartTile key={m.k} metric={m} series={series} step={step} selected={selected === m.k} onClick={() => onSelect(selected === m.k ? null : m.k)} />
+            <ChartTile key={m.key} metric={m} series={series} step={step} selected={selected === m.key} onClick={() => onSelect(selected === m.key ? null : m.key)} />
           )),
         ]
       })}
@@ -34,7 +34,7 @@ export default function DiagnosticGrid({ series, selected, onSelect, step }: Pro
 function ChartTile({ metric: m, series, step, selected, onClick }: { metric: Metric; series: Series[]; step: number | null; selected: boolean; onClick: () => void }) {
   const [ref, width] = useElementWidth<HTMLDivElement>(120)
   const first = series[0]
-  const fin = first.avg[m.k][first.L]
+  const fin = first.avg[m.key][first.moveCount]
   const pass = passWith(m, fin, first.base)
   return (
     <div className={`chart${selected ? ' sel' : ''}`} onClick={onClick}>

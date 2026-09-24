@@ -13,72 +13,72 @@ const T_CLASSIFIER = 1000
 const T_TOTAL = 1200
 
 export interface MethodResult {
-  n: number
+  deckSize: number
   kind: DeckKind
   seq: OpKey[]
   /** number of moves */
-  L: number
+  moveCount: number
   base: Base
   avg: Averages
 }
 
-export function computeResult(kind: DeckKind, n: number, seq: OpKey[]): MethodResult {
-  const L = seq.length
-  const bounds = catBounds(n)
-  const base = getBase(n)
-  const scalar = METRICS.filter((m) => m.fn).map((m) => m.k)
+export function computeResult(kind: DeckKind, deckSize: number, seq: OpKey[]): MethodResult {
+  const moveCount = seq.length
+  const bounds = catBounds(deckSize)
+  const base = getBase(deckSize)
+  const scalar = METRICS.filter((metric) => metric.measure).map((metric) => metric.key)
   const sums = {} as Record<MetricKey, Float64Array>
-  scalar.forEach((k) => (sums[k] = new Float64Array(L + 1)))
+  scalar.forEach((key) => (sums[key] = new Float64Array(moveCount + 1)))
   const posCount: Int32Array[] = []
-  for (let s = 0; s <= L; s++) posCount.push(new Int32Array(n * n))
+  for (let step = 0; step <= moveCount; step++) posCount.push(new Int32Array(deckSize * deckSize))
   const stepFeat: number[][][] = []
-  for (let s = 0; s <= L; s++) stepFeat.push([])
+  for (let step = 0; step <= moveCount; step++) stepFeat.push([])
 
-  let t = 0
+  let trial = 0
   const rec = (step: number, deck: number[]) => {
-    METRICS.forEach((m) => {
-      if (!m.fn) return
-      if (t < (m.k === 'endret' ? T_ENDRET : T_METRIC)) sums[m.k][step] += m.fn(deck, n, bounds)
+    METRICS.forEach((metric) => {
+      if (!metric.measure) return
+      if (trial < (metric.key === 'endret' ? T_ENDRET : T_METRIC)) sums[metric.key][step] += metric.measure(deck, deckSize, bounds)
     })
-    const pc = posCount[step]
-    for (let i = 0; i < n; i++) pc[deck[i] * n + i]++
-    if (t < T_CLASSIFIER) stepFeat[step].push(deckFeatures(deck, n))
+    const slotCounts = posCount[step]
+    for (let position = 0; position < deckSize; position++) slotCounts[deck[position] * deckSize + position]++
+    if (trial < T_CLASSIFIER) stepFeat[step].push(deckFeatures(deck, deckSize))
   }
 
-  for (t = 0; t < T_TOTAL; t++) {
-    let d = startDeck(kind, n)
-    rec(0, d)
-    for (let s = 0; s < L; s++) {
-      d = OPS[seq[s]](d)
-      rec(s + 1, d)
+  for (trial = 0; trial < T_TOTAL; trial++) {
+    let deck = startDeck(kind, deckSize)
+    rec(0, deck)
+    for (let step = 0; step < moveCount; step++) {
+      deck = OPS[seq[step]](deck)
+      rec(step + 1, deck)
     }
   }
 
   const avg = {} as Averages
-  scalar.forEach((k) => {
-    const div = k === 'endret' ? T_ENDRET : T_METRIC
-    avg[k] = []
-    for (let s = 0; s <= L; s++) avg[k].push(sums[k][s] / div)
+  scalar.forEach((key) => {
+    const div = key === 'endret' ? T_ENDRET : T_METRIC
+    avg[key] = []
+    for (let step = 0; step <= moveCount; step++) avg[key].push(sums[key][step] / div)
   })
 
   // Position: chi-square of the card × slot table against uniform.
   avg.position = []
-  const exp = T_TOTAL / n
-  for (let s = 0; s <= L; s++) {
-    const pc = posCount[s]
+  const expected = T_TOTAL / deckSize
+  for (let step = 0; step <= moveCount; step++) {
+    const slotCounts = posCount[step]
     let chi = 0
-    for (let i = 0; i < n * n; i++) {
-      const dd = pc[i] - exp
-      chi += (dd * dd) / exp
+    for (let cell = 0; cell < deckSize * deckSize; cell++) {
+      const difference = slotCounts[cell] - expected
+      chi += (difference * difference) / expected
     }
     avg.position.push(chi)
   }
 
   avg.classifier = []
-  const rf = randomFeatures(n)
-  for (let s = 0; s <= L; s++) avg.classifier.push(classifierAccuracy(stepFeat[s], rf))
+  const randomSet = randomFeatures(deckSize)
+  for (let step = 0; step <= moveCount; step++) avg.classifier.push(classifierAccuracy(stepFeat[step], randomSet))
 
-  return { n, kind, seq, L, base, avg }
+  return { deckSize, kind, seq, moveCount, base, avg }
 }
 
 export interface Scored {
@@ -90,11 +90,11 @@ export interface Scored {
   fails: string[]
 }
 
-export function scoreResult(r: MethodResult): Scored {
-  const failing = METRICS.filter((m) => !passWith(m, r.avg[m.k][r.L], r.base))
+export function scoreResult(result: MethodResult): Scored {
+  const failing = METRICS.filter((metric) => !passWith(metric, result.avg[metric.key][result.moveCount], result.base))
   return {
     passCount: METRICS.length - failing.length,
-    score: compositeScore(r.avg, r.base),
-    fails: failing.map((m) => m.title),
+    score: compositeScore(result.avg, result.base),
+    fails: failing.map((metric) => metric.title),
   }
 }

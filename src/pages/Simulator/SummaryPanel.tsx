@@ -28,7 +28,7 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
   }
 
   const first = series[0]
-  const { avg, base, L } = first
+  const { avg, base, moveCount: L } = first
   const legend = series.length > 1 && (
     <div className="oplg">
       {series.map((e) => (
@@ -44,10 +44,10 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
   )
 
   if (!selected) {
-    const passes = METRICS.filter((m) => passWith(m, avg[m.k][L], base)).length
+    const passes = METRICS.filter((m) => passWith(m, avg[m.key][L], base)).length
     const score = Math.round(compositeScore(avg, base) * 100)
     const worst = worstMetric(avg, base)
-    const fails = METRICS.filter((m) => !passWith(m, avg[m.k][L], base)).map((m) => m.title)
+    const fails = METRICS.filter((m) => !passWith(m, avg[m.key][L], base)).map((m) => m.title)
     const verdict = fails.length
       ? `Still short on: ${fails.join(', ')}.`
       : 'This sequence randomizes the deck: every diagnostic reaches random.'
@@ -58,7 +58,7 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
         </div>
         <div className={`bcval ${passes === METRICS.length ? 'pass' : 'fail'}`}>{score}% randomized</div>
         <div className="bcsub">
-          {passes} / {METRICS.length} diagnostics cleared · limited by {worst.m.title} ({Math.round(worst.p * 100)}%). {verdict}
+          {passes} / {METRICS.length} diagnostics cleared · limited by {worst.metric.title} ({Math.round(worst.progress * 100)}%). {verdict}
           {' '}Click any diagnostic below for detail, or compare methods further down.
         </div>
         {legend}
@@ -67,16 +67,16 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
   }
 
   const m = metricByKey(selected)
-  const b = base[m.k]
-  const fin = avg[m.k][L]
+  const b = base[m.key]
+  const fin = avg[m.key][L]
   const pct = !m.raw
-  const rnd = pct ? '100%' : fmt(b.mean, m.k)
-  const thr = pct ? `${Math.round(displayValue(m, b.thr, avg, base))}%` : fmt(b.thr, m.k)
+  const rnd = pct ? '100%' : fmt(b.mean, m.key)
+  const thr = pct ? `${Math.round(displayValue(m, b.threshold, avg, base))}%` : fmt(b.threshold, m.key)
   const rule =
     m.side === 'band'
-      ? `pass ${fmt(b.lo!, m.k)} – ${fmt(b.hi!, m.k)} (random ${fmt(b.mean, m.k)})`
+      ? `pass ${fmt(b.low!, m.key)} – ${fmt(b.high!, m.key)} (random ${fmt(b.mean, m.key)})`
       : m.side === 'two'
-        ? `pass within ±${fmt(b.thr, m.k)} of random (${fmt(b.mean, m.k)})`
+        ? `pass within ±${fmt(b.threshold, m.key)} of random (${fmt(b.mean, m.key)})`
         : `pass ${m.side === 'high' ? '≥' : '≤'} ${thr}`
 
   return (

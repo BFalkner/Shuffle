@@ -4,7 +4,7 @@ import { displayValue, fmt } from '../../engine/scoring'
 import type { Series } from './types'
 
 // Trial counts behind each metric's average, for its standard error.
-const TRIALS: Partial<Record<Metric['k'], number>> = { endret: 400, position: 1, classifier: 1 }
+const TRIALS: Partial<Record<Metric['key'], number>> = { endret: 400, position: 1, classifier: 1 }
 
 /**
  * Side-by-side table of overlaid methods. A method "leads" on a diagnostic
@@ -15,10 +15,10 @@ export default function HeadToHead({ series }: { series: Series[] }) {
   if (series.length < 2) return null
 
   const rows = METRICS.map((m) => {
-    const b = series[0].base[m.k]
-    const T = TRIALS[m.k] ?? 200
-    const seDiff = (Math.SQRT2 * (b.sd || 1)) / Math.sqrt(T)
-    const ds = series.map((e) => ({ e, v: e.avg[m.k][e.L], d: Math.abs(e.avg[m.k][e.L] - b.mean) }))
+    const b = series[0].base[m.key]
+    const T = TRIALS[m.key] ?? 200
+    const seDiff = (Math.SQRT2 * (b.standardDeviation || 1)) / Math.sqrt(T)
+    const ds = series.map((e) => ({ e, v: e.avg[m.key][e.moveCount], d: Math.abs(e.avg[m.key][e.moveCount] - b.mean) }))
     const sorted = ds.slice().sort((x, y) => x.d - y.d)
     const win = sorted.length > 1 && sorted[1].d - sorted[0].d > 2 * seDiff ? sorted[0].e : null
     return { m, ds, win }
@@ -57,11 +57,11 @@ export default function HeadToHead({ series }: { series: Series[] }) {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.m.k}>
+              <tr key={r.m.key}>
                 <td className="hth-t">{r.m.title}</td>
                 {r.ds.map((x) => {
                   const won = r.win === x.e
-                  const val = r.m.raw ? fmt(x.v, r.m.k) : `${Math.round(displayValue(r.m, x.v, x.e.avg, x.e.base))}%`
+                  const val = r.m.raw ? fmt(x.v, r.m.key) : `${Math.round(displayValue(r.m, x.v, x.e.avg, x.e.base))}%`
                   return (
                     <td key={x.e.id} className={won ? 'hth-win' : ''} style={won ? { color: x.e.color } : undefined}>
                       {val}

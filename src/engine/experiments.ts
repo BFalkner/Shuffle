@@ -38,7 +38,7 @@ export function uid(): string {
 }
 
 export function defaultExperiments(): Experiment[] {
-  return SEED.concat(EXAMPLES).map((e) => ({ id: uid(), ...e, seq: e.seq.slice() }))
+  return SEED.concat(EXAMPLES).map((experiment) => ({ id: uid(), ...experiment, seq: experiment.seq.slice() }))
 }
 
 /** Load saved methods, falling back to the defaults. Unknown move names become 'overhand'. */
@@ -47,9 +47,9 @@ export function loadExperiments(): Experiment[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
-      const a = JSON.parse(raw) as { id: string; title: string; seq: string[] }[]
-      if (Array.isArray(a) && a.length) {
-        list = a.map((e) => ({ id: e.id, title: e.title, seq: (e.seq || []).map((op) => (isOpKey(op) ? op : 'overhand')) }))
+      const saved = JSON.parse(raw) as { id: string; title: string; seq: string[] }[]
+      if (Array.isArray(saved) && saved.length) {
+        list = saved.map((entry) => ({ id: entry.id, title: entry.title, seq: (entry.seq || []).map((op) => (isOpKey(op) ? op : 'overhand')) }))
       }
     }
   } catch {
@@ -60,8 +60,8 @@ export function loadExperiments(): Experiment[] {
   // One-time migration: add any example methods an older saved list is missing.
   try {
     if (!localStorage.getItem(EXAMPLES_FLAG)) {
-      for (const e of EXAMPLES) {
-        if (!list.some((x) => x.title === e.title)) list.push({ id: uid(), ...e, seq: e.seq.slice() })
+      for (const example of EXAMPLES) {
+        if (!list.some((existing) => existing.title === example.title)) list.push({ id: uid(), ...example, seq: example.seq.slice() })
       }
       localStorage.setItem(EXAMPLES_FLAG, '1')
     }

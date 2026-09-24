@@ -16,9 +16,9 @@ export function emptySlots(): TrackSlots {
  */
 export function toggleTracked(list: TrackSlots, card: number): TrackSlots {
   const next = list.slice()
-  const i = next.indexOf(card)
-  if (i >= 0) {
-    next[i] = null
+  const existingSlot = next.indexOf(card)
+  if (existingSlot >= 0) {
+    next[existingSlot] = null
     return next
   }
   let slot = next.indexOf(null)
@@ -28,20 +28,20 @@ export function toggleTracked(list: TrackSlots, card: number): TrackSlots {
 }
 
 export function liveTracked(list: TrackSlots): number[] {
-  return list.filter((x): x is number => x !== null)
+  return list.filter((card): card is number => card !== null)
 }
 
 /** "#1: 5 → 12   #2: 6 → 40   (28 apart)" */
-export function trackingSummary(list: TrackSlots, pos: number[]): string {
+export function trackingSummary(list: TrackSlots, positions: number[]): string {
   const live = liveTracked(list)
   if (!live.length) return ''
-  let s = list
-    .map((card, ti) => (card === null ? null : `#${ti + 1}: ${card + 1} → ${pos[card] + 1}`))
+  let summary = list
+    .map((card, slot) => (card === null ? null : `#${slot + 1}: ${card + 1} → ${positions[card] + 1}`))
     .filter(Boolean)
     .join('   ')
   if (live.length === 2) {
-    const g = Math.abs(pos[live[0]] - pos[live[1]])
-    s += `   (${g} apart${g <= 3 ? ' — still neighbours' : ''})`
+    const gap = Math.abs(positions[live[0]] - positions[live[1]])
+    summary += `   (${gap} apart${gap <= 3 ? ' — still neighbours' : ''})`
   }
-  return s
+  return summary
 }
