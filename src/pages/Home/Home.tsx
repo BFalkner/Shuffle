@@ -10,55 +10,99 @@ import './home.css'
 // The two recommended methods, from a search of every move sequence costing up to 7 units (see the footnote).
 const P = DATA.cards
 
-interface MoveInfo {
-  op: DemoMove
+/**
+ * One step in the chain: a shuffle, the order it leaves behind, and the test
+ * that was added to catch it. Steps without a move demo describe a weakness
+ * rather than a new move.
+ */
+interface Step {
+  op?: DemoMove
   name: string
-  color: string
+  color?: string
+  /** what your hands do, in one sentence */
+  how?: string
   paragraphs: ReactNode[]
   /** strength after four repetitions, 0–100: ordering, proximity, position */
-  bars: [number, number, number]
+  bars?: [number, number, number]
 }
 
-const MOVES: MoveInfo[] = [
+const STEPS: Step[] = [
   {
     op: 'mash',
-    name: 'Mash / Riffle',
+    name: 'Mash',
     color: '#1a6b3a',
+    how: 'Split the deck in two and let the halves fall together a few cards at a time.',
     paragraphs: [
-      'Split the deck in two and let the halves fall together in small packets, so the two streams interleave into one pile.',
-      'Interleaving carries cards from each half deep into the other, spreading them along the whole deck and pulling apart cards that sat together. With packet sizes fitted to a real hand, mostly single cards, the interleave is fine enough to break up runs within a few passes. Its weakness is the ends of the deck: the outermost cards barely move from pass to pass, so a card seen on the bottom stays findable long after the rest of the deck reads random.',
+      'Each half keeps its cards in their original order. After one mash, a sorted deck is two long runs woven together. The number of runs roughly doubles with each mash, so from a sorted deck the run count only looks random after six mashes.',
+      <>
+        This was the first thing we tested. <Link to="/order-tests">Ordering</Link> counts the runs, and longest chain finds the longest run still in one
+        piece.
+      </>,
     ],
     bars: [32, 100, 100],
-  },
-  {
-    op: 'pile',
-    name: 'Pile',
-    color: '#3a5f9e',
-    paragraphs: [
-      'Deal the deck one card at a time into six face-down piles, cycling through them in order, then stack the piles back into one.',
-      'Each card goes to a different pile from the card before it, so no two neighbouring cards stay together and clumps break up completely in one pass. The deal is fixed, though: every card lands in a predictable slot, so the result is a clean, repeatable separation rather than a random arrangement.',
-    ],
-    bars: [100, 98, 0],
   },
   {
     op: 'overhand',
     name: 'Overhand',
     color: '#c0612a',
+    how: 'Hold the deck in one hand and thumb small packets off the top, each one landing on the last.',
     paragraphs: [
-      'Hold the deck in one hand and use the other thumb to slide small packets off the top, dropping each new packet on top of the last, until the whole deck has passed through.',
-      'This reverses the order of the packets but leaves the cards inside each packet in their original order. It moves blocks from top to bottom and breaks long runs at the seams between packets, but it works in chunks rather than card by card.',
+      'The overhand breaks up runs quickly, so it passes ordering within a few passes. But the cards inside each packet stay together, so cards that started next to each other stay close. Keep going as long as you like and they never spread out.',
+      <>
+        <Link to="/order-tests">Proximity</Link> was added to catch this. It counts old neighbours that are still within three places of each other.
+      </>,
     ],
     bars: [90, 56, 44],
   },
   {
     op: 'ohr',
-    name: 'Half Overhand with Riffle',
+    name: 'Half overhand, then mash',
     color: '#2f8f7f',
+    how: 'Cut the deck, overhand one half, then mash the two halves back together.',
     paragraphs: [
-      'Cut the deck in two, overhand-shuffle one half (peeling it into small, reversed packets), then riffle the halves back together.',
-      'Reversing one half flips the direction of its runs, so when the halves interleave, cards that were neighbours are driven apart instead of carried along together. Its particular strength is proximity: it separates neighbouring cards that a riffle alone tends to leave in their original clumps.',
+      'The two moves cover for each other. The overhand breaks up the runs the mash is slow on, and the mash spreads out the neighbours the overhand leaves together. From a sorted deck, four rounds break up order about as well as six plain mashes.',
+      'It still does not beat plain mashing, because order is not the last thing to clear. The ends of the deck clear last, along with how evenly old neighbours are spread (both below), and the overhand does little for either. Each round is also two moves instead of one.',
     ],
     bars: [100, 99, 100],
+  },
+  {
+    op: 'pile',
+    name: 'Pile',
+    color: '#3a5f9e',
+    how: 'Deal the cards one at a time into six piles, then stack the piles.',
+    paragraphs: [
+      'Every pair of neighbours ends up in different piles, so the deck passes proximity after a single deal. But dealing is not random. Each card lands exactly where the arithmetic puts it, and every sixth card of the old order is still in order.',
+      <>
+        <Link to="/global-tests">Position</Link> checks whether cards keep landing in the same places across many shuffles, and{' '}
+        <Link to="/order-tests">strided chain</Link> looks for runs that skip a fixed number of cards. Both were added because of the pile, and they are
+        why a pile deal should never be the last thing you do.
+      </>,
+    ],
+    bars: [100, 98, 0],
+  },
+  {
+    name: 'The mash, again',
+    paragraphs: [
+      'The mash is the only move here whose leftovers shrink the more you repeat it. It has two more weak spots.',
+      <>
+        The top and bottom few cards barely move. A card you saw on the bottom is often still near the bottom several mashes later.{' '}
+        <Link to="/sticky-ends">End retention</Link> catches this, and it is why a sorted deck needs an eighth mash.
+      </>,
+      <>
+        Early mashes also spread old neighbours out more evenly than chance would, which is as easy to detect as leaving them together.{' '}
+        <Link to="/global-tests">Distinguishability</Link> found it first. That test trains a simple program to tell shuffled decks from random ones.
+        Proximity now checks for it too.
+      </>,
+    ],
+  },
+  {
+    name: 'Mana weaving',
+    paragraphs: [
+      'Some players space their lands evenly through the deck before shuffling: land, spell, spell, land. A light shuffle can leave that pattern in place, and none of the tests above look at card types.',
+      <>
+        <Link to="/mana-tests">Land spacing</Link> measures the gaps between lands. Lands spaced too evenly fail it, just as lands in clumps do.
+      </>,
+    ],
   },
 ]
 
@@ -101,7 +145,7 @@ export default function Home() {
 
       <div className="rule double" />
 
-      <div className="sec-eyebrow">Two methods worth using</div>
+      <div className="sec-eyebrow">What we recommend</div>
       <div className="cards">
         {P.cards.map((c) => (
           <div key={c.name} className="mcard">
@@ -109,14 +153,6 @@ export default function Home() {
               <div>
                 <div className="crown">{c.crown}</div>
                 <h3>{c.name}</h3>
-                <div className="seq">{c.seq}</div>
-              </div>
-              <div className="speed">
-                <div className="lab">Time cost</div>
-                <div className="v">
-                  {c.speed}
-                  <small>u</small>
-                </div>
               </div>
             </div>
             <div className="when">
@@ -133,49 +169,63 @@ export default function Home() {
       </div>
 
       <div className="rule" />
-      <div className="sec-eyebrow">The moves</div>
-      <div className="defs">
-        {MOVES.map((m) => (
-          <div key={m.op} className="def">
-            <div className="dn">
-              <i style={{ background: m.color }} />
-              {m.name}
-            </div>
-            <MoveDemo op={m.op} />
-            <div className="dd">
-              {m.paragraphs.map((p, i) => (
-                <p key={i}>{p}</p>
-              ))}
-            </div>
-            <div className="mbars">
-              {(['Ordering', 'Proximity', 'Position'] as const).map((label, i) => (
-                <div key={label} className="mbar">
-                  <div className="mbl">
-                    <span>{label}</span>
-                    <span>{m.bars[i]}</span>
+      <div className="sec-eyebrow">Every shuffle leaves a trace</div>
+      <p className="opsintro">
+        Each way of shuffling leaves its own kind of order behind. We started with one test. Each time a shuffle passed every test we had and still
+        wasn&rsquo;t random, we added a test that could see what it left behind. The steps below follow that order.
+      </p>
+      <div className="chain">
+        {STEPS.map((s) => (
+          <div key={s.name} className={s.op ? 'def step' : 'def step nodemo'}>
+            {s.op && (
+              <div className="stepdemo">
+                <MoveDemo op={s.op} />
+                {s.bars && (
+                  <div className="mbars">
+                    {(['Ordering', 'Proximity', 'Position'] as const).map((label, i) => (
+                      <div key={label} className="mbar">
+                        <div className="mbl">
+                          <span>{label}</span>
+                          <span>{s.bars![i]}</span>
+                        </div>
+                        <div className="mtrack">
+                          <div className="mfill" style={{ width: `${s.bars![i]}%` }} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="mtrack">
-                    <div className="mfill" style={{ width: `${m.bars[i]}%` }} />
-                  </div>
-                </div>
-              ))}
+                )}
+              </div>
+            )}
+            <div>
+              <div className="dn">
+                {s.color && <i style={{ background: s.color }} />}
+                {s.name}
+              </div>
+              <div className="dd">
+                {s.how && <p className="how">{s.how}</p>}
+                {s.paragraphs.map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </div>
             </div>
           </div>
         ))}
       </div>
       <p className="opsintro" style={{ marginTop: '0.9rem', marginBottom: 0 }}>
-        Bars show each move’s strength after four repetitions. A full bar means the move reaches random on that test.
+        The bars show how close four repeats of each move get to a random deck on three of the tests. A full bar means random.
       </p>
 
       <div className="rule" />
-      <div className="sec-eyebrow">The three tests, one move at a time</div>
+      <div className="sec-eyebrow">Why the answer is mashing</div>
       <p className="opsintro">
-        Only the <b>mash</b> both randomizes position and separates neighbours, because only a riffle interleaves, and with packet sizes fitted to a real
-        hand it does so quickly, clearing every bulk test within six passes. Its blind spot is the ends of the deck, where the outermost cards barely move
-        from pass to pass. The <b>overhand</b> breaks up sequence order in a single move, but on its own it does nothing for position or proximity. The{' '}
-        <b>pile</b> separates neighbours completely in one pass, but the deal is deterministic, so it puts every card in a predictable slot rather than
-        randomizing it. The <b>half overhand</b> overhands one half and riffles it back in a single motion, breaking up sequence and spreading position
-        together.
+        Every other move leaves something that more of the same move won&rsquo;t fix. More overhands never separate neighbours, and another pile deal is
+        just as predictable as the first. What the mash leaves behind shrinks each time, and the ends of the deck are the last to go. That is why both
+        recommendations are plain mashing, and why the number depends on where the deck starts.
+      </p>
+      <p className="opsintro">
+        The charts below show the same story in numbers. Each one repeats a single move on a sorted deck and follows one test. The value for a random
+        deck is given under each title.
       </p>
       <div className="opsgrid">
         {OPS_CHARTS.map((cfg) => (
@@ -184,10 +234,11 @@ export default function Home() {
       </div>
 
       <div className="rule" />
-      <div className="sec-eyebrow">The starting decks</div>
+      <div className="sec-eyebrow">Try your own routine</div>
       <p className="opsintro">
-        Every result on this page depends on what the deck looked like before shuffling started. These are the four starting states the simulator tests
-        against. The left edge of each strip is the top of the deck. The first two strips are coloured by original position, and the other two by card type:{' '}
+        The <Link to="/simulator">simulator</Link> lets you build a routine from these moves, run it many times, and see which tests it passes. Where
+        the deck starts changes how much shuffling it needs, so the simulator can start from any of these four decks. The left edge of each strip is the
+        top of the deck. The first two strips are coloured by original position, and the other two by card type:{' '}
         <span style={{ color: '#2e7d4f', fontWeight: 600 }}>lands</span> against spells.
       </p>
       <div className="defs startdefs">
@@ -207,10 +258,13 @@ export default function Home() {
       </div>
 
       <p className="foot-note">
-        Time cost: mash = 1 unit, half overhand = 1, full overhand = 2, pile = 4 (assumed, pending measurement). Pass thresholds sit two standard deviations
-        from random decks: ordering ≥ {P.thr.seq} runs, proximity ≤ {P.thr.cp} close pairs. Random baselines: ordering {P.rand.seq}, proximity {P.rand.cp}.
-        The recommendations come from a search of every move sequence costing up to 7 units, scored from a played deck. The leaders were then run 20
-        times from each of the four starting decks below, and a run counts as a pass only when it clears every test.
+        How the recommendations were chosen: we scored every sequence of moves costing up to 7 units, starting from a played deck (mash = 1 unit, half
+        overhand = 1, full overhand = 2, pile = 4, the pile&rsquo;s cost assumed pending measurement). The leaders were then run 20 times from each of the
+        four starting decks, and a run counts as a pass only when it clears every test. Seven mashes passed all 20 runs from a played deck, and eight
+        passed 18 or 19 of 20 from each starting deck. No six-unit routine was reliable: the best mixes passed 16 of 20, and six plain mashes 18. The
+        pile routine we used to recommend (4 mashes, pile, 4 mashes) costs 12 units and failed from a sorted deck in 3 of 5 runs. Pass thresholds sit two
+        standard deviations from random decks: ordering ≥ {P.thr.seq} runs, proximity ≤ {P.thr.cp} close pairs. Random baselines: ordering{' '}
+        {P.rand.seq}, proximity {P.rand.cp}. Figures in the steps above come from 1,200 simulated decks per routine.
       </p>
     </div>
   )

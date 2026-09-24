@@ -436,3 +436,34 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* The chain: one row per shuffle, with its demo beside the text. */
+.home .chain {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.home .step {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 1.2rem;
+  align-items: start;
+}
+
+.home .step.nodemo {
+  grid-template-columns: 1fr;
+}
+
+.home .step .dd {
+  font-size: 0.85rem;
+}
+
+.home .step .dd p.how {
+  font-style: italic;
+}
+
+@media (max-width: 680px) {
+  .home .step {
+    grid-template-columns: 1fr;
+  }
+}

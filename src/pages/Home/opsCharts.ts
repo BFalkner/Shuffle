@@ -20,7 +20,7 @@ export const OPS_CHARTS: Config[] = [
   {
     key: 'seq',
     title: 'Ordering',
-    desc: 'How many runs of cards are still in sequence, forward or reverse. A sorted deck is one run and a random deck about 48. It is the slowest property to break.',
+    desc: 'How many runs of cards are still in sequence, forward or reverse. A sorted deck is one run. The overhand gets close to random quickly; the mash gets there slowly.',
     sub: `sequence runs · random ≈ ${OPS.rand.seq} · higher is better`,
     target: OPS.rand.seq,
     log: false,
@@ -28,7 +28,7 @@ export const OPS_CHARTS: Config[] = [
   {
     key: 'cp',
     title: 'Proximity',
-    desc: 'How many cards that were neighbours stay within three positions of each other. The pile breaks this up directly; mashing does not.',
+    desc: 'How many old neighbours are still within three places of each other. The pile clears this in one deal. The overhand never does.',
     sub: `close pairs · random ≈ ${OPS.rand.cp} · lower is better`,
     target: OPS.rand.cp,
     log: false,
@@ -36,7 +36,7 @@ export const OPS_CHARTS: Config[] = [
   {
     key: 'chi',
     title: 'Position',
-    desc: 'Whether any card favours a fixed position across many shuffles. A pile on its own fails this; mashing clears it.',
+    desc: 'Whether cards keep landing in the same places across many shuffles. The pile on its own never passes. The mash does.',
     sub: `uniformity · random ≈ ${Math.round(OPS.rand.chi).toLocaleString()} · lower is better · log`,
     target: OPS.rand.chi,
     log: true,
