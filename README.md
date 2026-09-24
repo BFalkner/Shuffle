@@ -26,6 +26,7 @@ what's on screen.
 | `npm test`          | Run the engine test suite once                                  |
 | `npm run test:watch`| Re-run tests whenever a file changes                            |
 | `npm run search`    | Rerun the recommendation search (takes several minutes)         |
+| `npm run calibrate` | Regenerate the stored pass lines in `src/engine/baselines.ts`   |
 | `npm run lint`      | Check the code for common mistakes                              |
 | `npm run typecheck` | Check TypeScript types without building                         |
 | `npm run build`     | Production build into `dist/` (type-checks first)               |
@@ -95,8 +96,12 @@ runs that aren't re-run in the browser. That data lives in
 `npm run search` reproduces the numbers behind the home page
 recommendations and footnote. It scores every routine up to a cost limit
 from a played deck, then reruns the leaders from all four starting decks.
+It ranks the leaders by their weakest starting deck. For each finalist and
+starting deck, it prints the pass count with a 95% interval, the composite
+score, the test that came closest to failing and how often each test failed.
 To change the limits, pass options after `--`, for example
-`npm run search -- --max-cost 6 --from sorted`. The defaults match the
+`npm run search -- --max-cost 6 --from sorted`. Add `--json results.json`
+to save the full statistics for every test. The defaults match the
 footnote. The options are listed at the top of `scripts/search.ts`.
 The other precomputed data (the chart series, the move demos and the
 sticky-ends sweeps) came from ad hoc runs that weren't saved as scripts.

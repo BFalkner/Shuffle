@@ -7,6 +7,7 @@
  * 1  the original model, through commit 7dc1e61
  * 2  the pile deal reverses each pile (2f968b5)
  * 3  the woven and clumped decks draw their card order and card types at random (ad939d2)
+ * 4  pass lines come from a stored calibration of 1,000,000 seeded random decks (baselines.ts), not 400 decks per start
  */
-export const ENGINE_VERSION = 3
-export const ENGINE_FINGERPRINT = '4940f92b'
+export const ENGINE_VERSION = 4
+export const ENGINE_FINGERPRINT = '4f5de4aa'

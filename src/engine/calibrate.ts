@@ -1,4 +1,5 @@
 // Random-deck baselines and pass thresholds for each metric.
+import { BASELINES } from './baselines.ts'
 import { fisher, numberedTypes } from './decks.ts'
 import { METRICS, type MetricKey } from './metrics.ts'
 
@@ -74,8 +75,13 @@ export function calibrate(deckSize: number, deckCount: number): Base {
 
 const BASE_CACHE = new Map<number, Base>()
 
-/** Calibrated baseline for deckSize (400 random decks), cached. */
+/**
+ * Baseline for deckSize. The deck sizes the site offers use the stored calibration in baselines.ts, so every run judges
+ * against the same pass lines. Any other size is calibrated from 400 random decks on first use, and its pass lines
+ * move a little from one start to the next.
+ */
 export function getBase(deckSize: number): Base {
+  if (BASELINES[deckSize]) return BASELINES[deckSize]
   let base = BASE_CACHE.get(deckSize)
   if (!base) {
     base = calibrate(deckSize, 400)

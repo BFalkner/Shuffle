@@ -260,12 +260,12 @@ export default function Home() {
 
       <p className="foot-note">
         We chose the recommendations by scoring every routine that costs up to 7 units, starting from a played deck. A mash and a half overhand cost 1
-        unit each, a full overhand costs 2, and a pile costs 4. The pile&rsquo;s cost is a guess until we time it. We then ran the leaders 20 times from
-        each of the four starting decks. A run counts as a pass only when it clears every test. Seven mashes passed all 20 runs from a played deck, and eight
-        passed 18 to 20 of 20 from each starting deck. No six-unit routine was reliable: the best mixes passed 16 of 20, and six plain mashes passed 18. The
-        pile routine we used to recommend (4 mashes, pile, 4 mashes) costs 12 units and passed only 1 of 5 runs from a sorted
-        deck. A test passes when the deck is within three standard deviations of a random deck. For a 99-card deck, that means
-        about 41.5 to 58.5 runs for ordering and about 5.3 to 12.5 close pairs for proximity. Random decks average {SUMMARY.rand.seq} runs and{' '}
+        unit each, a full overhand costs 2, and a pile costs 4. The pile&rsquo;s cost is a guess until we time it. We then ran the leaders 200 times from
+        each of the four starting decks. A run counts as a pass only when it clears every test. From a played deck, seven mashes passed 196 of 200 runs and
+        six passed 178. The best six-unit mixes, four mashes and two half overhands, passed about 180. From a sorted deck, eight mashes passed 188 of 200
+        and seven passed 125. Eight passed at least 199 from each of the other decks. The pile routine we used to recommend (4 mashes, pile, 4 mashes)
+        costs 12 units and passed 155 of 200 from a sorted deck. A test passes when the deck is within three standard deviations of a random deck. For a
+        99-card deck, that means about 41.3 to 58.7 runs for ordering and about 5.4 to 12.9 close pairs for proximity. Random decks average {SUMMARY.rand.seq} runs and{' '}
         {SUMMARY.rand.cp} close pairs. Figures in the steps above come from 1,200 simulated decks per routine.
       </p>
     </div>

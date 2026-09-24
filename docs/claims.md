@@ -14,6 +14,7 @@ older version and whose **Depends on** column includes what changed.
 | 1 | The original model, through commit `7dc1e61`. |
 | 2 | The pile deal reverses each pile (`2f968b5`). Changes results for any routine with a pile. |
 | 3 | The woven and clumped decks draw their card order and card types at random (`ad939d2`). Changes results from those two decks only. |
+| 4 | Pass lines come from a stored calibration of 1,000,000 seeded random decks per deck size (`src/engine/baselines.ts`, `npm run calibrate`), not 400 random decks each time the engine starts. Measured values don't change, but pass/fail results for every routine can. Recheck any row that counts passes or says when a test clears. |
 
 Status values:
 
@@ -41,18 +42,18 @@ Measured with `calibrate(99, 400)` three times on version 3. These values don't 
 | Clump rate's random range is 6.1 to 6.8 | Mana tests | Verified | 3 | The band itself varies by calibration: 5.95 to 6.53, 6.10 to 6.75, 6.06 to 6.76 |
 | End retention is 0.08 when random | Simulator | Code | 3 | `8 / deckSize` in `calibrate.ts` |
 | Position averages 9,604; fails above about 13,900 | Global tests | Code | 3 | `(n-1)²` and `1.45 × (n-1)²` in `calibrate.ts` |
-| Footnote: a test passes within three standard deviations of random; ordering about 41.5 to 58.5 runs, proximity about 5.3 to 12.5 close pairs | Home | Verified | 3 | `calibrate.ts` uses 3 sd for ordering and the band for proximity. Three calibrations gave 41.6 to 58.6 and 5.2 to 12.7. Fixed from an older footnote that said two standard deviations (44.3, 10.5). |
+| Footnote: a test passes within three standard deviations of random; ordering about 41.3 to 58.7 runs, proximity about 5.4 to 12.9 close pairs | Home | Verified | 4 | Stored calibration: ordering 41.33 to 58.67, proximity 5.38 to 12.92. On version 3 the pass lines were recalibrated each start, and three starts gave proximity lower edges of 5.23, 5.46 and 5.52. |
 
 ## Home page
 
 | Claim | Status | Version | Depends on | Evidence |
 | --- | --- | --- | --- | --- |
-| Seven mashes clear every test from a played deck | Verified | 1 | Mash, played deck | 20 of 20 runs |
-| Six mashes usually clear it too, but not every time | Verified | 1 | Mash, played deck | 19 of 20 runs |
-| Eight mashes clear every test in nearly every run from each starting deck | Verified (partly) | 3 | Mash, all decks | Woven 20 of 20, clumped 19 of 20 on version 3. Sorted and played (18 to 19 of 20) come from the original search and weren't rerun. |
-| A sorted deck needs the eighth mash because the top and bottom cards are last to move (card and "mash, again" step) | Contradicted | 1 | Mash, sorted deck | One run from sorted: end retention cleared at the sixth mash; the seventh failed only proximity. Rerun with more samples before rewriting. |
-| Footnote: the best six-unit mixes passed 16 of 20, and six plain mashes passed 18 | Contradicted | 1 | Mash, half overhands, played deck | Rerun: M M OHb M OHt M 19 of 20, M M OHt M OHb M 17 of 20, six mashes 19 of 20. `npm run search` should settle it. |
-| Footnote: 4 mashes, pile, 4 mashes passed only 1 of 5 runs from sorted | Verified | 2 | Mash, pile, sorted deck | 1 of 5 runs |
+| Seven mashes clear every test from a played deck ("leave nothing behind" on the card) | Verified | 4 | Mash, played deck | 196 of 200 runs (failures: end retention 3, global proximity 1). On version 3, samples ranged from 86 of 100 to 20 of 20 because the pass lines moved between starts. |
+| Six mashes usually clear it too, but not every time | Verified | 4 | Mash, played deck | 178 of 200 runs, mostly proximity failures (15). |
+| Eight mashes clear every test in nearly every run from each starting deck | Verified | 4 | Mash, all decks | 200 runs each: sorted 188, woven 200, clumped 200, played 199. |
+| A sorted deck needs the eighth mash because the top and bottom cards are last to move (card and "mash, again" step) | Verified | 4 | Mash, sorted deck | 200 runs of seven mashes from sorted: 125 pass, and end retention causes most failures (63 of 75). Eight mashes: 188 pass, end retention fails 9. |
+| Footnote: from a played deck, seven mashes passed 196 of 200 and six passed 178; the best six-unit mixes passed about 180; from sorted, eight mashes passed 188 and seven 125; eight passed at least 199 from each other deck | Verified | 4 | Mash, half overhands, all decks | 200 runs each. Mixes from played: M M OHt M OHb M 182, M M OHb M OHt M 181 (both 0 from sorted). Whether these are the best six-unit mixes comes from earlier searches, not a version 4 search. |
+| Footnote: 4 mashes, pile, 4 mashes costs 12 units and passed 155 of 200 runs from sorted | Verified | 4 | Mash, pile, sorted deck | 155 of 200 (failures: proximity 44, distinguishability 1). The older footnote said 1 of 5, from version 2 with moving pass lines. |
 | Mash step: runs roughly double each mash; from sorted, the run count looks random only after six | Verified | 1 | Mash, sorted deck | Ordering 2.0, 4.0, 8.0, 15.9, 30.7, 45.8; passes at the sixth mash |
 | Overhand step: old neighbours never spread out, however long you go | Verified | 1 | Overhand, sorted deck | Six overhands: proximity 34.9 against a random 5.9 |
 | Half overhand step: four rounds break up order about as well as six mashes | Verified | 1 | Mash, half overhand, sorted deck | Ordering 46.8 after four rounds against 45.8 after six mashes |

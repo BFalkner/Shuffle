@@ -1,5 +1,6 @@
 // Fails when simulation results change, so the engine version and the claims log stay honest. See version.ts.
 import { afterAll, expect, test } from 'vitest'
+import { BASELINES } from './baselines.ts'
 import { calibrate } from './calibrate.ts'
 import { DECK_KINDS } from './decks.ts'
 import type { OpKey } from './moves.ts'
@@ -30,10 +31,12 @@ function hash(text: string): string {
 
 test(`engine output matches version ${ENGINE_VERSION}`, () => {
   seed(20260924)
-  // A 60-card deck: no other test uses this size, so the calibration and classifier caches start empty here.
+  // A 60-card deck: no other test uses this size, so the classifier cache starts empty here. The stored baselines are
+  // part of the output, so regenerating them counts as an engine change.
   const routine: OpKey[] = ['mash', 'overhand', 'pile', 'ohr', 'ohb', 'mash']
   const output = {
     calibration: calibrate(60, 50),
+    baselines: BASELINES,
     runs: DECK_KINDS.map(({ value }) => computeResult(value, 60, routine).avg),
   }
   const fingerprint = hash(JSON.stringify(output))
