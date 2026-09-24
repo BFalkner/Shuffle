@@ -126,6 +126,12 @@ card-tracking slot behaviour, and that the recommended any-start method
 The engine is random, so the statistical checks use tolerances wide enough
 to be stable from run to run.
 
+`src/engine/version.test.ts` runs the engine with a fixed seed and fails
+when any simulation result changes. When that happens on purpose, bump
+`ENGINE_VERSION` in `src/engine/version.ts`, paste the fingerprint the test
+prints, and recheck the claims in `docs/claims.md` that were verified on an
+older version.
+
 ## Deploying
 
 `npm run build` produces a static site in `dist/` that any static host can
