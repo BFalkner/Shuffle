@@ -109,10 +109,10 @@ const START_DECK_TEXT: ReactNode[] = [
   'Cards sit in the exact order the deck was built, so every kind of structure is at its maximum. This is the hardest case. The shuffle has to break up the order, the neighbours and the positions from scratch. It takes eight mashes to clear every test reliably from here.',
   'This deck had seven mashes, and then its top thirty cards were sorted, as happens when you gather your cards after a game. It looks random at a glance, but the sorted block is real structure. Ordering reads 36 against a random deck’s 50, close pairs 12.3 against 5.9, and the original end cards sit at their ends at five times the random rate.',
   <>
-    The lands start at perfectly even intervals. If a shuffle leaves that pattern in place, the regularity is real structure, and the
+    The lands start at perfectly even intervals, and the rest of the deck is in random order. If a shuffle leaves that pattern in place, the regularity is real structure, and the
     land-spacing test catches it at once. Lands spaced <i>too</i> regularly are as far from random as lands clumped together.
   </>,
-  'The lands start in three loose clusters, the way a deck looks after a game in which lands came out in runs. Shuffling has to break up the clumps, and the land-spacing and clump-rate tests track how quickly it does.',
+  'The lands start in three loose clusters, the way a deck looks after a game in which lands came out in runs, and the rest of the deck is in random order. Shuffling has to break up the clumps, and the land-spacing and clump-rate tests track how quickly it does.',
 ]
 
 function MoveDemo({ op }: { op: DemoMove }) {
@@ -262,7 +262,7 @@ export default function Home() {
         We chose the recommendations by scoring every routine that costs up to 7 units, starting from a played deck. A mash and a half overhand cost 1
         unit each, a full overhand costs 2, and a pile costs 4. The pile&rsquo;s cost is a guess until we time it. We then ran the leaders 20 times from
         each of the four starting decks. A run counts as a pass only when it clears every test. Seven mashes passed all 20 runs from a played deck, and eight
-        passed 18 or 19 of 20 from each starting deck. No six-unit routine was reliable: the best mixes passed 16 of 20, and six plain mashes passed 18. The
+        passed 18 to 20 of 20 from each starting deck. No six-unit routine was reliable: the best mixes passed 16 of 20, and six plain mashes passed 18. The
         pile routine we used to recommend (4 mashes, pile, 4 mashes) costs 12 units and passed only 1 of 5 runs from a sorted
         deck. Pass thresholds sit two
         standard deviations from random decks: ordering ≥ {SUMMARY.thr.seq} runs, proximity ≤ {SUMMARY.thr.cp} close pairs. Random baselines: ordering{' '}
