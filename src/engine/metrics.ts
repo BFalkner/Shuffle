@@ -199,7 +199,7 @@ export const METRICS: Metric[] = [
   },
   {
     key: 'classifier', group: 'holistic', core: false, raw: true, unit: '% detect', side: 'low', title: 'Distinguishability', measure: null,
-    desc: 'A classifier trained live to tell this deck from a truly random one; 50% is a coin flip. Readings under about 53% are within its own training noise and mean nothing.',
+    desc: 'A classifier trained live to tell this deck from a truly random one; 50% is a coin flip. Readings under about 54% are within its own training noise and mean nothing.',
     writeup: { to: '/global-tests', label: FULL },
   },
   {

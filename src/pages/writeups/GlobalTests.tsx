@@ -1,57 +1,67 @@
+import { Link } from 'react-router'
 import Writeup from './Writeup'
 
 export default function GlobalTests() {
   return (
     <Writeup
-      title="The global tests"
-      subtitle="Position bias and the live classifier: the two backstops, built for a deterministic deal that fools every single-deck test and for structure nobody thought to name."
+      title="Tests across many shuffles"
+      subtitle="Two tests that look at many shuffled decks together: one for shuffles that give the same result every time, and one for patterns we didn't think to test for."
     >
-      <h2>Two tests that read the deck as a whole</h2>
+      <h2>Most tests look at one deck at a time</h2>
       <p>
-        Every other diagnostic reads one property: runs, neighbours, fragments or spacing. Both tests here were added after decks turned up that passed all
-        of those and were still provably not random. They are the backstops.
+        The <Link to="/order-tests">tests for leftover order</Link> each read one shuffled deck and look for one kind of trace: runs, neighbours or
+        fragments. Some problems don&rsquo;t show up in any single deck. They only show up when you shuffle the same way many times and compare the
+        results. The two tests on this page work that way.
       </p>
 
-      <h2>Position: built because the pile deal is deterministic</h2>
+      <h2>The pile always deals the same way</h2>
       <p>
-        The pile shuffle is the best move in the battery at separating neighbours, and the worst in a way no single-deck test can see:{' '}
-        <i>it does not shuffle</i>. Deal 99 cards into six piles and stack them back, and every card ends up exactly where the arithmetic says it will. Do
-        it twice and the deck is still fully determined. Any one such deck looks thoroughly disordered, with runs broken, neighbours separated and chains
-        gone, so every test that examines a single deck passes it.
+        A pile deal doesn&rsquo;t shuffle. Deal 99 cards into six piles and stack them, and every card lands exactly where the arithmetic puts it. Deal
+        again and the deck is still fully determined. Anyone who knows the deck before the deal knows it after.
       </p>
       <p>
-        The flaw only shows <i>across</i> decks, so the test has to look there. Run the same method many times, count how often each card lands in each
-        position, and compare that table to a uniform one with a chi-square test. A random process spreads each card over every position; a deterministic
-        one sends it to the same place every time, and the table shows it plainly. This test fails a pile-only routine outright, and it is why neither
-        recommended method on the home page ends with a pile deal.
-      </p>
-      <p>
-        The statistic has (99−1)² = 9,604 degrees of freedom. A truly random process averages exactly that <i>regardless of the number of trials</i>, while
-        a biased one accumulates excess in proportion to the number of trials. That is why the pass threshold scales with the number of trials run rather
-        than sitting at a fixed number.
+        Single-deck tests often catch a pile anyway, because a pile leaves patterns of its own. But a pile can also hide a problem. Three mashes from a
+        played deck fail global proximity, end retention,
+        position and distinguishability. Add a pile at the end and every single-deck test passes, in all five of our runs.
+        The pile rearranges each deck thoroughly, but it adds nothing random, so the bias the three mashes left behind is still there. Only a test that
+        compares many decks can see it.
       </p>
 
-      <h2>Distinguishability: the test that admits we might have missed something</h2>
+      <h3>Position</h3>
       <p>
-        Every test above answers a question we thought to ask. The obvious worry is the question nobody thought of: structure in the overall shape of the
-        arrangement that shows up in no single property we named. This test asks a machine to find it.
+        Position runs the same routine 1,200 times, counts how often each card lands in each position, and compares that table with an even one using a
+        chi-square test. A random shuffle spreads each card over every position. A fixed deal sends each card to the same place every time. Six piles from
+        a sorted deck score over 11 million, where a random shuffle scores about 9,600.
       </p>
       <p>
-        A logistic-regression classifier is trained during every run to separate this method&rsquo;s decks from genuinely random ones, using gap-spacing
-        features and neighbour correlation, and it is scored on held-out accuracy. If it cannot beat a coin flip, the deck is indistinguishable from random
-        along every axis the classifier can see. If it can, there is structure, even if no named test has fired.
+        That 9,600 is (99&minus;1)&sup2; = 9,604, the test&rsquo;s degrees of freedom. A random shuffle averages that no matter how many trials you run. A
+        biased shuffle scores higher, and its excess grows with the number of trials. The simulator always runs 1,200 trials and fails a routine that
+        scores above about 13,900, which is 1.45 times the random average. A different trial count would need a different threshold.
+      </p>
+
+      <h2>A catch-all for what we didn&rsquo;t think of</h2>
+      <p>
+        Every other test answers a question we thought to ask. The obvious worry is the question nobody thought of: a pattern in the overall shape of the
+        deck that shows up in none of the properties we named. Distinguishability asks a program to find one.
+      </p>
+
+      <h3>Distinguishability</h3>
+      <p>
+        During every run, the simulator trains a simple classifier to tell this routine&rsquo;s decks from truly random ones. It looks at the gaps between
+        consecutive card numbers and at neighbour correlation. It trains on 70% of the decks and is scored on the other 30%. If it can&rsquo;t beat a coin
+        flip, the decks look random in every way the classifier can see. If it can, there is a pattern, even when no named test has failed.
       </p>
       <p>
-        It has already proved its worth. When the mash model was refitted to a real hand, this test flagged decks at the fifth pass as clearly detectable
-        while ordering, proximity and position all reported passes. Tracing that disagreement through the classifier&rsquo;s features turned up the
-        over-dispersion (a strict riffle spreading neighbours <i>too</i> evenly), which led directly to proximity gaining a lower bound. The classifier
-        found a gap in the battery that the other tests could not see.
+        It has already found one. When we refitted the mash model to a hand-measured mash, the classifier flagged decks around the fifth mash as clearly
+        detectable. Proximity had no lower bound yet and reported a comfortable pass. Following that disagreement through the classifier&rsquo;s inputs
+        showed that the mash was spreading old neighbours too evenly. That finding gave{' '}
+        <Link to="/order-tests">proximity its lower bound</Link>.
       </p>
       <p>
-        Read its numbers with its own noise in mind. Trained on random decks against random decks, where the true answer is exactly 50%, it still reads as
-        high as 53% on training luck alone, so anything below that means nothing. Near the 56% threshold, results vary by about ±2 points from run to run,
-        and a method only fails <i>consistently</i> from roughly 60% up. It is a deliberately simple model: a random forest on the same features cost forty
-        to a hundred times as much and scored one to six points <i>worse</i>. Treat a pass as necessary evidence, not proof.
+        Read its numbers with its own noise in mind. Trained on random decks against random decks, where the true answer is exactly 50%, it reads up to
+        about 54% by luck, so anything below that means nothing. Near the 56% threshold, results vary by about 2 points from run to run, and a routine
+        fails every time only from about 60% up. The classifier is simple on purpose. A random forest we tried on the same inputs took about 40 times as
+        long and scored 1 to 2 points worse. A pass is evidence, not proof.
       </p>
     </Writeup>
   )

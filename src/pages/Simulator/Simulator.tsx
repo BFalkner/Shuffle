@@ -220,7 +220,7 @@ export default function Simulator() {
           Distinguishability is the backstop for everything else. It is a classifier trained live on gap-spacing features to separate this deck from true
           random, scored as held-out accuracy, where 50% is a coin flip. It exists to catch <i>joint</i> structure that each single-property test misses. It
           is deliberately simple, so treat it as a lower bound on how detectable the deck is: a pass is necessary evidence, not proof, and readings under
-          about 53% are within its own training noise.
+          about 54% are within its own training noise.
         </p>
         <p>
           The composite score converts every diagnostic to the same percentage scale and averages them, capped at the lowest-scoring failing test, so a
