@@ -108,8 +108,10 @@ Its worst-test degree is about 0.45, not 0, and that is the floor to
 compare the finalists against.
 To change the limits, pass options after `--`, for example
 `npm run search -- --max-cost 6 --from sorted`. Add `--json results.json`
-to save the full statistics for every test. The defaults match the
-footnote. The options are listed at the top of `scripts/search.ts`.
+to save the full statistics for every test. To test specific routines
+without the search, name them:
+`npm run search -- --routine "M×4·P·M×4" --routine M×8`. The defaults
+match the footnote. The options are listed at the top of `scripts/search.ts`.
 The other precomputed data (the chart series, the move demos and the
 sticky-ends sweeps) came from ad hoc runs that weren't saved as scripts.
 

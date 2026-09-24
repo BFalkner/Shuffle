@@ -2,6 +2,7 @@
 // This reproduces the numbers behind the home page recommendations and footnote.
 //
 // Usage: npm run search -- [--max-cost 7] [--from played] [--size 99] [--leaders 32] [--leader-runs 5] [--finalists 6] [--final-runs 200] [--json file]
+//        npm run search -- --routine "M×4·P·M×4" [--routine M×8 ...] [--final-runs 200]   (skip the search, test these)
 import { writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { DECK_KINDS, fisher, type DeckKind } from '../src/engine/decks.ts'
@@ -20,6 +21,7 @@ const { values } = parseArgs({
     finalists: { type: 'string', default: '6' },
     'final-runs': { type: 'string', default: '200' },
     json: { type: 'string' },
+    routine: { type: 'string', multiple: true },
   },
 })
 const maxCost = Number(values['max-cost'])
@@ -35,6 +37,21 @@ if (!kinds.includes(from)) throw new Error(`--from must be one of: ${kinds.join(
 const moves = Object.keys(OPS) as OpKey[]
 const costOf = (seq: OpKey[]) => seq.reduce((total, op) => total + OP_COST[op], 0)
 const label = (seq: OpKey[]) => `${compressSeq(seq)} (${costOf(seq)}u)`
+
+const TOKEN_OP: Record<string, OpKey> = { m: 'mash', oh: 'overhand', p: 'pile', oht: 'ohr', ohb: 'ohb' }
+
+/** Parse a routine written like the search prints it: "M×4·P·M×4". Also accepts spaces or commas, and x or * for ×. */
+function parseRoutine(text: string): OpKey[] {
+  return text
+    .split(/[·\s,]+/)
+    .filter(Boolean)
+    .flatMap((token) => {
+      const match = /^(oht|ohb|oh|m|p)(?:[×x*](\d+))?$/i.exec(token)
+      if (!match) throw new Error(`Unknown move "${token}" in "${text}". Use M, OH, P, OHt or OHb, with ×n to repeat.`)
+      return Array<OpKey>(Number(match[2] ?? 1)).fill(TOKEN_OP[match[1].toLowerCase()])
+    })
+}
+const named = values.routine?.map(parseRoutine)
 
 /** Every sequence of moves whose total cost is at most maxCost. */
 function allRoutines(): OpKey[][] {
@@ -149,37 +166,42 @@ const elapsed = () => `${Math.round((Date.now() - started) / 1000)}s`
 const progress = (done: number, of: number) => process.stdout.write(`  ${done}/${of} ${elapsed()}\r`)
 const clearProgress = () => process.stdout.write('\r' + ' '.repeat(40) + '\r')
 
-// Stage 1: one run of every routine from the chosen deck, ranked by its worst test's degree.
-const routines = allRoutines()
-console.log(`Stage 1: ${routines.length} routines costing up to ${maxCost} units, one run each from the ${from} deck (${deckSize} cards).`)
-const scored = routines.map((seq, index) => {
-  if (index % 500 === 0) progress(index, routines.length)
-  return { seq, worst: degrees(computeResult(from, deckSize, seq, 'ends')).worst.degree }
-})
-scored.sort((a, b) => a.worst - b.worst || costOf(a.seq) - costOf(b.seq))
-clearProgress()
-console.log(`  done in ${elapsed()}. ${scored.filter((entry) => entry.worst <= 1).length} routines cleared every test in their one run.`)
+/** Stages 1 and 2: score every routine from one deck, then rerun the leaders from every deck. Returns stage 2, ranked. */
+function search(): Ranked[] {
+  // Stage 1: one run of every routine from the chosen deck, ranked by its worst test's degree.
+  const routines = allRoutines()
+  console.log(`Stage 1: ${routines.length} routines costing up to ${maxCost} units, one run each from the ${from} deck (${deckSize} cards).`)
+  const scored = routines.map((seq, index) => {
+    if (index % 500 === 0) progress(index, routines.length)
+    return { seq, worst: degrees(computeResult(from, deckSize, seq, 'ends')).worst.degree }
+  })
+  scored.sort((a, b) => a.worst - b.worst || costOf(a.seq) - costOf(b.seq))
+  clearProgress()
+  console.log(`  done in ${elapsed()}. ${scored.filter((entry) => entry.worst <= 1).length} routines cleared every test in their one run.`)
 
-// Stage 2: rerun the leaders from every starting deck.
-const leaders = scored.slice(0, leaderCount)
-console.log(`\nStage 2: the top ${leaders.length}, ${leaderRuns} runs from each starting deck, ranked by the weakest deck.`)
-console.log(`  Each deck shows the worst test's degree (mean ± SD), then the runs that cleared every test.`)
-const stage2 = leaders.map(({ seq }, index) => {
-  progress(index, leaders.length)
-  return routineStats(seq, leaderRuns)
-})
-stage2.sort(byWeakestDeck)
-clearProgress()
-const deckBrief = (stats: DeckStats) => `${mean(stats.worst).toFixed(2)}±${sd(stats.worst).toFixed(2)} ${stats.clean}/${stats.runs}`
-const stage2Shown = stage2.slice(0, Math.max(finalistCount, 30))
-for (const { seq, perDeck } of stage2Shown) console.log(`  ${label(seq).padEnd(30)} ${kinds.map((kind, i) => `${kind} ${deckBrief(perDeck[i])}`.padEnd(24)).join('')}`)
-if (stage2.length > stage2Shown.length) console.log(`  … and ${stage2.length - stage2Shown.length} more.`)
-console.log(`  done in ${elapsed()}.`)
+  // Stage 2: rerun the leaders from every starting deck.
+  const leaders = scored.slice(0, leaderCount)
+  console.log(`\nStage 2: the top ${leaders.length}, ${leaderRuns} runs from each starting deck, ranked by the weakest deck.`)
+  console.log(`  Each deck shows the worst test's degree (mean ± SD), then the runs that cleared every test.`)
+  const stage2 = leaders.map(({ seq }, index) => {
+    progress(index, leaders.length)
+    return routineStats(seq, leaderRuns)
+  })
+  stage2.sort(byWeakestDeck)
+  clearProgress()
+  const deckBrief = (stats: DeckStats) => `${mean(stats.worst).toFixed(2)}±${sd(stats.worst).toFixed(2)} ${stats.clean}/${stats.runs}`
+  const shown = stage2.slice(0, Math.max(finalistCount, 30))
+  for (const { seq, perDeck } of shown) console.log(`  ${label(seq).padEnd(30)} ${kinds.map((kind, i) => `${kind} ${deckBrief(perDeck[i])}`.padEnd(24)).join('')}`)
+  if (stage2.length > shown.length) console.log(`  … and ${stage2.length - shown.length} more.`)
+  console.log(`  done in ${elapsed()}.`)
+  return stage2
+}
 
-// Stage 3: the finalists, many runs each, ranked on their own results.
-const finalists = stage2.slice(0, finalistCount)
-console.log(`\nStage 3: the top ${finalists.length}, ${finalRuns} runs from each starting deck, ranked by the weakest deck.`)
-const stage3 = finalists.map(({ seq }, index) => {
+// With --routines, skip the search and run stage 3 on the named routines.
+const stage2 = named ? [] : search()
+const finalists = named ?? stage2.slice(0, finalistCount).map(({ seq }) => seq)
+console.log(`${named ? '' : '\n'}Stage 3: ${named ? 'the named routines' : `the top ${finalists.length}`}, ${finalRuns} runs from each starting deck, ranked by the weakest deck.`)
+const stage3 = finalists.map((seq, index) => {
   progress(index, finalists.length)
   return routineStats(seq, finalRuns)
 })
