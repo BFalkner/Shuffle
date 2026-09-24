@@ -71,14 +71,13 @@ const STEPS: Step[] = [
     color: '#3a5f9e',
     how: 'Deal the cards one at a time into six piles, then stack the piles.',
     paragraphs: [
-      'Every pair of neighbours ends up in different piles, so the deck passes proximity after a single deal. But dealing isn’t random. Each card lands exactly where the arithmetic puts it, and every sixth card of the old order is still in order.',
+      'The deal always splits neighbours the same way, and none stay close. A random deck keeps a few close by chance, so the pile fails proximity on the low side.',
       <>
-        <Link to="/global-tests">Position</Link> checks whether cards keep landing in the same places across many shuffles, and{' '}
-        <Link to="/order-tests">strided chain</Link> looks for runs that skip a fixed number of cards. We added both because of the pile, and they’re
-        why a pile deal should never be the last thing you do.
+        Worse, dealing isn&rsquo;t random. Anyone who knows the deck before the deal knows it after. We added the{' '}
+        <Link to="/global-tests">position</Link> test for the pile. A pile adds nothing random, so it can&rsquo;t fix what other moves leave behind.
       </>,
     ],
-    bars: [100, 98, 0],
+    bars: [92, 93, 0],
   },
   {
     name: 'The mash, again',
@@ -264,7 +263,8 @@ export default function Home() {
         unit each, a full overhand costs 2, and a pile costs 4. The pile&rsquo;s cost is a guess until we time it. We then ran the leaders 20 times from
         each of the four starting decks. A run counts as a pass only when it clears every test. Seven mashes passed all 20 runs from a played deck, and eight
         passed 18 or 19 of 20 from each starting deck. No six-unit routine was reliable: the best mixes passed 16 of 20, and six plain mashes passed 18. The
-        pile routine we used to recommend (4 mashes, pile, 4 mashes) costs 12 units and failed from a sorted deck in 3 of 5 runs. Pass thresholds sit two
+        pile routine we used to recommend (4 mashes, pile, 4 mashes) costs 12 units and passed only 1 of 5 runs from a sorted
+        deck. Pass thresholds sit two
         standard deviations from random decks: ordering ≥ {SUMMARY.thr.seq} runs, proximity ≤ {SUMMARY.thr.cp} close pairs. Random baselines: ordering{' '}
         {SUMMARY.rand.seq}, proximity {SUMMARY.rand.cp}. Figures in the steps above come from 1,200 simulated decks per routine.
       </p>

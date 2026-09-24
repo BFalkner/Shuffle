@@ -1,97 +1,115 @@
+import { Link } from 'react-router'
 import Writeup from './Writeup'
 
 export default function OrderTests() {
   return (
     <Writeup
-      title="Reading residual order"
-      subtitle="Seven diagnostics for leftover sequence, and the decks that forced each one into existence: the overhand that beat run-counting, and the pile lattice that no read-through can see."
+      title="Tests for leftover order"
+      subtitle="How we check that a shuffled deck has lost its old order, and which shuffle made us add each test."
     >
-      <h2>The battery grew one gap at a time</h2>
+      <h2>We added these tests one at a time</h2>
       <p>
-        None of these tests was designed in advance. Each one exists because a deck passed every test we already had and was still plainly not random.
-        They appear here in the order those decks turned up.
+        We didn&rsquo;t plan these tests in advance. Each time a shuffled deck passed every test we had and still wasn&rsquo;t random, we added a test
+        that could see what it left behind. This page follows that order. Each section starts with the shuffle that got past the tests we had, then
+        explains the tests that catch it.
       </p>
 
-      <h2>Ordering: the first test, and the reason for the second</h2>
+      <h2>The mash leaves long runs in order</h2>
       <p>
-        The first question was the simple one: how many shuffles does it take? Rising sequences answer it. Count the maximal ascending runs the deck breaks
-        into (one when sorted, and about 50.1 on average when random, with a standard deviation of 2.9) and watch the count climb toward random.
-      </p>
-      <p>
-        The test became two-sided after a deliberate attempt to break it. A reversed deck reads far <i>above</i> fifty, and an early one-sided version
-        passed it. Too many runs is as much a fingerprint as too few.
-      </p>
-      <p>
-        What ordering cannot see is a deck whose runs are broken but whose neighbours are intact. Overhand shuffling produces exactly that. It reverses the
-        order of the packets, so the run count jumps toward random within a few passes while cards that started side by side are still side by side.
-        Ordering declared those decks shuffled, and they were not.
+        The first question was the simple one: how many mashes does it take? A mash splits the deck in two and lets the halves fall together. Each half
+        keeps its cards in their original order, so after one mash a sorted deck is two long runs woven together. Each mash roughly doubles the number of
+        runs, and it takes several mashes before the runs are short enough to look random.
       </p>
 
-      <h2>Proximity: built to catch the overhand</h2>
+      <h3>Ordering</h3>
       <p>
-        Proximity counts the originally adjacent pairs still within three positions of each other: 98 in a sorted 99-card deck, and 5.9 on average in a
-        random one. It fails an overhand-only routine no matter how long you keep going, and it is the reason the pile shuffle earns a place in a method at
-        all. A pile deal is the only move that puts every neighbouring pair into separate stacks in a single pass.
+        Ordering counts the runs of cards that are still in rising order. A sorted deck is one run. A random 99-card deck breaks into about 50.1 runs,
+        with a standard deviation of 2.9. From a sorted deck, the mash passes ordering at the sixth mash.
       </p>
       <p>
-        Proximity gained a <i>lower</i> bound much later, and by accident. After the riffle model was refitted to a hand-measured mash, with packets that
-        are mostly single cards, the close-pair count from a sorted deck did something unexpected around the fifth pass. It dropped to roughly 1.6, far{' '}
-        <i>below</i> the random 5.9, and only recovered later. The interleave was fine enough to spread original neighbours more evenly than chance would.
-        The classifier had already flagged those decks as detectable while proximity reported a comfortable pass, and that disagreement forced the
-        question.
-      </p>
-      <p>
-        Fixing it took a different kind of threshold. The over-dispersion is smaller than two per-deck standard deviations, so a band scaled by per-deck
-        spread cannot see it. The lower bound is rate-based instead: three standard errors below the random mean at the test&rsquo;s trial count. Spreading
-        neighbours too evenly is as non-random as leaving them clumped, and the test now fails it.
+        The test is two-sided. An early version failed only decks with too few runs, and a reversed deck passed it. A reversed deck breaks into 99 runs of
+        one card each, which is as far from random as a single run. Too many runs is as much a trace of the old order as too few.
       </p>
 
-      <h2>Global proximity: the same question without a threshold</h2>
+      <h3>Longest chain</h3>
       <p>
-        Proximity asks a yes-or-no question of every pair: are they within three positions? The threshold gives a clean pass/fail number but throws away
-        distance, so a pair sitting four apart and a pair sitting forty apart both simply fail to count. Global proximity keeps the distance. For every pair
-        of cards now adjacent in the shuffled deck, it measures how far apart those two cards originally sat, subtracts one so that an unmoved neighbour
-        scores zero, and averages over all ninety-eight pairs.
-      </p>
-      <p>
-        On a random 99-card deck the value sits close to 32, and the spread is tight enough that a rate-based band, the same approach as proximity&rsquo;s
-        lower bound, catches real deviation quickly. Checked against proximity directly, the two are not measuring the same thing twice. At any single point
-        in a mash sequence, knowing one tells you almost nothing about the other. They move together across a whole shuffle only because both climb as the
-        deck randomizes.
-      </p>
-      <p>
-        It has one blind spot, worth stating up front: it never dips below the random band the way proximity does at the over-dispersion point. A distance
-        and a count are different measurements, and this one is not sensitive to that anomaly. Where it is sharp is on moves that keep pairs together
-        outright. An overhand-only routine fails it low, permanently and unmistakably, however many passes you run, because packets that move as blocks
-        never separate the pairs inside them.
+        A run count is an average over the whole deck. One run that survives in one piece barely changes it, but a player who knows five cards are still in
+        order has real information. Longest chain finds the longest run of consecutive cards still in forward order anywhere in the deck. In a random deck
+        that run is usually four or five cards long. A reading of nine means a piece of the old order survived. From a sorted deck, the mash passes
+        longest chain at the fifth mash.
       </p>
 
-      <h2>Neighbour correlation: the cheap confirmation</h2>
+      <h2>The overhand keeps neighbours together</h2>
       <p>
-        This is the Pearson correlation between adjacent card values: near +1 when sorted, near −1 when reversed and near 0 when random. It was suggested
-        rather than forced on us by a failing deck. It gives a second, independent reading of the property proximity measures, and it responds to gradual
-        drift rather than exact adjacency. It has never caught anything on its own. Its job is to corroborate.
+        The overhand got past ordering. It moves the deck in small packets and reverses their order, so the run count gets close to random within a few
+        passes. But the cards inside each packet stay together and stay in order. Cards that started side by side are still side by side. Ordering passed
+        those decks, and they weren&rsquo;t random. Six overhands from a sorted deck still pass ordering and still fail all four tests in this section.
       </p>
 
-      <h2>The fragment counters: catching what averages dilute</h2>
+      <h3>Proximity</h3>
       <p>
-        Aggregate statistics have a blind spot. One intact fragment in an otherwise random deck barely moves an average over ninety-nine cards, yet a player
-        who knows a five-card sequence survived has real information. Three tests look for survivors directly.
+        Proximity counts pairs of cards that started next to each other and are still within three places of each other. A sorted 99-card deck has 98 of
+        these pairs, and a random deck has about 5.9. An overhand-only routine never passes, however long you keep going.
+      </p>
+
+      <h3>Local order</h3>
+      <p>
+        Local order counts places where three or more consecutive cards still sit together in order. In a random deck the count is almost zero, so any
+        reading is leftover order. It catches the short runs inside overhand packets. Those runs are too short to show up as a longest chain, but there are
+        too many of them to be chance.
+      </p>
+
+      <h3>Global proximity</h3>
+      <p>
+        Proximity asks a yes-or-no question of each pair: are the two cards within three places of each other? That gives a clean count, but it ignores
+        distance. A pair four apart and a pair forty apart both just fail to count. Global proximity keeps the distance. For each pair of cards now side by
+        side, it measures how far apart they started, minus one, so a pair that never moved scores zero. It then averages over all 98 pairs. A random
+        99-card deck scores about 32.
       </p>
       <p>
-        <b>Longest chain</b> came first. It is the longest run of consecutive cards still in forward order anywhere in the deck. Random decks sit near four
-        or five; a reading of nine means an intact fragment that every aggregate test above averaged away.
+        An overhand-only routine fails it low every time, because the pairs inside each packet never separate. Global proximity and proximity don&rsquo;t
+        measure the same thing twice. At any single point in a mash sequence, knowing one tells you almost nothing about the other. Global proximity also
+        misses the too-even spread described at the end of this page, which proximity catches.
+      </p>
+
+      <h3>Neighbour correlation</h3>
+      <p>
+        Neighbour correlation measures how closely each card&rsquo;s number follows the number of the card before it. It reads near +1 for a sorted deck,
+        near &minus;1 for a reversed one and near 0 for a random one. We added it on a suggestion, not because a deck got past the other tests. It gives a
+        second, independent reading of what proximity measures. It has never caught anything on its own. Its job is to confirm the others.
+      </p>
+
+      <h2>The pile leaves every sixth card in sequence</h2>
+      <p>
+        A pile deal from a sorted deck puts cards 21, 15, 9 and 3 side by side. They sat six apart in the old order and are still in
+        sequence, only reversed. No two neighbours are consecutive cards, so we expected tests
+        that read the deck front to back to miss the pattern. We built strided chain for it. Strided chain looks for runs of cards that are evenly spaced in
+        the old order and still in sequence, in either direction.
       </p>
       <p>
-        <b>Strided chain</b> exists because of the pile shuffle, and it is the clearest example of a test built for one specific weakness. A six-pile deal
-        leaves cards 3, 9, 15 and 21 in perfect order. That lattice is invisible to any test that reads the deck front to back, because no <i>adjacent</i>{' '}
-        cards are in sequence. Longest chain sees nothing, and neither does ordering. The deck reads as well shuffled, yet anyone who knows the pile count
-        can reconstruct it. Strided chain looks for exactly this pattern at every stride, and it is the reason a pile deal can never be the last move in a
-        method.
+        In the current model, strided chain hasn&rsquo;t turned out to be necessary. A single pile deal from a sorted deck leaves 17 runs, so ordering
+        fails it. It also fails proximity on the low side. The deal is fixed, so in a 99-card deck 82 of the 98 pairs of
+        neighbours always land 16 or 17 places apart, and the rest land 83 apart. None stays close, and a random deck keeps a few close by chance.
+        Across the pile routines we tried, strided chain failed only where ordering and proximity also failed. Like neighbour correlation, it confirms rather
+        than catches.
       </p>
       <p>
-        <b>Local order</b> is the density of three or more consecutive cards still sitting together. It is effectively zero in a random deck, so any
-        reading at all is leftover sequence. It catches small survivors that are too short to register as a longest chain but too numerous to be chance.
+        The pile&rsquo;s lasting weakness is that the deal isn&rsquo;t random. Every card lands where the arithmetic puts it. The{' '}
+        <Link to="/global-tests">position test</Link> catches that, and it&rsquo;s the failure that keeps showing up in routines with a pile in them.
+      </p>
+
+      <h2>The mash spreads neighbours too evenly</h2>
+      <p>
+        Proximity gained a lower bound much later. After we refitted the mash model to a hand-measured mash, with packets that are mostly single cards,
+        the close-pair count from a sorted deck did something unexpected around the fifth mash. It dropped to roughly 1.6, far below the random 5.9, and
+        recovered only later. The interleave was fine enough to spread old neighbours more evenly than chance would.
+      </p>
+      <p>
+        <Link to="/global-tests">Distinguishability</Link> had already flagged those decks as detectable while proximity reported a comfortable pass. That
+        disagreement is what showed us the problem. The fix needed a different kind of threshold. The too-even spread is smaller than two per-deck
+        standard deviations, so a band based on per-deck spread can&rsquo;t see it. The lower bound works on the average over all trials instead. It sits
+        three standard errors below the random mean. Spreading neighbours too evenly is as far from random as leaving them together, and proximity now
+        fails it.
       </p>
     </Writeup>
   )
