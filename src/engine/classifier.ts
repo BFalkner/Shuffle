@@ -1,9 +1,9 @@
 // Distinguishability: a small logistic-regression classifier trained to tell a
 // method's decks from genuinely random ones. Held-out accuracy of 50% means it
 // cannot tell them apart.
-import { fisher } from './decks'
-import { mCorr } from './metrics'
-import type { Deck } from './moves'
+import { fisher } from './decks.ts'
+import { mCorr } from './metrics.ts'
+import type { Deck } from './moves.ts'
 
 /** Gap-spacing features plus neighbour correlation. */
 export function deckFeatures(deck: Deck, deckSize: number): number[] {

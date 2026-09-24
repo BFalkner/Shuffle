@@ -1,8 +1,8 @@
 // The twelve randomness diagnostics. Each per-deck metric takes the deck, its
 // size and the card types and returns one number; position and
 // classifier are computed across a whole batch of trials instead (measure: null).
-import { LAND, catSizes, posOf, type CardTypes } from './decks'
-import type { Deck } from './moves'
+import { LAND, catSizes, posOf, type CardTypes } from './decks.ts'
+import type { Deck } from './moves.ts'
 
 export function mOrdering(deck: Deck): number {
   const positions = posOf(deck)

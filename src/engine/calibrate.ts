@@ -1,6 +1,6 @@
 // Random-deck baselines and pass thresholds for each metric.
-import { fisher, numberedTypes } from './decks'
-import { METRICS, type MetricKey } from './metrics'
+import { fisher, numberedTypes } from './decks.ts'
+import { METRICS, type MetricKey } from './metrics.ts'
 
 export interface Baseline {
   mean: number

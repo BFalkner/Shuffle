@@ -1,5 +1,5 @@
 // Starting decks and card-type bookkeeping.
-import { mash, type Deck } from './moves'
+import { mash, type Deck } from './moves.ts'
 
 export type DeckKind = 'sorted' | 'weave' | 'lumpy' | 'played'
 

@@ -1,10 +1,10 @@
 // Run a shuffle method many times and average every diagnostic at every step.
-import { getBase, type Base } from './calibrate'
-import { classifierAccuracy, deckFeatures, randomFeatures } from './classifier'
-import { startDeck, type CardTypes, type DeckKind } from './decks'
-import { METRICS, type MetricKey } from './metrics'
-import { OPS, type OpKey } from './moves'
-import { compositeScore, passWith, type Averages } from './scoring'
+import { getBase, type Base } from './calibrate.ts'
+import { classifierAccuracy, deckFeatures, randomFeatures } from './classifier.ts'
+import { startDeck, type CardTypes, type DeckKind } from './decks.ts'
+import { METRICS, type MetricKey } from './metrics.ts'
+import { OPS, type OpKey } from './moves.ts'
+import { compositeScore, passWith, type Averages } from './scoring.ts'
 
 // Trial counts: per-deck metrics, end retention, classifier features, and total runs (position χ²).
 const T_METRIC = 200
@@ -22,8 +22,13 @@ export interface MethodResult {
   avg: Averages
 }
 
-export function computeResult(kind: DeckKind, deckSize: number, seq: OpKey[]): MethodResult {
+/**
+ * Run a routine T_TOTAL times and average every diagnostic at every step. With steps = 'ends', only the start and the
+ * last step are measured (the others read NaN): enough to score a routine, and much faster for searches.
+ */
+export function computeResult(kind: DeckKind, deckSize: number, seq: OpKey[], steps: 'all' | 'ends' = 'all'): MethodResult {
   const moveCount = seq.length
+  const measured = (step: number) => steps === 'all' || step === 0 || step === moveCount
   const base = getBase(deckSize)
   const scalar = METRICS.filter((metric) => metric.measure).map((metric) => metric.key)
   const sums = {} as Record<MetricKey, Float64Array>
@@ -51,7 +56,7 @@ export function computeResult(kind: DeckKind, deckSize: number, seq: OpKey[]): M
     rec(0, deck, types)
     for (let step = 0; step < moveCount; step++) {
       deck = OPS[seq[step]](deck)
-      rec(step + 1, deck, types)
+      if (measured(step + 1)) rec(step + 1, deck, types)
     }
   }
 
@@ -59,13 +64,17 @@ export function computeResult(kind: DeckKind, deckSize: number, seq: OpKey[]): M
   scalar.forEach((key) => {
     const div = key === 'endret' ? T_ENDRET : T_METRIC
     avg[key] = []
-    for (let step = 0; step <= moveCount; step++) avg[key].push(sums[key][step] / div)
+    for (let step = 0; step <= moveCount; step++) avg[key].push(measured(step) ? sums[key][step] / div : NaN)
   })
 
   // Position: chi-square of the card × slot table against uniform.
   avg.position = []
   const expected = T_TOTAL / deckSize
   for (let step = 0; step <= moveCount; step++) {
+    if (!measured(step)) {
+      avg.position.push(NaN)
+      continue
+    }
     const slotCounts = posCount[step]
     let chi = 0
     for (let cell = 0; cell < deckSize * deckSize; cell++) {
@@ -77,7 +86,7 @@ export function computeResult(kind: DeckKind, deckSize: number, seq: OpKey[]): M
 
   avg.classifier = []
   const randomSet = randomFeatures(deckSize)
-  for (let step = 0; step <= moveCount; step++) avg.classifier.push(classifierAccuracy(stepFeat[step], randomSet))
+  for (let step = 0; step <= moveCount; step++) avg.classifier.push(measured(step) ? classifierAccuracy(stepFeat[step], randomSet) : NaN)
 
   return { deckSize, kind, seq, moveCount, base, avg }
 }

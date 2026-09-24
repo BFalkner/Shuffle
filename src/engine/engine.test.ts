@@ -1,13 +1,13 @@
 // Regression suite for the shuffle engine. These checks are statistical where
 // the engine is random, with tolerances wide enough to be stable run to run.
 import { describe, expect, test } from 'vitest'
-import { getBase } from './calibrate'
-import { posOf, sortedDeck } from './decks'
-import { EXAMPLES, SEED } from './experiments'
-import { METRICS, metricByKey } from './metrics'
-import { OPS, OP_COST, isOpKey, type OpKey } from './moves'
-import { passWith } from './scoring'
-import { TRACK_COLORS, emptySlots, toggleTracked } from './tracking'
+import { getBase } from './calibrate.ts'
+import { posOf, sortedDeck } from './decks.ts'
+import { EXAMPLES, SEED } from './experiments.ts'
+import { METRICS, metricByKey } from './metrics.ts'
+import { OPS, OP_COST, isOpKey, type OpKey } from './moves.ts'
+import { passWith } from './scoring.ts'
+import { TRACK_COLORS, emptySlots, toggleTracked } from './tracking.ts'
 
 function runSeq(seq: OpKey[], deckSize: number) {
   let deck = sortedDeck(deckSize)

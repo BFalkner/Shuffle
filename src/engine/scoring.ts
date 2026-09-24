@@ -1,6 +1,6 @@
 // Pass/fail rules, progress-toward-random, the composite score, and display formatting.
-import type { Base, Baseline } from './calibrate'
-import { METRICS, type Metric, type MetricKey } from './metrics'
+import type { Base, Baseline } from './calibrate.ts'
+import { METRICS, type Metric, type MetricKey } from './metrics.ts'
 
 /** Per-metric averages at every step: avg[key][step]. */
 export type Averages = Record<MetricKey, number[]>

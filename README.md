@@ -25,6 +25,7 @@ what's on screen.
 | `npm run dev`       | Local dev server with hot reload (http://localhost:5173)        |
 | `npm test`          | Run the engine test suite once                                  |
 | `npm run test:watch`| Re-run tests whenever a file changes                            |
+| `npm run search`    | Rerun the recommendation search (takes several minutes)         |
 | `npm run lint`      | Check the code for common mistakes                              |
 | `npm run typecheck` | Check TypeScript types without building                         |
 | `npm run build`     | Production build into `dist/` (type-checks first)               |
@@ -89,9 +90,29 @@ src/
 
 The home page and the sticky-ends page show results from long simulation
 runs that aren't re-run in the browser. That data lives in
-`src/pages/Home/data.json` and `src/pages/OffCenter/data.json`. The
-parameter searches and calibration sweeps that produced it were done ad hoc
-and aren't preserved as scripts — only their results.
+`src/pages/Home/data.json` and `src/pages/OffCenter/data.json`.
+
+`npm run search` reproduces the numbers behind the home page
+recommendations and footnote. It scores every routine up to a cost limit
+from a played deck, then reruns the leaders from all four starting decks.
+To change the limits, pass options after `--`, for example
+`npm run search -- --max-cost 6 --from sorted`. The defaults match the
+footnote. The options are listed at the top of `scripts/search.ts`.
+The other precomputed data (the chart series, the move demos and the
+sticky-ends sweeps) came from ad hoc runs that weren't saved as scripts.
+
+### Known limitations
+
+- The mash model has no overhang. In a real mash, part of the middle of
+  the deck (the lower cards of the top half) often drops to the bottom
+  without interleaving. The model's halves also run out together, because
+  each drop is scaled by the cards each hand still holds. Both likely make
+  the simulated mash better at moving the end cards than a real one.
+- The sorted and played decks number their cards by type (lands first), as
+  a deck built and sorted by type would be. The card-order tests therefore
+  see type structure in those decks as leftover order. The woven and clumped
+  decks draw their card order and types at random, so only their land
+  placement is structured.
 
 ## Tests
 

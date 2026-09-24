@@ -1,5 +1,5 @@
 // Saved shuffle methods ("experiments"), persisted in the browser's localStorage.
-import { isOpKey, type OpKey } from './moves'
+import { isOpKey, type OpKey } from './moves.ts'
 
 export interface Experiment {
   id: string
