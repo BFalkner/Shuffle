@@ -86,11 +86,14 @@ export function overhand(deck: Deck): Deck {
   return result
 }
 
-/** Pile: deal into six piles in rotation, then stack them. Deterministic. */
+/**
+ * Pile: deal face down into six piles in rotation, then stack them. Deterministic.
+ * Each card lands on top of its pile, so every pile comes out in reverse deal order.
+ */
 export function pile(deck: Deck): Deck {
   const pileCount = 6
   const piles: Deck[] = Array.from({ length: pileCount }, () => [])
-  for (let position = 0; position < deck.length; position++) piles[position % pileCount].push(deck[position])
+  for (let position = 0; position < deck.length; position++) piles[position % pileCount].unshift(deck[position])
   let result: Deck = []
   for (const dealtPile of piles) result = result.concat(dealtPile)
   return result
