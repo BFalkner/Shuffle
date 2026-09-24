@@ -33,31 +33,31 @@ export default function MethodList({ experiments, results, pending, colors, open
   }
 
   const ranked = experiments
-    .map((e) => ({ e, r: results.get(e.id)! }))
-    .sort((a, b) => b.r.score - a.r.score)
+    .map((experiment) => ({ experiment, result: results.get(experiment.id)! }))
+    .sort((left, right) => right.result.score - left.result.score)
 
   return (
     <div className="cmplist">
-      {ranked.map(({ e, r }, i) => {
-        const color = colors.get(e.id)
-        const open = openId === e.id
+      {ranked.map(({ experiment, result }, rank) => {
+        const color = colors.get(experiment.id)
+        const open = openId === experiment.id
         return (
-          <Fragment key={e.id}>
-            <div className={`cmprow${color ? ' sel' : ''}${open ? ' paneled' : ''}`} title="Watch this method shuffle" onClick={() => onOpen(e.id)}>
-              <span className="cmprank">#{i + 1}</span>
+          <Fragment key={experiment.id}>
+            <div className={`cmprow${color ? ' sel' : ''}${open ? ' paneled' : ''}`} title="Watch this method shuffle" onClick={() => onOpen(experiment.id)}>
+              <span className="cmprank">#{rank + 1}</span>
               <span className="cmpname">
                 {color && <i className="cmpsw" style={{ background: color }} />}
-                {e.title}
+                {experiment.title}
               </span>
               <span className="cmpscore">
-                <b>{Math.round(r.score * 100)}%</b> · {r.passCount}/{METRICS.length}
+                <b>{Math.round(result.score * 100)}%</b> · {result.passCount}/{METRICS.length}
               </span>
               <span
                 className={`expov${color ? ' on' : ''}`}
                 title="Overlay on charts"
-                onClick={(ev) => {
-                  ev.stopPropagation()
-                  onToggleOverlay(e.id)
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onToggleOverlay(experiment.id)
                 }}
               >
                 <PulseIcon />
@@ -65,9 +65,9 @@ export default function MethodList({ experiments, results, pending, colors, open
               <span
                 className="expmag"
                 title="Edit method"
-                onClick={(ev) => {
-                  ev.stopPropagation()
-                  onEdit(e.id)
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onEdit(experiment.id)
                 }}
               >
                 <PencilIcon />
@@ -87,8 +87,8 @@ function ResetLink({ onReset }: { onReset: () => void }) {
   const [armed, setArmed] = useState(false)
   useEffect(() => {
     if (!armed) return
-    const t = setTimeout(() => setArmed(false), 3500)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setArmed(false), 3500)
+    return () => clearTimeout(timer)
   }, [armed])
   return (
     <div

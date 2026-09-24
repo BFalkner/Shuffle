@@ -27,35 +27,35 @@ interface Props {
   xlabR: string
 }
 
-const W = 440
+const WIDTH = 440
 
 export default function LineChart({ series, height = 190, xmin, xmax, ymin, ymax, hlines = [], ytop, ybot, xlabL, xlabR }: Props) {
-  const H = height
-  const x = (v: number) => ((v - xmin) / (xmax - xmin)) * (W - 46) + 38
-  const y = (v: number) => H - 20 - ((v - ymin) / (ymax - ymin)) * (H - 34)
+  const plotHeight = height
+  const x = (value: number) => ((value - xmin) / (xmax - xmin)) * (WIDTH - 46) + 38
+  const y = (value: number) => plotHeight - 20 - ((value - ymin) / (ymax - ymin)) * (plotHeight - 34)
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} fontFamily="DM Mono,monospace" fontSize="9">
-      <line x1="38" y1={H - 20} x2={W - 8} y2={H - 20} stroke="#ccc3b4" strokeWidth="1" />
-      <line x1="38" y1="14" x2="38" y2={H - 20} stroke="#ccc3b4" strokeWidth="1" />
-      {hlines.map((hl, i) => {
-        const yy = y(hl.y).toFixed(1)
+    <svg viewBox={`0 0 ${WIDTH} ${plotHeight}`} fontFamily="DM Mono,monospace" fontSize="9">
+      <line x1="38" y1={plotHeight - 20} x2={WIDTH - 8} y2={plotHeight - 20} stroke="#ccc3b4" strokeWidth="1" />
+      <line x1="38" y1="14" x2="38" y2={plotHeight - 20} stroke="#ccc3b4" strokeWidth="1" />
+      {hlines.map((line, index) => {
+        const lineY = y(line.y).toFixed(1)
         return (
-          <g key={i}>
-            <line x1="38" y1={yy} x2={W - 8} y2={yy} stroke={hl.color ?? '#7fae8f'} strokeWidth="1" strokeDasharray="4 3" />
-            {hl.label && (
-              <text x={W - 9} y={(y(hl.y) - 3).toFixed(1)} textAnchor="end" fill="#7fae8f">
-                {hl.label}
+          <g key={index}>
+            <line x1="38" y1={lineY} x2={WIDTH - 8} y2={lineY} stroke={line.color ?? '#7fae8f'} strokeWidth="1" strokeDasharray="4 3" />
+            {line.label && (
+              <text x={WIDTH - 9} y={(y(line.y) - 3).toFixed(1)} textAnchor="end" fill="#7fae8f">
+                {line.label}
               </text>
             )}
           </g>
         )
       })}
-      {series.map((s) => (
+      {series.map((curve) => (
         <path
-          key={s.key}
-          d={s.pts.map((p, i) => `${i ? 'L' : 'M'}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join('')}
+          key={curve.key}
+          d={curve.pts.map((point, index) => `${index ? 'L' : 'M'}${x(point[0]).toFixed(1)},${y(point[1]).toFixed(1)}`).join('')}
           fill="none"
-          stroke={s.color}
+          stroke={curve.color}
           strokeWidth="2"
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -64,13 +64,13 @@ export default function LineChart({ series, height = 190, xmin, xmax, ymin, ymax
       <text x="36" y="12" textAnchor="end" fill="#8a7f72">
         {ytop ?? ymax}
       </text>
-      <text x="36" y={H - 22} textAnchor="end" fill="#8a7f72">
+      <text x="36" y={plotHeight - 22} textAnchor="end" fill="#8a7f72">
         {ybot ?? ymin}
       </text>
-      <text x="40" y={H - 8} fill="#8a7f72">
+      <text x="40" y={plotHeight - 8} fill="#8a7f72">
         {xlabL}
       </text>
-      <text x={W - 8} y={H - 8} textAnchor="end" fill="#8a7f72">
+      <text x={WIDTH - 8} y={plotHeight - 8} textAnchor="end" fill="#8a7f72">
         {xlabR}
       </text>
     </svg>

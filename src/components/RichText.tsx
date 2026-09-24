@@ -5,7 +5,7 @@ export default function RichText({ text }: { text: string }) {
   const parts = text.split(/<i>(.*?)<\/i>/g)
   return (
     <>
-      {parts.map((part, i) => (i % 2 === 1 ? <i key={i}>{part}</i> : <Fragment key={i}>{part}</Fragment>))}
+      {parts.map((part, index) => (index % 2 === 1 ? <i key={index}>{part}</i> : <Fragment key={index}>{part}</Fragment>))}
     </>
   )
 }

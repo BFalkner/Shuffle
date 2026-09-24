@@ -36,10 +36,10 @@ export default function MethodBuilder({ editing, start, tracked, onTracked, anim
   const [build, setBuild] = useState<Snapshot>(() => {
     const seq = editing ? editing.seq.slice() : []
     const states = [start.slice()]
-    let d = start.slice()
+    let deck = start.slice()
     for (const op of seq) {
-      d = OPS[op](d)
-      states.push(d.slice())
+      deck = OPS[op](deck)
+      states.push(deck.slice())
     }
     return { seq, cur: seq.length, states }
   })
@@ -49,15 +49,15 @@ export default function MethodBuilder({ editing, start, tracked, onTracked, anim
   const { seq, cur, states } = build
 
   const perform = (op: OpKey) => {
-    setHistory((h) => [...h, build].slice(-MAX_UNDO))
+    setHistory((previous) => [...previous, build].slice(-MAX_UNDO))
     const next = seq.slice()
     next.splice(cur, 0, op)
     // keep everything before the marker; replay from there
     const nextStates = states.slice(0, cur + 1)
-    let d = nextStates[cur]
-    for (let i = cur; i < next.length; i++) {
-      d = OPS[next[i]](d)
-      nextStates.push(d.slice())
+    let deck = nextStates[cur]
+    for (let step = cur; step < next.length; step++) {
+      deck = OPS[next[step]](deck)
+      nextStates.push(deck.slice())
     }
     setBuild({ seq: next, cur: cur + 1, states: nextStates })
     setMessage('')
@@ -66,17 +66,17 @@ export default function MethodBuilder({ editing, start, tracked, onTracked, anim
   const undo = () => {
     if (!history.length) return
     setBuild(history[history.length - 1])
-    setHistory((h) => h.slice(0, -1))
+    setHistory((previous) => previous.slice(0, -1))
   }
 
-  const goTo = (c: number) => setBuild((b) => ({ ...b, cur: Math.max(0, Math.min(b.states.length - 1, c)) }))
+  const goTo = (target: number) => setBuild((current) => ({ ...current, cur: Math.max(0, Math.min(current.states.length - 1, target)) }))
 
   // Arrow keys step through the shuffle.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).tagName === 'INPUT') return
-      if (e.key === 'ArrowLeft') setBuild((b) => ({ ...b, cur: Math.max(0, b.cur - 1) }))
-      else if (e.key === 'ArrowRight') setBuild((b) => ({ ...b, cur: Math.min(b.states.length - 1, b.cur + 1) }))
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.target as HTMLElement).tagName === 'INPUT') return
+      if (event.key === 'ArrowLeft') setBuild((current) => ({ ...current, cur: Math.max(0, current.cur - 1) }))
+      else if (event.key === 'ArrowRight') setBuild((current) => ({ ...current, cur: Math.min(current.states.length - 1, current.cur + 1) }))
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
@@ -84,8 +84,8 @@ export default function MethodBuilder({ editing, start, tracked, onTracked, anim
 
   useEffect(() => {
     if (!deleteArmed) return
-    const t = setTimeout(() => setDeleteArmed(false), 3500)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setDeleteArmed(false), 3500)
+    return () => clearTimeout(timer)
   }, [deleteArmed])
 
   const save = () => {
@@ -99,21 +99,21 @@ export default function MethodBuilder({ editing, start, tracked, onTracked, anim
   return (
     <div className="builder">
       <div className="field" style={{ marginBottom: '0.2rem' }}>
-        <input className="btitle" placeholder="name this method" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <input className="btitle" placeholder="name this method" value={title} onChange={(event) => setTitle(event.target.value)} />
       </div>
       <div className="bframe">
-        <MiniDeck deck={states[cur]} step={cur} tracked={tracked} animate={animate} speed={speed} onCardClick={(card) => onTracked((t) => toggleTracked(t, card))} />
+        <MiniDeck deck={states[cur]} step={cur} tracked={tracked} animate={animate} speed={speed} onCardClick={(card) => onTracked((slots) => toggleTracked(slots, card))} />
       </div>
       <div className="seqrow bseqrow">
         <span className={`seqlabel${cur === 0 ? ' curr' : ''}`} title="Select the start, before the first move" onClick={() => goTo(0)}>
           shuffle&nbsp;
         </span>
-        {Array.from({ length: seq.length + 1 }, (_, i) => (
-          <span key={i} className="seqslot">
-            {i === cur && <span className="caret" />}
-            {i < seq.length && (
-              <span className={`tok ${seq[i]}${i === cur - 1 ? ' curr' : ''}`} title="jump here" onClick={() => goTo(i + 1)}>
-                {OP_TOKEN[seq[i]]}
+        {Array.from({ length: seq.length + 1 }, (_, step) => (
+          <span key={step} className="seqslot">
+            {step === cur && <span className="caret" />}
+            {step < seq.length && (
+              <span className={`tok ${seq[step]}${step === cur - 1 ? ' curr' : ''}`} title="jump here" onClick={() => goTo(step + 1)}>
+                {OP_TOKEN[seq[step]]}
               </span>
             )}
           </span>

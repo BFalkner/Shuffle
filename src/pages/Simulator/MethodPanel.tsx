@@ -13,7 +13,7 @@ interface Props {
   startLabel: string
   /** shared step (also drives the dots on the charts) */
   step: number
-  onStep: (s: number) => void
+  onStep: (step: number) => void
   tracked: TrackSlots
   onTracked: Dispatch<SetStateAction<TrackSlots>>
   animate: boolean
@@ -25,7 +25,7 @@ export default function MethodPanel({ exp, result, start, startLabel, step: shar
   // One example run of this method from the current starting deck.
   const states = useMemo(() => runStates(start, exp.seq), [start, exp.seq])
   const step = Math.min(sharedStep, states.length - 1)
-  const cost = exp.seq.reduce((a, op) => a + OP_COST[op], 0)
+  const cost = exp.seq.reduce((total, op) => total + OP_COST[op], 0)
   const fails = result?.fails ?? []
   const hasTracked = liveTracked(tracked).length > 0
 
@@ -33,8 +33,8 @@ export default function MethodPanel({ exp, result, start, startLabel, step: shar
     <div className="cmpanim">
       <div className="panhead">
         <div className="panseq">
-          {exp.seq.map((op, i) => (
-            <span key={i} className={`tok ${op}${i === step - 1 ? ' curr' : ''}`} title="jump to this step" onClick={() => onStep(i + 1)}>
+          {exp.seq.map((op, index) => (
+            <span key={index} className={`tok ${op}${index === step - 1 ? ' curr' : ''}`} title="jump to this step" onClick={() => onStep(index + 1)}>
               {OP_TOKEN[op]}
             </span>
           ))}
@@ -49,7 +49,7 @@ export default function MethodPanel({ exp, result, start, startLabel, step: shar
           )}
         </div>
       </div>
-      <MiniDeck deck={states[step]} step={step} tracked={tracked} animate={animate} speed={speed} onCardClick={(card) => onTracked((t) => toggleTracked(t, card))} />
+      <MiniDeck deck={states[step]} step={step} tracked={tracked} animate={animate} speed={speed} onCardClick={(card) => onTracked((slots) => toggleTracked(slots, card))} />
       <div className="mininav">
         <button type="button" disabled={step === 0} onClick={() => onStep(step - 1)} aria-label="Step back">
           ‹

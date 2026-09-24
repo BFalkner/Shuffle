@@ -17,45 +17,45 @@ interface MoveData {
   mid?: number[]
 }
 
-const C = DATA.moveDemo as unknown as { M: number } & Record<DemoMove, MoveData>
-const N = C.M
+const DEMO = DATA.moveDemo as unknown as { M: number } & Record<DemoMove, MoveData>
+const CARD_COUNT = DEMO.M
 
 // Each move gets its own hue so the four demos read as different moves.
 const MOVE_HUE: Record<DemoMove, [number, number]> = { mash: [150, 38], overhand: [24, 42], pile: [218, 40], ohr: [175, 30] }
 
-function cardColor(op: DemoMove, v: number) {
+function cardColor(op: DemoMove, card: number) {
   const [hue, sat] = MOVE_HUE[op]
-  const t = v / (N - 1)
-  return `hsl(${(hue + (t - 0.5) * 30).toFixed(0)},${(sat + 8).toFixed(0)}%,${(26 + t * 58).toFixed(0)}%)`
+  const depth = card / (CARD_COUNT - 1)
+  return `hsl(${(hue + (depth - 0.5) * 30).toFixed(0)},${(sat + 8).toFixed(0)}%,${(26 + depth * 58).toFixed(0)}%)`
 }
 
 const ranks = (state: number[]) => {
-  const r = new Array<number>(N)
-  state.forEach((card, i) => (r[card] = i))
-  return r
+  const rank = new Array<number>(CARD_COUNT)
+  state.forEach((card, position) => (rank[card] = position))
+  return rank
 }
 
 type Pos = { x: number; y: number }
-type PosFn = (v: number) => Pos
-const place = (el: HTMLElement, p: Pos) => (el.style.transform = `translate(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px)`)
+type PosFn = (card: number) => Pos
+const place = (element: HTMLElement, position: Pos) => (element.style.transform = `translate(${position.x.toFixed(1)}px,${position.y.toFixed(1)}px)`)
 
 export function startMoveDemo(host: HTMLElement, caption: HTMLElement, op: DemoMove): () => void {
   // Timer bookkeeping so everything can be cancelled on unmount.
   const timers = new Set<ReturnType<typeof setTimeout>>()
   const frames = new Set<number>()
-  const later = (fn: () => void, ms: number) => {
-    const t = setTimeout(() => {
-      timers.delete(t)
-      fn()
-    }, ms)
-    timers.add(t)
+  const later = (callback: () => void, delay: number) => {
+    const timer = setTimeout(() => {
+      timers.delete(timer)
+      callback()
+    }, delay)
+    timers.add(timer)
   }
-  const nextFrame = (fn: () => void) => {
-    const f = requestAnimationFrame(() => {
-      frames.delete(f)
-      fn()
+  const nextFrame = (callback: () => void) => {
+    const frame = requestAnimationFrame(() => {
+      frames.delete(frame)
+      callback()
     })
-    frames.add(f)
+    frames.add(frame)
   }
 
   const padX = 10
@@ -67,111 +67,111 @@ export function startMoveDemo(host: HTMLElement, caption: HTMLElement, op: DemoM
   const colGap = 8
   const colW = (innerW - (COLS - 1) * colGap) / COLS
   const cardW = Math.min(colW, 20)
-  const rowStep = innerH / N
+  const rowStep = innerH / CARD_COUNT
   const cardH = Math.max(2, rowStep - 1)
-  const data = C[op]
+  const data = DEMO[op]
   const states = data.states
-  const colX = (c: number) => padX + c * (colW + colGap) + (colW - cardW) / 2
+  const colX = (column: number) => padX + column * (colW + colGap) + (colW - cardW) / 2
   const yOf = (rank: number) => padTop + rank * rowStep
   const RANK = states.map(ranks)
 
-  const cap = (t: string) => (caption.textContent = t)
+  const cap = (text: string) => (caption.textContent = text)
 
   // Four columns of slats: sorted, ×1, ×2, ×3.
   const colCards: HTMLDivElement[][] = []
-  for (let c = 0; c < COLS; c++) {
+  for (let column = 0; column < COLS; column++) {
     const arr: HTMLDivElement[] = []
-    for (let v = 0; v < N; v++) {
-      const el = document.createElement('div')
-      el.className = 'slat'
-      el.style.width = `${cardW.toFixed(1)}px`
-      el.style.height = `${cardH.toFixed(1)}px`
-      el.style.background = cardColor(op, v)
-      el.style.opacity = '0'
-      host.appendChild(el)
-      arr.push(el)
+    for (let card = 0; card < CARD_COUNT; card++) {
+      const element = document.createElement('div')
+      element.className = 'slat'
+      element.style.width = `${cardW.toFixed(1)}px`
+      element.style.height = `${cardH.toFixed(1)}px`
+      element.style.background = cardColor(op, card)
+      element.style.opacity = '0'
+      host.appendChild(element)
+      arr.push(element)
     }
     colCards.push(arr)
   }
   const labs: HTMLDivElement[] = []
-  for (let c = 0; c < COLS; c++) {
-    const t = document.createElement('div')
-    t.className = 'collab'
-    t.style.left = `${colX(c) + cardW / 2}px`
-    t.textContent = c === 0 ? 'sorted' : `×${c}`
-    host.appendChild(t)
-    labs.push(t)
+  for (let column = 0; column < COLS; column++) {
+    const labelElement = document.createElement('div')
+    labelElement.className = 'collab'
+    labelElement.style.left = `${colX(column) + cardW / 2}px`
+    labelElement.textContent = column === 0 ? 'sorted' : `×${column}`
+    host.appendChild(labelElement)
+    labs.push(labelElement)
   }
 
   function instant(set: HTMLElement[], posFn: PosFn, visible: boolean) {
-    set.forEach((el, v) => {
-      el.style.transition = 'none'
-      el.style.transitionDelay = '0ms'
-      place(el, posFn(v))
-      el.style.opacity = visible ? '1' : '0'
+    set.forEach((element, card) => {
+      element.style.transition = 'none'
+      element.style.transitionDelay = '0ms'
+      place(element, posFn(card))
+      element.style.opacity = visible ? '1' : '0'
     })
-    nextFrame(() => set.forEach((el) => (el.style.transition = '')))
+    nextFrame(() => set.forEach((element) => (element.style.transition = '')))
   }
 
   function wave(set: HTMLElement[], posFn: PosFn, order: number[], per: number, done?: () => void) {
-    order.forEach((v, i) => {
-      set[v].style.transitionDelay = `${i * per}ms`
-      set[v].style.opacity = '1'
-      place(set[v], posFn(v))
+    order.forEach((card, index) => {
+      set[card].style.transitionDelay = `${index * per}ms`
+      set[card].style.opacity = '1'
+      place(set[card], posFn(card))
     })
     if (done) later(done, order.length * per + 700)
   }
 
   /** One group at a time, in order. */
   function sequence(set: HTMLElement[], posFn: PosFn, order: number[], sizes: number[], dur: number, done?: () => void) {
-    let ci = 0
-    let oi = 0
-    const go = () => {
-      if (ci >= sizes.length) {
+    let groupIndex = 0
+    let cardOffset = 0
+    const nextGroup = () => {
+      if (groupIndex >= sizes.length) {
         done?.()
         return
       }
-      const grp = order.slice(oi, oi + sizes[ci])
-      oi += sizes[ci]
-      ci++
-      grp.forEach((v) => {
-        set[v].style.transition = `transform ${dur}ms cubic-bezier(0.3,0.05,0.3,1)`
-        set[v].style.transitionDelay = '0ms'
-        set[v].style.opacity = '1'
-        place(set[v], posFn(v))
+      const grp = order.slice(cardOffset, cardOffset + sizes[groupIndex])
+      cardOffset += sizes[groupIndex]
+      groupIndex++
+      grp.forEach((card) => {
+        set[card].style.transition = `transform ${dur}ms cubic-bezier(0.3,0.05,0.3,1)`
+        set[card].style.transitionDelay = '0ms'
+        set[card].style.opacity = '1'
+        place(set[card], posFn(card))
       })
-      later(go, dur + 25)
+      later(nextGroup, dur + 25)
     }
-    go()
+    nextGroup()
   }
 
-  const pos0: PosFn = (v) => ({ x: colX(0), y: yOf(RANK[0][v]) })
+  const pos0: PosFn = (card) => ({ x: colX(0), y: yOf(RANK[0][card]) })
   const posCol =
-    (c: number): PosFn =>
-    (v) => ({ x: colX(c), y: yOf(RANK[c][v]) })
+    (column: number): PosFn =>
+    (card) => ({ x: colX(column), y: yOf(RANK[column][card]) })
 
-  const moveWorking = (posFn: PosFn, dur: number, cb: () => void) => {
-    colCards[1].forEach((el, v) => {
-      el.style.transition = `transform ${dur}ms cubic-bezier(0.4,0.05,0.25,1)`
-      el.style.transitionDelay = '0ms'
-      el.style.opacity = '1'
-      place(el, posFn(v))
+  const moveWorking = (posFn: PosFn, dur: number, onDone: () => void) => {
+    colCards[1].forEach((element, card) => {
+      element.style.transition = `transform ${dur}ms cubic-bezier(0.4,0.05,0.25,1)`
+      element.style.transitionDelay = '0ms'
+      element.style.opacity = '1'
+      place(element, posFn(card))
     })
-    later(cb, dur + 60)
+    later(onDone, dur + 60)
   }
 
   const interweave = (done: () => void) => {
     cap('they interweave, flowing downward')
     const order = states[1].slice()
-    order.forEach((v, i) => {
-      const el = colCards[1][v]
-      el.style.transition = 'transform 520ms cubic-bezier(0.4,0.05,0.25,1)'
-      el.style.transitionDelay = `${i * 11}ms`
-      el.style.opacity = '1'
-      place(el, { x: colX(1), y: yOf(RANK[1][v]) })
+    order.forEach((card, index) => {
+      const element = colCards[1][card]
+      element.style.transition = 'transform 520ms cubic-bezier(0.4,0.05,0.25,1)'
+      element.style.transitionDelay = `${index * 11}ms`
+      element.style.opacity = '1'
+      place(element, { x: colX(1), y: yOf(RANK[1][card]) })
     })
     later(() => {
-      colCards[1].forEach((el) => (el.style.transition = ''))
+      colCards[1].forEach((element) => (element.style.transition = ''))
       done()
     }, order.length * 11 + 600)
   }
@@ -180,34 +180,34 @@ export function startMoveDemo(host: HTMLElement, caption: HTMLElement, op: DemoM
   let runFirst: (done: () => void) => void
   if (op === 'mash' || op === 'ohr') {
     const cutAt = op === 'mash' ? data.cuts![0] : data.cut!
-    const half = (v: number) => (RANK[0][v] < cutAt ? 0 : 1) // 0 top, 1 bottom
-    const contigTopY = (v: number) => padTop + (half(v) ? RANK[0][v] - cutAt : RANK[0][v]) * rowStep
+    const half = (card: number) => (RANK[0][card] < cutAt ? 0 : 1) // 0 top, 1 bottom
+    const contigTopY = (card: number) => padTop + (half(card) ? RANK[0][card] - cutAt : RANK[0][card]) * rowStep
     if (op === 'mash') {
       runFirst = (done) => {
         cap('cut in two — bottom half moves over')
-        moveWorking((v) => ({ x: half(v) ? colX(2) : colX(0), y: contigTopY(v) }), 560, () => {
+        moveWorking((card) => ({ x: half(card) ? colX(2) : colX(0), y: contigTopY(card) }), 560, () => {
           cap('bring them together at column one')
-          moveWorking((v) => ({ x: colX(1) + (half(v) ? 1 : -1) * cardW * 0.5, y: contigTopY(v) }), 700, () => interweave(done))
+          moveWorking((card) => ({ x: colX(1) + (half(card) ? 1 : -1) * cardW * 0.5, y: contigTopY(card) }), 700, () => interweave(done))
         })
       }
     } else {
       const MID = ranks(data.mid!)
-      const midTopY = (v: number) => padTop + MID[v] * rowStep
+      const midTopY = (card: number) => padTop + MID[card] * rowStep
       runFirst = (done) => {
         cap('cut in two — overhand the top half')
-        moveWorking((v) => ({ x: half(v) ? colX(2) : colX(0), y: contigTopY(v) }), 520, () => {
+        moveWorking((card) => ({ x: half(card) ? colX(2) : colX(0), y: contigTopY(card) }), 520, () => {
           cap('overhand the top half — packets reverse')
-          colCards[1].forEach((el, v) => {
-            if (half(v) === 0) {
-              el.style.transition = 'transform 520ms cubic-bezier(0.4,0.05,0.25,1)'
-              el.style.transitionDelay = '0ms'
-              place(el, { x: colX(0), y: midTopY(v) })
+          colCards[1].forEach((element, card) => {
+            if (half(card) === 0) {
+              element.style.transition = 'transform 520ms cubic-bezier(0.4,0.05,0.25,1)'
+              element.style.transitionDelay = '0ms'
+              place(element, { x: colX(0), y: midTopY(card) })
             }
           })
           later(() => {
             cap('bring them together at column one')
             moveWorking(
-              (v) => ({ x: colX(1) + (half(v) ? 1 : -1) * cardW * 0.5, y: half(v) ? contigTopY(v) : midTopY(v) }),
+              (card) => ({ x: colX(1) + (half(card) ? 1 : -1) * cardW * 0.5, y: half(card) ? contigTopY(card) : midTopY(card) }),
               620,
               () => interweave(done),
             )
@@ -216,19 +216,19 @@ export function startMoveDemo(host: HTMLElement, caption: HTMLElement, op: DemoM
       }
     }
   } else if (op === 'pile') {
-    const dealPos: PosFn = (v) => {
-      const p = v % 6
+    const dealPos: PosFn = (card) => {
+      const pile = card % 6
       const band = innerH / 3
-      const blockH = Math.ceil(N / 6) * rowStep
-      return { x: colX(1 + (p % 2)), y: padTop + Math.floor(p / 2) * band + (band - blockH) / 2 + Math.floor(v / 6) * rowStep }
+      const blockH = Math.ceil(CARD_COUNT / 6) * rowStep
+      return { x: colX(1 + (pile % 2)), y: padTop + Math.floor(pile / 2) * band + (band - blockH) / 2 + Math.floor(card / 6) * rowStep }
     }
     const pileSizes: number[] = []
-    for (let p = 0; p < 6; p++) {
-      let c = 0
-      for (let v = 0; v < N; v++) if (v % 6 === p) c++
-      pileSizes.push(c)
+    for (let pile = 0; pile < 6; pile++) {
+      let count = 0
+      for (let card = 0; card < CARD_COUNT; card++) if (card % 6 === pile) count++
+      pileSizes.push(count)
     }
-    const everyCard = Array.from({ length: N }, (_, i) => i)
+    const everyCard = Array.from({ length: CARD_COUNT }, (_, card) => card)
     runFirst = (done) => {
       cap('deal into 6 piles, one card at a time')
       sequence(colCards[1], dealPos, everyCard, everyCard.map(() => 1), 70, () => {
@@ -242,8 +242,8 @@ export function startMoveDemo(host: HTMLElement, caption: HTMLElement, op: DemoM
       cap('peel packets off the top, one at a time')
       sequence(
         colCards[1],
-        (v) => ({ x: colX(1), y: yOf(RANK[1][v]) }),
-        Array.from({ length: N }, (_, i) => i),
+        (card) => ({ x: colX(1), y: yOf(RANK[1][card]) }),
+        Array.from({ length: CARD_COUNT }, (_, card) => card),
         packs,
         180,
         done,
@@ -258,29 +258,29 @@ export function startMoveDemo(host: HTMLElement, caption: HTMLElement, op: DemoM
   function sortedAppear() {
     instant(colCards[0], pos0, false)
     nextFrame(() => {
-      colCards[0].forEach((el) => {
-        el.style.transitionDelay = '0ms'
-        el.style.opacity = '1'
+      colCards[0].forEach((element) => {
+        element.style.transitionDelay = '0ms'
+        element.style.opacity = '1'
       })
       labs[0].style.opacity = '1'
     })
   }
-  function copyStep(c: number, done: () => void) {
-    colCards[c].forEach((el, v) => {
-      el.style.transition = 'none'
-      el.style.transitionDelay = '0ms'
-      place(el, posCol(c - 1)(v))
-      el.style.opacity = '1'
+  function copyStep(column: number, done: () => void) {
+    colCards[column].forEach((element, card) => {
+      element.style.transition = 'none'
+      element.style.transitionDelay = '0ms'
+      place(element, posCol(column - 1)(card))
+      element.style.opacity = '1'
     })
     void host.offsetWidth // commit the start state so the slide is real
-    colCards[c].forEach((el) => (el.style.transition = ''))
-    cap(`apply it again → ×${c}`)
-    nextFrame(() => wave(colCards[c], posCol(c), states[c].slice(), 9, done))
+    colCards[column].forEach((element) => (element.style.transition = ''))
+    cap(`apply it again → ×${column}`)
+    nextFrame(() => wave(colCards[column], posCol(column), states[column].slice(), 9, done))
   }
   function reset() {
     instant(colCards[1], pos0, true)
-    labs.forEach((l) => (l.style.opacity = '0'))
-    for (let c = 2; c < COLS; c++) instant(colCards[c], posCol(c), false)
+    labs.forEach((label) => (label.style.opacity = '0'))
+    for (let column = 2; column < COLS; column++) instant(colCards[column], posCol(column), false)
     instant(colCards[0], pos0, false)
     cap('a sorted deck')
   }
@@ -324,16 +324,16 @@ export function startMoveDemo(host: HTMLElement, caption: HTMLElement, op: DemoM
 
   reset()
   // Play once when scrolled into view; replay on tap.
-  const io = new IntersectionObserver(
-    (entries) => entries.forEach((e) => e.isIntersecting && state === 'waiting' && run()),
+  const observer = new IntersectionObserver(
+    (entries) => entries.forEach((entry) => entry.isIntersecting && state === 'waiting' && run()),
     { threshold: 0.45 },
   )
-  io.observe(host)
+  observer.observe(host)
   const onClick = () => state === 'stopped' && run()
   host.addEventListener('click', onClick)
 
   return () => {
-    io.disconnect()
+    observer.disconnect()
     host.removeEventListener('click', onClick)
     timers.forEach(clearTimeout)
     frames.forEach(cancelAnimationFrame)

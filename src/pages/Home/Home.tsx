@@ -8,7 +8,7 @@ import { OPS_CHARTS } from './opsCharts'
 import './home.css'
 
 // The two recommended methods, from a search of every move sequence costing up to 7 units (see the footnote).
-const P = DATA.cards
+const SUMMARY = DATA.cards
 
 /**
  * One step in the chain: a shuffle, the order it leaves behind, and the test
@@ -147,20 +147,20 @@ export default function Home() {
 
       <div className="sec-eyebrow">What we recommend</div>
       <div className="cards">
-        {P.cards.map((c) => (
-          <div key={c.name} className="mcard">
+        {SUMMARY.cards.map((card) => (
+          <div key={card.name} className="mcard">
             <div className="top">
               <div>
-                <div className="crown">{c.crown}</div>
-                <h3>{c.name}</h3>
+                <div className="crown">{card.crown}</div>
+                <h3>{card.name}</h3>
               </div>
             </div>
-            {c.when && (
+            {card.when && (
               <div className="when">
-                <b>Use on:</b> {c.when}
+                <b>Use on:</b> {card.when}
               </div>
             )}
-            <p>{c.blurb}</p>
+            <p>{card.blurb}</p>
             <div className="foot">
               <Link className="btn" to="/simulator">
                 Open simulator →
@@ -177,21 +177,21 @@ export default function Home() {
         wasn&rsquo;t random, we added a test that could see what it left behind. The steps below follow that order.
       </p>
       <div className="chain">
-        {STEPS.map((s) => (
-          <div key={s.name} className={s.op ? 'def step' : 'def step nodemo'}>
-            {s.op && (
+        {STEPS.map((step) => (
+          <div key={step.name} className={step.op ? 'def step' : 'def step nodemo'}>
+            {step.op && (
               <div className="stepdemo">
-                <MoveDemo op={s.op} />
-                {s.bars && (
+                <MoveDemo op={step.op} />
+                {step.bars && (
                   <div className="mbars">
-                    {(['Ordering', 'Proximity', 'Position'] as const).map((label, i) => (
+                    {(['Ordering', 'Proximity', 'Position'] as const).map((label, index) => (
                       <div key={label} className="mbar">
                         <div className="mbl">
                           <span>{label}</span>
-                          <span>{s.bars![i]}</span>
+                          <span>{step.bars![index]}</span>
                         </div>
                         <div className="mtrack">
-                          <div className="mfill" style={{ width: `${s.bars![i]}%` }} />
+                          <div className="mfill" style={{ width: `${step.bars![index]}%` }} />
                         </div>
                       </div>
                     ))}
@@ -201,13 +201,13 @@ export default function Home() {
             )}
             <div>
               <div className="dn">
-                {s.color && <i style={{ background: s.color }} />}
-                {s.name}
+                {step.color && <i style={{ background: step.color }} />}
+                {step.name}
               </div>
               <div className="dd">
-                {s.how && <p className="how">{s.how}</p>}
-                {s.paragraphs.map((p, i) => (
-                  <p key={i}>{p}</p>
+                {step.how && <p className="how">{step.how}</p>}
+                {step.paragraphs.map((paragraph, index) => (
+                  <p key={index}>{paragraph}</p>
                 ))}
               </div>
             </div>
@@ -244,16 +244,16 @@ export default function Home() {
         <span style={{ color: '#2e7d4f', fontWeight: 600 }}>lands</span> against spells.
       </p>
       <div className="defs startdefs">
-        {DATA.startDecks.map((d, i) => (
-          <div key={d.name} className="def">
-            <div className="dn">{d.name}</div>
+        {DATA.startDecks.map((startDeck, index) => (
+          <div key={startDeck.name} className="def">
+            <div className="dn">{startDeck.name}</div>
             <div className="deckstrip">
-              {d.fills.map((fill, j) => (
-                <i key={j} style={{ background: fill }} />
+              {startDeck.fills.map((fill, slot) => (
+                <i key={slot} style={{ background: fill }} />
               ))}
             </div>
             <div className="dd">
-              <p>{START_DECK_TEXT[i]}</p>
+              <p>{START_DECK_TEXT[index]}</p>
             </div>
           </div>
         ))}
@@ -265,8 +265,8 @@ export default function Home() {
         each of the four starting decks. A run counts as a pass only when it clears every test. Seven mashes passed all 20 runs from a played deck, and eight
         passed 18 or 19 of 20 from each starting deck. No six-unit routine was reliable: the best mixes passed 16 of 20, and six plain mashes passed 18. The
         pile routine we used to recommend (4 mashes, pile, 4 mashes) costs 12 units and failed from a sorted deck in 3 of 5 runs. Pass thresholds sit two
-        standard deviations from random decks: ordering ≥ {P.thr.seq} runs, proximity ≤ {P.thr.cp} close pairs. Random baselines: ordering{' '}
-        {P.rand.seq}, proximity {P.rand.cp}. Figures in the steps above come from 1,200 simulated decks per routine.
+        standard deviations from random decks: ordering ≥ {SUMMARY.thr.seq} runs, proximity ≤ {SUMMARY.thr.cp} close pairs. Random baselines: ordering{' '}
+        {SUMMARY.rand.seq}, proximity {SUMMARY.rand.cp}. Figures in the steps above come from 1,200 simulated decks per routine.
       </p>
     </div>
   )

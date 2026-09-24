@@ -23,16 +23,16 @@ export default function Simulator() {
 
   // Deck condition
   const [kind, setKind] = useState<DeckKind>('sorted')
-  const [n, setN] = useState(99)
+  const [deckSize, setDeckSize] = useState(99)
   // One fixed starting deck per condition, shared by every animation panel and the builder.
-  const start = useMemo(() => startDeck(kind, n), [kind, n])
+  const start = useMemo(() => startDeck(kind, deckSize), [kind, deckSize])
 
   // Saved methods
   const [experiments, setExperiments] = useState<Experiment[]>(loadExperiments)
   useEffect(() => saveExperiments(experiments), [experiments])
 
   // Which methods are overlaid on the charts (in order: the first sets the summary and colours).
-  const [overlaid, setOverlaid] = useState<string[]>(() => experiments.slice(0, 2).map((e) => e.id))
+  const [overlaid, setOverlaid] = useState<string[]>(() => experiments.slice(0, 2).map((experiment) => experiment.id))
   const [metric, setMetric] = useState<MetricKey | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
   const [step, setStep] = useState(0)
@@ -40,21 +40,21 @@ export default function Simulator() {
   const [builder, setBuilder] = useState<{ editId: string | null } | null>(null)
   const returnY = useRef(0)
 
-  const { results, pending } = useMethodResults(experiments, kind, n, overlaid)
+  const { results, pending } = useMethodResults(experiments, kind, deckSize, overlaid)
 
   const colors = new Map<string, string>()
   const series: Series[] = []
   overlaid
-    .filter((id) => experiments.some((e) => e.id === id))
-    .forEach((id, i) => {
-      const color = SERIES_COLORS[i % SERIES_COLORS.length]
+    .filter((id) => experiments.some((experiment) => experiment.id === id))
+    .forEach((id, index) => {
+      const color = SERIES_COLORS[index % SERIES_COLORS.length]
       colors.set(id, color)
-      const r = results.get(id)
-      if (r) series.push({ ...r, id, name: experiments.find((e) => e.id === id)!.title, color })
+      const result = results.get(id)
+      if (result) series.push({ ...result, id, name: experiments.find((experiment) => experiment.id === id)!.title, color })
     })
 
-  const toggleOverlay = (id: string) => setOverlaid((o) => (o.includes(id) ? o.filter((x) => x !== id) : [...o, id]))
-  const openExp = openId ? experiments.find((e) => e.id === openId) : undefined
+  const toggleOverlay = (id: string) => setOverlaid((current) => (current.includes(id) ? current.filter((x) => x !== id) : [...current, id]))
+  const openExp = openId ? experiments.find((experiment) => experiment.id === openId) : undefined
   const chartStep = openExp ? step : null
 
   const openBuilder = (editId: string | null) => {
@@ -70,21 +70,21 @@ export default function Simulator() {
 
   const saveMethod = (title: string, seq: OpKey[]) => {
     const id = builder?.editId ?? uid()
-    setExperiments((list) => (list.some((e) => e.id === id) ? list.map((e) => (e.id === id ? { id, title, seq } : e)) : [...list, { id, title, seq }]))
-    setOverlaid((o) => (o.includes(id) ? o : [...o, id]))
+    setExperiments((list) => (list.some((experiment) => experiment.id === id) ? list.map((experiment) => (experiment.id === id ? { id, title, seq } : experiment)) : [...list, { id, title, seq }]))
+    setOverlaid((current) => (current.includes(id) ? current : [...current, id]))
     closeBuilder()
   }
   const deleteMethod = () => {
     const id = builder?.editId
     if (!id) return
-    setExperiments((list) => list.filter((e) => e.id !== id))
-    setOverlaid((o) => o.filter((x) => x !== id))
+    setExperiments((list) => list.filter((experiment) => experiment.id !== id))
+    setOverlaid((current) => current.filter((x) => x !== id))
     closeBuilder()
   }
   const resetMethods = () => {
     const fresh = defaultExperiments()
     setExperiments(fresh)
-    setOverlaid(fresh.slice(0, 2).map((e) => e.id))
+    setOverlaid(fresh.slice(0, 2).map((experiment) => experiment.id))
     setOpenId(null)
   }
 
@@ -104,11 +104,11 @@ export default function Simulator() {
 
         {builder ? (
           <MethodBuilder
-            editing={builder.editId ? (experiments.find((e) => e.id === builder.editId) ?? null) : null}
+            editing={builder.editId ? (experiments.find((experiment) => experiment.id === builder.editId) ?? null) : null}
             start={start}
             tracked={tracked}
             onTracked={setTracked}
-            animate={anim.on}
+            animate={anim.enabled}
             speed={anim.speed}
             onSave={saveMethod}
             onCancel={closeBuilder}
@@ -118,17 +118,17 @@ export default function Simulator() {
           <>
             <div className="runbar">
               <span className="condlbl">Deck</span>
-              <select value={kind} onChange={(e) => setKind(e.target.value as DeckKind)}>
-                {DECK_KINDS.map((k) => (
-                  <option key={k.value} value={k.value}>
-                    {k.label}
+              <select value={kind} onChange={(event) => setKind(event.target.value as DeckKind)}>
+                {DECK_KINDS.map((deckKind) => (
+                  <option key={deckKind.value} value={deckKind.value}>
+                    {deckKind.label}
                   </option>
                 ))}
               </select>
-              <select value={n} onChange={(e) => setN(Number(e.target.value))}>
-                {DECK_SIZES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
+              <select value={deckSize} onChange={(event) => setDeckSize(Number(event.target.value))}>
+                {DECK_SIZES.map((size) => (
+                  <option key={size.value} value={size.value}>
+                    {size.label}
                   </option>
                 ))}
               </select>
@@ -175,7 +175,7 @@ export default function Simulator() {
                     onStep={setStep}
                     tracked={tracked}
                     onTracked={setTracked}
-                    animate={anim.on}
+                    animate={anim.enabled}
                     speed={anim.speed}
                   />
                 )
@@ -184,7 +184,7 @@ export default function Simulator() {
 
             <div className="keyline">
               <div className="kg">
-                <span className="kg-sw" style={{ background: `linear-gradient(to right,${colorFor(0, n)},${colorFor(n - 1, n)})` }} />
+                <span className="kg-sw" style={{ background: `linear-gradient(to right,${colorFor(0, deckSize)},${colorFor(deckSize - 1, deckSize)})` }} />
                 original order
               </div>
               <div className="kg">

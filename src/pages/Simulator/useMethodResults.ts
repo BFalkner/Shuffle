@@ -6,7 +6,7 @@ import type { ScoredResult } from './types'
 
 // Results survive for the whole visit; the key includes everything they depend on.
 const CACHE = new Map<string, ScoredResult>()
-const keyFor = (e: Experiment, kind: DeckKind, n: number) => `${kind}|${n}|${e.seq.join(',')}`
+const keyFor = (experiment: Experiment, kind: DeckKind, deckSize: number) => `${kind}|${deckSize}|${experiment.seq.join(',')}`
 
 /** How long to compute before yielding back to the browser, so the page stays responsive. */
 const SLICE_MS = 120
@@ -16,7 +16,7 @@ const SLICE_MS = 120
  * Heavy (1200 trials each), so it runs in slices in the background; methods in
  * `priority` go first. Returns results by experiment id as they become ready.
  */
-export function useMethodResults(experiments: Experiment[], kind: DeckKind, n: number, priority: string[]) {
+export function useMethodResults(experiments: Experiment[], kind: DeckKind, deckSize: number, priority: string[]) {
   const [, setVersion] = useState(0)
   const priorityRef = useRef(priority)
   useEffect(() => {
@@ -24,9 +24,9 @@ export function useMethodResults(experiments: Experiment[], kind: DeckKind, n: n
   })
 
   const results = new Map<string, ScoredResult>()
-  for (const e of experiments) {
-    const r = CACHE.get(keyFor(e, kind, n))
-    if (r) results.set(e.id, r)
+  for (const experiment of experiments) {
+    const result = CACHE.get(keyFor(experiment, kind, deckSize))
+    if (result) results.set(experiment.id, result)
   }
   const pending = experiments.length - results.size
 
@@ -35,17 +35,17 @@ export function useMethodResults(experiments: Experiment[], kind: DeckKind, n: n
     let timer: ReturnType<typeof setTimeout>
     const tick = () => {
       if (cancelled) return
-      const todo = experiments.filter((e) => !CACHE.has(keyFor(e, kind, n)))
+      const todo = experiments.filter((experiment) => !CACHE.has(keyFor(experiment, kind, deckSize)))
       if (!todo.length) return
-      const pr = priorityRef.current
-      todo.sort((a, b) => Number(pr.includes(b.id)) - Number(pr.includes(a.id)))
-      const t0 = Date.now()
-      for (const e of todo) {
-        const r = computeResult(kind, n, e.seq)
-        CACHE.set(keyFor(e, kind, n), { ...r, ...scoreResult(r) })
-        if (Date.now() - t0 > SLICE_MS) break
+      const priorities = priorityRef.current
+      todo.sort((left, right) => Number(priorities.includes(right.id)) - Number(priorities.includes(left.id)))
+      const startTime = Date.now()
+      for (const experiment of todo) {
+        const result = computeResult(kind, deckSize, experiment.seq)
+        CACHE.set(keyFor(experiment, kind, deckSize), { ...result, ...scoreResult(result) })
+        if (Date.now() - startTime > SLICE_MS) break
       }
-      setVersion((v) => v + 1)
+      setVersion((previous) => previous + 1)
       timer = setTimeout(tick, 0)
     }
     timer = setTimeout(tick, 0)
@@ -53,7 +53,7 @@ export function useMethodResults(experiments: Experiment[], kind: DeckKind, n: n
       cancelled = true
       clearTimeout(timer)
     }
-  }, [experiments, kind, n])
+  }, [experiments, kind, deckSize])
 
   return { results, pending, total: experiments.length }
 }

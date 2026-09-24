@@ -13,91 +13,91 @@ interface Props {
 }
 
 /** One diagnostic over the course of each overlaid method, with the random baseline dashed. */
-export default function MetricChart({ metric: m, series, width, big = false, step }: Props) {
+export default function MetricChart({ metric, series, width, big = false, step }: Props) {
   const first = series[0]
-  const maxL = Math.max(...series.map((e) => e.moveCount))
-  const pct = !m.raw
+  const maxL = Math.max(...series.map((entry) => entry.moveCount))
+  const pct = !metric.raw
 
-  const W = Math.round(width)
-  const H = big ? 130 : 46
-  const PL = big ? 34 : 2
-  const PR = big ? (pct ? 72 : 48) : 2
-  const PT = big ? 10 : 4
-  const PB = big ? 18 : 4
-  const baseY = H - PB
-  const plotR = W - PR
+  const plotWidth = Math.round(width)
+  const plotHeight = big ? 130 : 46
+  const padLeft = big ? 34 : 2
+  const padRight = big ? (pct ? 72 : 48) : 2
+  const padTop = big ? 10 : 4
+  const padBottom = big ? 18 : 4
+  const baseY = plotHeight - padBottom
+  const plotR = plotWidth - padRight
 
-  const ref = pct ? 100 : first.base[m.key].mean
-  const disp = (e: Series, i: number) => displayValue(m, e.avg[m.key][i], e.avg, e.base)
+  const ref = pct ? 100 : first.base[metric.key].mean
+  const disp = (entry: Series, index: number) => displayValue(metric, entry.avg[metric.key][index], entry.avg, entry.base)
 
   // y range: all data plus the reference line, padded, never past the metric's physical limits
   const vals = [ref]
-  series.forEach((e) => {
-    for (let i = 0; i <= e.moveCount; i++) vals.push(disp(e, i))
+  series.forEach((entry) => {
+    for (let index = 0; index <= entry.moveCount; index++) vals.push(disp(entry, index))
   })
-  let lo = Math.min(...vals)
-  let hi = Math.max(...vals)
-  if (lo === hi) hi = lo + 1
-  const b0 = first.base[m.key]
-  const floor = m.raw ? minFloor(m) : 0
-  const ceiling = m.raw ? Infinity : 100
-  if (!m.raw) {
+  let low = Math.min(...vals)
+  let high = Math.max(...vals)
+  if (low === high) high = low + 1
+  const firstBaseline = first.base[metric.key]
+  const floor = metric.raw ? minFloor(metric) : 0
+  const ceiling = metric.raw ? Infinity : 100
+  if (!metric.raw) {
     // %: 0 is the pass edge; let data below it show
-    lo = Math.min(lo, 0)
-    hi = Math.max(hi, 100)
-  } else if (Number.isFinite(b0.mean)) {
+    low = Math.min(low, 0)
+    high = Math.max(high, 100)
+  } else if (Number.isFinite(firstBaseline.mean)) {
     // raw: pad to the band so noise stays flat, data can exceed it
-    const S = marginScale(m, b0) || 1
-    lo = Math.min(lo, b0.mean - S)
-    hi = Math.max(hi, b0.mean + S)
+    const scale = marginScale(metric, firstBaseline) || 1
+    low = Math.min(low, firstBaseline.mean - scale)
+    high = Math.max(high, firstBaseline.mean + scale)
   }
-  const padY = (hi - lo) * 0.06
-  lo = Math.max(floor, lo - padY)
-  hi = Math.min(ceiling, hi + padY)
+  const padY = (high - low) * 0.06
+  low = Math.max(floor, low - padY)
+  high = Math.min(ceiling, high + padY)
 
-  const X = (i: number) => PL + (maxL ? i / maxL : 0) * (plotR - PL)
-  const Y = (v: number) => PT + (1 - (v - lo) / (hi - lo || 1)) * (H - PT - PB)
-  const refY = Y(ref).toFixed(1)
+  const toX = (index: number) => padLeft + (maxL ? index / maxL : 0) * (plotR - padLeft)
+  const toY = (value: number) => padTop + (1 - (value - low) / (high - low || 1)) * (plotHeight - padTop - padBottom)
+  const refY = toY(ref).toFixed(1)
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`}>
-      <line x1={PL} y1={refY} x2={plotR} y2={refY} stroke="#1a6b3a" strokeDasharray="3 3" opacity={0.5} />
+    <svg viewBox={`0 0 ${plotWidth} ${plotHeight}`}>
+      <line x1={padLeft} y1={refY} x2={plotR} y2={refY} stroke="#1a6b3a" strokeDasharray="3 3" opacity={0.5} />
       {big && (
         <>
-          <line x1={PL} y1={PT} x2={PL} y2={baseY} stroke="#cdc3b2" />
-          <line x1={PL} y1={baseY} x2={plotR} y2={baseY} stroke="#cdc3b2" />
-          <text className="bcaxis" x={PL - 3} y={PT + 3} textAnchor="end">
-            {fmtDisplay(m, hi)}
+          <line x1={padLeft} y1={padTop} x2={padLeft} y2={baseY} stroke="#cdc3b2" />
+          <line x1={padLeft} y1={baseY} x2={plotR} y2={baseY} stroke="#cdc3b2" />
+          <text className="bcaxis" x={padLeft - 3} y={padTop + 3} textAnchor="end">
+            {fmtDisplay(metric, high)}
           </text>
-          <text className="bcaxis" x={PL - 3} y={baseY} textAnchor="end">
-            {fmtDisplay(m, lo)}
+          <text className="bcaxis" x={padLeft - 3} y={baseY} textAnchor="end">
+            {fmtDisplay(metric, low)}
           </text>
-          <text className="bcaxis" x={PL} y={baseY + 12}>
+          <text className="bcaxis" x={padLeft} y={baseY + 12}>
             start
           </text>
           <text className="bcaxis" x={plotR} y={baseY + 12} textAnchor="end">
             moves
           </text>
-          <text className="bcaxis" x={plotR + 2} y={(Y(ref) + 2).toFixed(1)} fill="#1a6b3a">
+          <text className="bcaxis" x={plotR + 2} y={(toY(ref) + 2).toFixed(1)} fill="#1a6b3a">
             random{pct ? ' 100%' : ''}
           </text>
         </>
       )}
-      {series.map((e) => {
-        let d = ''
-        for (let i = 0; i <= e.moveCount; i++) d += `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(disp(e, i)).toFixed(1)} `
-        return <path key={e.id} d={d} fill="none" stroke={e.color} strokeWidth={big ? 1.5 : 1.3} strokeLinejoin="round" opacity={0.85} />
+      {series.map((entry) => {
+        let path = ''
+        for (let index = 0; index <= entry.moveCount; index++) path += `${index ? 'L' : 'M'}${toX(index).toFixed(1)},${toY(disp(entry, index)).toFixed(1)} `
+        return <path key={entry.id} d={path} fill="none" stroke={entry.color} strokeWidth={big ? 1.5 : 1.3} strokeLinejoin="round" opacity={0.85} />
       })}
       {step !== null &&
-        series.map((e) => {
-          const s = Math.min(step, e.moveCount)
+        series.map((entry) => {
+          const shownStep = Math.min(step, entry.moveCount)
           return (
             <circle
-              key={e.id}
-              cx={X(s).toFixed(1)}
-              cy={Y(disp(e, s)).toFixed(1)}
+              key={entry.id}
+              cx={toX(shownStep).toFixed(1)}
+              cy={toY(disp(entry, shownStep)).toFixed(1)}
               r={big ? 3.4 : 2.6}
-              fill={e.color}
+              fill={entry.color}
               stroke="#fff"
               strokeWidth={big ? 1.4 : 1}
             />

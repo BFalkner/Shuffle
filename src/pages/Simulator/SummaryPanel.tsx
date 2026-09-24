@@ -28,13 +28,13 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
   }
 
   const first = series[0]
-  const { avg, base, moveCount: L } = first
+  const { avg, base, moveCount } = first
   const legend = series.length > 1 && (
     <div className="oplg">
-      {series.map((e) => (
-        <span key={e.id}>
-          <i style={{ background: e.color }} />
-          {e.name}
+      {series.map((entry) => (
+        <span key={entry.id}>
+          <i style={{ background: entry.color }} />
+          {entry.name}
         </span>
       ))}
       <span className="oplg-clear" onClick={onClearComparison}>
@@ -44,10 +44,10 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
   )
 
   if (!selected) {
-    const passes = METRICS.filter((m) => passWith(m, avg[m.key][L], base)).length
+    const passes = METRICS.filter((metric) => passWith(metric, avg[metric.key][moveCount], base)).length
     const score = Math.round(compositeScore(avg, base) * 100)
     const worst = worstMetric(avg, base)
-    const fails = METRICS.filter((m) => !passWith(m, avg[m.key][L], base)).map((m) => m.title)
+    const fails = METRICS.filter((metric) => !passWith(metric, avg[metric.key][moveCount], base)).map((metric) => metric.title)
     const verdict = fails.length
       ? `Still short on: ${fails.join(', ')}.`
       : 'This sequence randomizes the deck: every diagnostic reaches random.'
@@ -66,31 +66,31 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
     )
   }
 
-  const m = metricByKey(selected)
-  const b = base[m.key]
-  const fin = avg[m.key][L]
-  const pct = !m.raw
-  const rnd = pct ? '100%' : fmt(b.mean, m.key)
-  const thr = pct ? `${Math.round(displayValue(m, b.threshold, avg, base))}%` : fmt(b.threshold, m.key)
+  const metric = metricByKey(selected)
+  const baseline = base[metric.key]
+  const fin = avg[metric.key][moveCount]
+  const pct = !metric.raw
+  const rnd = pct ? '100%' : fmt(baseline.mean, metric.key)
+  const thr = pct ? `${Math.round(displayValue(metric, baseline.threshold, avg, base))}%` : fmt(baseline.threshold, metric.key)
   const rule =
-    m.side === 'band'
-      ? `pass ${fmt(b.low!, m.key)} – ${fmt(b.high!, m.key)} (random ${fmt(b.mean, m.key)})`
-      : m.side === 'two'
-        ? `pass within ±${fmt(b.threshold, m.key)} of random (${fmt(b.mean, m.key)})`
-        : `pass ${m.side === 'high' ? '≥' : '≤'} ${thr}`
+    metric.side === 'band'
+      ? `pass ${fmt(baseline.low!, metric.key)} – ${fmt(baseline.high!, metric.key)} (random ${fmt(baseline.mean, metric.key)})`
+      : metric.side === 'two'
+        ? `pass within ±${fmt(baseline.threshold, metric.key)} of random (${fmt(baseline.mean, metric.key)})`
+        : `pass ${metric.side === 'high' ? '≥' : '≤'} ${thr}`
 
   return (
     <div className="bigchart">
       <div className="bctitle">
-        <span>{m.title}</span>
-        <span className="bcval">{Math.round(metricProgress(m, avg, base) * 100)}% randomized</span>
+        <span>{metric.title}</span>
+        <span className="bcval">{Math.round(metricProgress(metric, avg, base) * 100)}% randomized</span>
       </div>
       <div ref={ref} className="chart-plot">
-        <MetricChart metric={m} series={series} width={width} big step={step} />
+        <MetricChart metric={metric} series={series} width={width} big step={step} />
       </div>
       <div className="bcsub">
-        <RichText text={m.desc} /> <Link to={m.writeup.to}>{m.writeup.label}</Link>. {pct ? 'Shown as % of the way to random' : `Unit: ${m.unit}`}; random ≈ {rnd}; {rule}. Average at the end:{' '}
-        {fmtDisplay(m, displayValue(m, fin, avg, base))}.
+        <RichText text={metric.desc} /> <Link to={metric.writeup.to}>{metric.writeup.label}</Link>. {pct ? 'Shown as % of the way to random' : `Unit: ${metric.unit}`}; random ≈ {rnd}; {rule}. Average at the end:{' '}
+        {fmtDisplay(metric, displayValue(metric, fin, avg, base))}.
       </div>
       {legend}
     </div>

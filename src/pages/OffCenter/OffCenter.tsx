@@ -12,7 +12,7 @@ type MetricKey = 'ordering' | 'proximity' | 'chain' | 'position' | 'endret'
 interface Variant extends Record<MetricKey, number[]> {
   mob: number[][]
 }
-const V = DATA.variants as Record<VariantKey, Variant>
+const VARIANTS = DATA.variants as Record<VariantKey, Variant>
 const THR = DATA.thr as Record<MetricKey, { thr: number; mean: number; side: string }>
 const DEPTH = DATA.depth
 
@@ -27,40 +27,40 @@ const META: Record<VariantKey, { name: string; color: string }> = {
 const ORDER: VariantKey[] = ['mash', 'off5', 'off10', 'off15', 'off20', 'hybrid']
 
 /** First pass (1-based) at which a variant clears a diagnostic, or null within the budget. */
-function clears(v: VariantKey, k: MetricKey): number | null {
-  const t = THR[k]
-  const arr = V[v][k]
-  for (let i = 0; i < arr.length; i++) {
-    const val = arr[i]
-    const ok = t.side === 'low' ? val <= t.thr : t.side === 'high' ? val >= t.thr : Math.abs(val - t.mean) <= t.thr
-    if (ok) return i + 1
+function clears(variant: VariantKey, key: MetricKey): number | null {
+  const rule = THR[key]
+  const arr = VARIANTS[variant][key]
+  for (let pass = 0; pass < arr.length; pass++) {
+    const val = arr[pass]
+    const passed = rule.side === 'low' ? val <= rule.thr : rule.side === 'high' ? val >= rule.thr : Math.abs(val - rule.mean) <= rule.thr
+    if (passed) return pass + 1
   }
   return null
 }
 
 /** Passes to clear ordering, proximity and position together. */
-function coreClears(v: VariantKey): number | null {
-  const c = (['ordering', 'proximity', 'position'] as const).map((k) => clears(v, k))
-  return c.every((x) => x !== null) ? Math.max(...(c as number[])) : null
+function coreClears(variant: VariantKey): number | null {
+  const results = (['ordering', 'proximity', 'position'] as const).map((key) => clears(variant, key))
+  return results.every((x) => x !== null) ? Math.max(...(results as number[])) : null
 }
 
 /** Average mobility of the two end buckets after `pass` passes. */
-function edgeMobility(v: VariantKey, pass: number): number {
-  const m = V[v].mob[pass - 1]
-  return (m[0] + m[m.length - 1]) / 2
+function edgeMobility(variant: VariantKey, pass: number): number {
+  const mobility = VARIANTS[variant].mob[pass - 1]
+  return (mobility[0] + mobility[mobility.length - 1]) / 2
 }
 
 // This page shades its strips a little darker at the top than the simulator does.
-function stripColor(id: number, n: number) {
-  const t = id / (n - 1)
-  return `hsl(${(150 + (t - 0.5) * 30).toFixed(0)},42%,${(24 + t * 56).toFixed(0)}%)`
+function stripColor(id: number, deckSize: number) {
+  const depth = id / (deckSize - 1)
+  return `hsl(${(150 + (depth - 0.5) * 30).toFixed(0)},42%,${(24 + depth * 56).toFixed(0)}%)`
 }
 
 function Strip({ deck }: { deck: Deck }) {
   return (
     <div className="strip">
-      {deck.map((v, i) => (
-        <i key={i} style={{ background: stripColor(v, deck.length) }} />
+      {deck.map((card, index) => (
+        <i key={index} style={{ background: stripColor(card, deck.length) }} />
       ))}
     </div>
   )
@@ -71,27 +71,27 @@ const deal = () => {
   return { plain: mash(base), off: offCentreRiffle(base, 10) }
 }
 
-function MetricChart({ k, shown }: { k: MetricKey; shown: VariantKey[] }) {
-  const log = k === 'position'
-  const tr = (x: number) => (log ? Math.log10(x) : x)
+function MetricChart({ metricKey, shown }: { metricKey: MetricKey; shown: VariantKey[] }) {
+  const log = metricKey === 'position'
+  const transform = (x: number) => (log ? Math.log10(x) : x)
   let ymin = Infinity
   let ymax = -Infinity
-  shown.forEach((v) =>
-    V[v][k].forEach((x) => {
-      ymin = Math.min(ymin, tr(x))
-      ymax = Math.max(ymax, tr(x))
+  shown.forEach((variant) =>
+    VARIANTS[variant][metricKey].forEach((x) => {
+      ymin = Math.min(ymin, transform(x))
+      ymax = Math.max(ymax, transform(x))
     }),
   )
-  const t = THR[k]
-  const hl = []
-  if (t.side === 'two') {
-    hl.push({ y: t.mean - t.thr, label: 'band' }, { y: t.mean + t.thr })
-    ymin = Math.min(ymin, t.mean - t.thr)
-    ymax = Math.max(ymax, t.mean + t.thr)
+  const rule = THR[metricKey]
+  const guides = []
+  if (rule.side === 'two') {
+    guides.push({ y: rule.mean - rule.thr, label: 'band' }, { y: rule.mean + rule.thr })
+    ymin = Math.min(ymin, rule.mean - rule.thr)
+    ymax = Math.max(ymax, rule.mean + rule.thr)
   } else {
-    hl.push({ y: tr(t.thr), label: 'pass' })
-    ymin = Math.min(ymin, tr(t.thr))
-    ymax = Math.max(ymax, tr(t.thr))
+    guides.push({ y: transform(rule.thr), label: 'pass' })
+    ymin = Math.min(ymin, transform(rule.thr))
+    ymax = Math.max(ymax, transform(rule.thr))
   }
   const pad = (ymax - ymin) * 0.06
   ymin -= pad
@@ -103,8 +103,8 @@ function MetricChart({ k, shown }: { k: MetricKey; shown: VariantKey[] }) {
       xmax={DEPTH}
       ymin={ymin}
       ymax={ymax}
-      hlines={hl}
-      series={shown.map((v) => ({ key: v, color: META[v].color, pts: V[v][k].map((y, i) => [i + 1, tr(y)] as [number, number]) }))}
+      hlines={guides}
+      series={shown.map((variant) => ({ key: variant, color: META[variant].color, pts: VARIANTS[variant][metricKey].map((y, index) => [index + 1, transform(y)] as [number, number]) }))}
       ytop={log ? `10^${ymax.toFixed(1)}` : Math.round(ymax)}
       ybot={log ? `10^${ymin.toFixed(1)}` : Math.round(ymin)}
       xlabL="1 pass"
@@ -117,14 +117,14 @@ export default function OffCenter() {
   const [strips, setStrips] = useState(deal)
   const [show, setShow] = useState<Record<VariantKey, boolean>>({ mash: true, off5: false, off10: true, off15: false, off20: true, hybrid: true })
   const [mobPass, setMobPass] = useState(1)
-  const shown = ORDER.filter((v) => show[v])
-  const em = (v: VariantKey) => `${Math.round(edgeMobility(v, 1) * 100)}%`
+  const shown = ORDER.filter((variant) => show[variant])
+  const edgeLabel = (variant: VariantKey) => `${Math.round(edgeMobility(variant, 1) * 100)}%`
 
   return (
     <Writeup title="The sticky ends" subtitle="Off-centre riffles on 99 cards: what an offset merge gains against sticky ends, and what it costs." backLink={false}>
       <div className="verdict">
         A riffle mixes the middle of a deck far faster than its ends. In the model used here, with packet sizes fitted to a real hand, the outermost cards
-        move at about {em('mash')} of the pace full randomization would give them after one pass. The practical consequence is worse than that number
+        move at about {edgeLabel('mash')} of the pace full randomization would give them after one pass. The practical consequence is worse than that number
         suggests: a card you know is on the bottom is still findable at three times the random rate after five passes, by which point every aggregate
         diagnostic in this project already reads clean. This page tests a correction: riffles whose merge point is deliberately off centre, so the ends are
         forced into the interleave, with the offset swept from 5 to 20 cards in steps of five. The offsets do fix the ends, roughly in proportion to their
@@ -171,9 +171,9 @@ export default function OffCenter() {
         <div className="klabel">
           share of random-expected movement, by starting position (groups of 5){' '}
           <span className="seg">
-            {[1, 3, 6].map((p) => (
-              <button key={p} type="button" className={mobPass === p ? 'on' : ''} onClick={() => setMobPass(p)}>
-                after {p}
+            {[1, 3, 6].map((pass) => (
+              <button key={pass} type="button" className={mobPass === pass ? 'on' : ''} onClick={() => setMobPass(pass)}>
+                after {pass}
               </button>
             ))}
           </span>
@@ -189,17 +189,17 @@ export default function OffCenter() {
           ybot="0"
           xlabL="front of deck"
           xlabR="back of deck"
-          series={shown.map((v) => ({ key: v, color: META[v].color, pts: V[v].mob[mobPass - 1].map((y, i) => [i, y] as [number, number]) }))}
+          series={shown.map((variant) => ({ key: variant, color: META[variant].color, pts: VARIANTS[variant].mob[mobPass - 1].map((y, position) => [position, y] as [number, number]) }))}
         />
         <div className="legend">
-          {ORDER.map((v) => (
+          {ORDER.map((variant) => (
             <span
-              key={v}
-              className={`lchip${show[v] ? ' on' : ''}`}
-              style={{ borderColor: META[v].color, color: META[v].color }}
-              onClick={() => setShow((s) => ({ ...s, [v]: !s[v] }))}
+              key={variant}
+              className={`lchip${show[variant] ? ' on' : ''}`}
+              style={{ borderColor: META[variant].color, color: META[variant].color }}
+              onClick={() => setShow((current) => ({ ...current, [variant]: !current[variant] }))}
             >
-              {META[v].name}
+              {META[variant].name}
             </span>
           ))}
         </div>
@@ -215,23 +215,23 @@ export default function OffCenter() {
       <div className="chartrow">
         <div className="card">
           <div className="klabel">Ordering — descents (random ≈ 50, band shaded)</div>
-          <MetricChart k="ordering" shown={shown} />
+          <MetricChart metricKey="ordering" shown={shown} />
         </div>
         <div className="card">
           <div className="klabel">Proximity — close pairs (pass ≤ threshold, dashed)</div>
-          <MetricChart k="proximity" shown={shown} />
+          <MetricChart metricKey="proximity" shown={shown} />
         </div>
         <div className="card">
           <div className="klabel">Longest chain (pass ≤ threshold, dashed)</div>
-          <MetricChart k="chain" shown={shown} />
+          <MetricChart metricKey="chain" shown={shown} />
         </div>
         <div className="card">
           <div className="klabel">Position χ², log scale (pass ≤ threshold, dashed)</div>
-          <MetricChart k="position" shown={shown} />
+          <MetricChart metricKey="position" shown={shown} />
         </div>
         <div className="card">
           <div className="klabel">End retention — original end cards still home (random 0.08; band = ±3 SE, dashed)</div>
-          <MetricChart k="endret" shown={shown} />
+          <MetricChart metricKey="endret" shown={shown} />
         </div>
       </div>
 
@@ -254,16 +254,16 @@ export default function OffCenter() {
               </tr>
             </thead>
             <tbody>
-              {ORDER.map((v) => {
-                const core = coreClears(v)
+              {ORDER.map((variant) => {
+                const core = coreClears(variant)
                 return (
-                  <tr key={v} className={v === 'hybrid' ? 'hl' : undefined}>
+                  <tr key={variant} className={variant === 'hybrid' ? 'hl' : undefined}>
                     <td>
-                      <span style={{ color: META[v].color }}>■</span> {META[v].name}
+                      <span style={{ color: META[variant].color }}>■</span> {META[variant].name}
                     </td>
-                    <td>{em(v)}</td>
-                    {(['ordering', 'proximity', 'position', 'chain', 'endret'] as const).map((k) => (
-                      <td key={k}>{clears(v, k) ?? '>12'}</td>
+                    <td>{edgeLabel(variant)}</td>
+                    {(['ordering', 'proximity', 'position', 'chain', 'endret'] as const).map((key) => (
+                      <td key={key}>{clears(variant, key) ?? '>12'}</td>
                     ))}
                     <td>
                       <b>{core ?? '>12'}</b>

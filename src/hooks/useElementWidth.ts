@@ -11,17 +11,17 @@ export function useElementWidth<T extends HTMLElement>(fallback: number) {
   const [width, setWidth] = useState(fallback)
   const observer = useRef<ResizeObserver | null>(null)
 
-  const ref = useCallback((el: T | null) => {
+  const ref = useCallback((element: T | null) => {
     observer.current?.disconnect()
     observer.current = null
-    if (!el) return
+    if (!element) return
     const measure = () => {
-      const w = Math.round(el.getBoundingClientRect().width)
-      if (w > 0) setWidth(w)
+      const measured = Math.round(element.getBoundingClientRect().width)
+      if (measured > 0) setWidth(measured)
     }
     measure()
     observer.current = new ResizeObserver(measure)
-    observer.current.observe(el)
+    observer.current.observe(element)
   }, [])
 
   return [ref, width] as const
