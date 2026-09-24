@@ -99,15 +99,11 @@ and aren't preserved as scripts — only their results.
 It checks engine correctness (every move is a true permutation; the
 half-overhands never touch the wrong half; the pile is deterministic), the
 riffle model's calibration anchors, threshold structure, move costs,
-card-tracking slot behaviour, and that the recommended between-games method
-clears the core battery.
+card-tracking slot behaviour, and that the recommended any-start method
+(eight mashes) clears the core battery from a sorted deck.
 
 The engine is random, so the statistical checks use tolerances wide enough
-to be stable from run to run. One is deliberately marginal: the
-recommended method's Proximity mean sits right at the lower band edge (the
-over-dispersion signature its half-overhands were built to counter). The
-test allows one standard deviation of slack there, explicitly, rather than
-hiding it — if an engine change pushes it further out, the test fails.
+to be stable from run to run.
 
 ## Deploying
 

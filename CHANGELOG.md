@@ -1,5 +1,23 @@
 # Changelog
 
+## Recommendations re-derived
+
+- Re-ran the recommendation search on the current engine: every move
+  sequence costing up to 7 units (11,492 in all), scored from a played deck.
+  The leading 32 were re-run 5 times from each of the four starting decks,
+  and the finalists 20 times.
+- New recommendations: **7 mashes** between games (all 20 runs from a
+  played deck passed every test) and **8 mashes** from any start (18–19 of
+  20 runs from each starting deck).
+- Dropped MMTMMB, which now passes in only 8 of 20 played-deck runs. No
+  six-unit sequence was reliable; the best (MMTMBM, MMBMTM) passed in 16
+  of 20.
+- Dropped 4 Mash · Pile · 4 Mash as the ordered-deck pick. It costs 12
+  units and failed from a sorted deck in 3 of 5 runs, where 8 mashes
+  passed in 18 of 20.
+- The regression test now checks 8 mashes from sorted, replacing the
+  MMTMMB test and its extra slack on proximity.
+
 ## React project
 
 - Converted the site from standalone HTML files into a Vite + React +

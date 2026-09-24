@@ -178,10 +178,10 @@ describe('seeded methods', () => {
     expect(new Set(titles).size).toBe(titles.length)
   })
 
-  test('the recommended between-games method (MMTMMB) clears the core battery from sorted', () => {
+  test('the recommended any-start method (8 mashes) clears the core battery from sorted', () => {
     // Judged on trial averages, the same way the simulator judges pass/fail.
     const n = 99
-    const seq: OpKey[] = ['mash', 'mash', 'ohr', 'mash', 'mash', 'ohb']
+    const seq: OpKey[] = Array(8).fill('mash')
     const base = getBase(n)
     const core = METRICS.filter((m) => m.core && m.fn)
     const sums: Record<string, number> = {}
@@ -192,18 +192,7 @@ describe('seeded methods', () => {
     }
     for (const m of core) {
       const avg = sums[m.k] / T
-      if (m.k === 'proximity') {
-        // KNOWN MARGINAL CASE, flagged rather than hidden: this method's true
-        // proximity mean sits right at the lower band edge (~5.65–5.78 vs a band
-        // starting ~5.6) — the over-dispersion signature its half-overhands were
-        // built to counter. Allow one extra sd of slack, explicitly, so a real
-        // regression still fails.
-        expect(avg, 'MMTMMB proximity fell meaningfully outside the band').toBeGreaterThanOrEqual(
-          base.proximity.lo! - base.proximity.sd,
-        )
-        continue
-      }
-      expect(passWith(m, avg, base), `MMTMMB fails ${m.title} (avg ${avg.toFixed(3)})`).toBe(true)
+      expect(passWith(m, avg, base), `8 mashes fail ${m.title} (avg ${avg.toFixed(3)})`).toBe(true)
     }
   })
 })

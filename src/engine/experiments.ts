@@ -14,11 +14,12 @@ const fill = (op: OpKey, count: number): OpKey[] => Array(count).fill(op)
 
 /** The default list: recommended methods and simple baselines. */
 export const SEED: Omit<Experiment, 'id'>[] = [
-  { title: 'Between-games reset — 2× Mash, Top, 2× Mash, Bottom', seq: ['mash', 'mash', 'ohr', 'mash', 'mash', 'ohb'] },
+  { title: 'Between games — 7× Mash', seq: fill('mash', 7) },
+  { title: 'Any start — 8× Mash', seq: fill('mash', 8) },
+  { title: 'Best six-unit mix — 2× Mash, Top, Mash, Bottom, Mash', seq: ['mash', 'mash', 'ohr', 'mash', 'ohb', 'mash'] },
   { title: '4 Mash · Pile · 4 Mash', seq: ['mash', 'mash', 'mash', 'mash', 'pile', 'mash', 'mash', 'mash', 'mash'] },
   { title: 'Half-Overhand method', seq: ['mash', 'mash', 'ohr', 'mash', 'ohr', 'mash', 'ohr', 'mash', 'mash'] },
   { title: 'Repeated mash ×12', seq: fill('mash', 12) },
-  { title: 'Repeated mash ×8', seq: fill('mash', 8) },
   { title: 'Repeated overhand ×10', seq: fill('overhand', 10) },
   { title: 'Repeated pile ×6', seq: fill('pile', 6) },
 ]

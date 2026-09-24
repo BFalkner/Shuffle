@@ -7,7 +7,7 @@ import OpsChart from './OpsChart'
 import { OPS_CHARTS } from './opsCharts'
 import './home.css'
 
-// Precomputed: the two recommended methods, scored from a sorted deck over 800+ trials.
+// The two recommended methods, from a search of every move sequence costing up to 7 units (see the footnote).
 const P = DATA.cards
 
 interface MoveInfo {
@@ -63,7 +63,7 @@ const MOVES: MoveInfo[] = [
 ]
 
 const START_DECK_TEXT: ReactNode[] = [
-  'Cards sit in the exact order the deck was built, so every kind of structure is at its maximum. This is the hardest case: bulk order, neighbours and position all have to be broken up from scratch. The two methods above are scored from this state.',
+  'Cards sit in the exact order the deck was built, so every kind of structure is at its maximum. This is the hardest case: bulk order, neighbours and position all have to be broken up from scratch. It takes eight mashes to clear every test reliably from here.',
   'Seven mashes, then the top thirty cards sorted: the shuffling of an ordinary game, plus the ordered block that goes back on top when you gather your cards afterwards. It looks random at arm’s length, but the block is real structure. Ordering reads 36 against a random deck’s 50, close pairs 12.3 against 5.9, and the original end cards sit at their ends at five times the random rate.',
   <>
     Lands dealt at perfectly even intervals before shuffling. If a shuffle leaves that pattern intact, the regularity is real structure, and the
@@ -98,7 +98,7 @@ export default function Home() {
         A riffle separates two neighbouring cards only when they fall in different packets, so some of a deck&rsquo;s order survives every shuffle, and
         that leftover order can be measured. With packet sizes taken from a real hand, a fine mash breaks up bulk order within a handful of passes. What it
         cannot do is move the ends of the deck: a card known to be on the bottom stays findable long after the aggregate tests read clean. Below are the four
-        moves, what each does on its own, and two full methods scored against three properties of a random deck.
+        moves, what each does on its own, and the two methods we recommend.
       </p>
 
       <div className="rule double" />
@@ -211,7 +211,8 @@ export default function Home() {
       <p className="foot-note">
         Time cost: mash = 1 unit, half overhand = 1, full overhand = 2, pile = 4 (assumed, pending measurement). Pass thresholds sit two standard deviations
         from random decks: ordering ≥ {P.thr.seq} runs, proximity ≤ {P.thr.cp} close pairs. Random baselines: ordering {P.rand.seq}, proximity {P.rand.cp}.
-        Scored from a sorted deck over 800+ trials.
+        The recommendations come from a search of every move sequence costing up to 7 units, scored from a played deck. The leaders were then run 20
+        times from each of the four starting decks below, and a run counts as a pass only when it clears every test.
       </p>
     </div>
   )
