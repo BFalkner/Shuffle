@@ -33,7 +33,7 @@ export default function HeadToHead({ series }: { series: Series[] }) {
     <div className="hth-card">
       <div className="hth-lead">
         {leads.size === 0
-          ? 'No meaningful differences — every diagnostic is within sampling noise of the others.'
+          ? 'No meaningful differences: every diagnostic is within sampling noise.'
           : [...leads].map(([name, titles], i) => (
               <Fragment key={name}>
                 {i > 0 && '; '}

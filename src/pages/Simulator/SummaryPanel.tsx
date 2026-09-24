@@ -21,7 +21,7 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
     return (
       <div className="bigchart">
         <div className="bcsub" style={{ padding: '1rem 0.4rem' }}>
-          Overlay one or more methods from the list (pulse icon) to see their diagnostics here.
+          Overlay one or more methods from the list (the pulse icon) to see their diagnostics here.
         </div>
       </div>
     )
@@ -50,7 +50,7 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
     const fails = METRICS.filter((m) => !passWith(m, avg[m.k][L], base)).map((m) => m.title)
     const verdict = fails.length
       ? `Still short on: ${fails.join(', ')}.`
-      : 'This sequence randomizes the deck — every diagnostic reaches random.'
+      : 'This sequence randomizes the deck: every diagnostic reaches random.'
     return (
       <div className="bigchart">
         <div className="bctitle">
@@ -59,7 +59,7 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
         <div className={`bcval ${passes === METRICS.length ? 'pass' : 'fail'}`}>{score}% randomized</div>
         <div className="bcsub">
           {passes} / {METRICS.length} diagnostics cleared · limited by {worst.m.title} ({Math.round(worst.p * 100)}%). {verdict}
-          {' '}· click any diagnostic below, or compare methods at the bottom of this column.
+          {' '}Click any diagnostic below for detail, or compare methods further down.
         </div>
         {legend}
       </div>
@@ -89,7 +89,7 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
         <MetricChart metric={m} series={series} width={width} big step={step} />
       </div>
       <div className="bcsub">
-        <RichText text={m.desc} /> <Link to={m.writeup.to}>{m.writeup.label}</Link>. · {pct ? 'shown as % toward random' : `unit: ${m.unit}`}. random ≈ {rnd}, {rule}. Average at the end:{' '}
+        <RichText text={m.desc} /> <Link to={m.writeup.to}>{m.writeup.label}</Link>. {pct ? 'Shown as % of the way to random' : `Unit: ${m.unit}`}; random ≈ {rnd}; {rule}. Average at the end:{' '}
         {fmtDisplay(m, displayValue(m, fin, avg, base))}.
       </div>
       {legend}

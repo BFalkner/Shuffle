@@ -148,7 +148,7 @@ export default function MethodBuilder({ editing, start, tracked, onTracked, anim
         </span>
       </div>
       <div className="bhint">
-        A move is inserted at the marker and performed immediately; step back (or tap a token) to insert earlier. Tap a card to follow it through the shuffle.
+        Each move goes in at the marker and runs immediately. Step back, or tap a move, to insert one earlier. Tap a card to follow it through the shuffle.
       </div>
       <div className="btrack">{message || trackingSummary(tracked, posOf(states[cur]))}</div>
       <div className="builder2" style={{ marginTop: '0.6rem' }}>

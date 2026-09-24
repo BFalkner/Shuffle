@@ -193,30 +193,41 @@ export default function Simulator() {
               </div>
             </div>
             <div className="desc">
-              Each chart line is one overlaid method, averaged over many trials. Click a diagnostic to see it large. Click a method to watch it
-              shuffle an example deck; the dots on the charts follow the step you&rsquo;re on, and tapping a card follows it through the shuffle.
+              Each chart line is one overlaid method, averaged over many trials. Click a diagnostic to see it full size. Click a method to watch it
+              shuffle an example deck: the dots on the charts mark the step you&rsquo;re viewing, and you can tap a card to follow it through the
+              shuffle.
             </div>
           </>
         )}
       </div>
 
       <div className="simfoot">
-        <b>Units.</b> Ordering, Proximity, Position, Neighbor correlation and Land spacing are shown as <b>% of the way from a fresh deck to random</b>,
-        because their raw scales depend on deck size or are bare statistics; a percentage reads cleanly and compares fairly across 52/60/99-card decks. The
-        rest keep natural units: <b>Longest chain</b> and <b>Strided chain</b> are the length in cards of the longest in-order run (random ≈ 4–5),{' '}
-        <b>Local order</b> is the density of three-plus consecutive cards, <b>End retention</b> is the expected count of original end cards still at
-        their end (0–2, random ≈ 0.08), <b>Global proximity</b> is the average distance originally-adjacent pairs now sit apart (random ≈ 32 on 99
-        cards), and <b>Clump rate</b> is how much the deck clumps by card type, averaged over trials, against the rate a random deck clumps at.{' '}
-        <b>Direction.</b> Most tests fail high — too much surviving structure. Ordering, Neighbor correlation, Land spacing, Proximity, End retention and
-        Global proximity also fail <i>low</i>, because a deck can differ from random in the other direction: mana-weaving spaces lands too regularly, a
-        strict riffle spreads neighbours too evenly, and an off-centre pass reliably evicts the end cards. Too regular is as detectable as too clumped.{' '}
-        <b>Distinguishability</b> is the holistic backstop: a classifier trained live on gap-spacing features to separate this deck from true random,
-        scored as held-out accuracy, where 50% is a coin flip. It exists to catch <i>joint</i> structure the single-property tests each miss, and it is
-        deliberately simple, so read it as a lower bound on detectability — a pass is necessary evidence, not proof, and readings under about 53% are
-        inside its own training noise. <b>The composite score</b> normalizes every diagnostic to the same percentage and averages them,{' '}
-        <b>capped at the lowest-scoring failing test</b> — a deck cannot read as 90% randomized while a test sits unresolved. Clump rate counts toward
-        the tally like any other test, but it is kept out of the score cap: it can fail from an unshuffled start simply because the fresh deck&rsquo;s
-        lands were placed by the decklist, which is not the shuffle&rsquo;s doing.
+        <p>
+          Ordering, Proximity, Position, Neighbour correlation and Land spacing are shown as a percentage of the way from a fresh deck to random,
+          because their raw scales depend on deck size or are bare statistics. A percentage reads cleanly and compares fairly across 52-, 60- and 99-card
+          decks. The other tests keep natural units. Longest chain and Strided chain give the length in cards of the longest in-order run (random ≈ 4–5).
+          Local order is the density of three or more consecutive cards. End retention is the expected number of original end cards still at their end
+          (0–2; random ≈ 0.08). Global proximity is the average distance, in the original order, between cards that now sit side by side (random ≈ 32 on
+          99 cards). Clump rate is how much the deck clumps by card type, averaged over trials, against the rate a random deck clumps at.
+        </p>
+        <p>
+          Most tests fail high, meaning too much structure survived. Ordering, Neighbour correlation, Land spacing, Proximity, End retention and Global
+          proximity can also fail <i>low</i>, because a deck can differ from random in the other direction: mana-weaving spaces lands too regularly, a
+          strict riffle spreads neighbours too evenly, and an off-centre pass reliably moves the end cards away from the ends. Too regular is as detectable
+          as too clumped.
+        </p>
+        <p>
+          Distinguishability is the backstop for everything else. It is a classifier trained live on gap-spacing features to separate this deck from true
+          random, scored as held-out accuracy, where 50% is a coin flip. It exists to catch <i>joint</i> structure that each single-property test misses. It
+          is deliberately simple, so treat it as a lower bound on how detectable the deck is: a pass is necessary evidence, not proof, and readings under
+          about 53% are within its own training noise.
+        </p>
+        <p>
+          The composite score converts every diagnostic to the same percentage scale and averages them, capped at the lowest-scoring failing test, so a
+          deck cannot read as 90% randomized while any test is still failing. Clump rate counts toward the tally like any other test but is left out of
+          the cap: it can fail from an unshuffled start simply because the decklist placed the fresh deck&rsquo;s lands, which is not the shuffle&rsquo;s
+          doing.
+        </p>
       </div>
     </div>
   )

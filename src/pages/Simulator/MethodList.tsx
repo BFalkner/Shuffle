@@ -100,7 +100,7 @@ function ResetLink({ onReset }: { onReset: () => void }) {
         } else setArmed(true)
       }}
     >
-      {armed ? 'tap again to reset — custom methods will be deleted' : 'reset list to defaults'}
+      {armed ? 'tap again to reset (deletes your custom methods)' : 'reset list to defaults'}
     </div>
   )
 }

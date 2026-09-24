@@ -169,62 +169,62 @@ const FULL = 'Full write-up'
 export const METRICS: Metric[] = [
   {
     k: 'ordering', group: 'order', core: true, raw: false, unit: '%', side: 'two', title: 'Ordering', fn: mOrdering,
-    desc: 'Counts the rising runs the deck breaks into — one when sorted, about fifty when random, more when stacked or reversed. Two-sided: too few and too many are both structure.',
+    desc: 'Counts the rising runs the deck breaks into: one when sorted, about fifty when random, more when stacked or reversed. Too few and too many are both structure, so the test is two-sided.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
     k: 'proximity', group: 'order', core: true, raw: false, unit: '%', side: 'band', title: 'Proximity', fn: mProximity,
-    desc: 'Originally-adjacent pairs still within three positions. Too many means surviving clumps; too few means the riffle spread neighbours <i>too</i> evenly — the band is asymmetric for that reason.',
+    desc: 'Counts originally adjacent pairs still within three positions. Too many means clumps survived; too few means the riffle spread neighbours <i>too</i> evenly, which is why the band is asymmetric.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
     k: 'drift', group: 'order', core: false, raw: true, unit: 'avg', side: 'band', title: 'Global proximity', fn: mDrift,
-    desc: 'The average distance every originally-adjacent pair now sits apart, zeroed so still-neighbours count as 0. Proximity as a magnitude rather than a threshold count.',
+    desc: 'For each pair of cards now side by side, how far apart they started, minus one, so pairs that never separated count as 0. Proximity as a distance rather than a threshold count.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
     k: 'position', group: 'structure', core: true, raw: false, unit: '%', side: 'low', title: 'Position', fn: null,
-    desc: 'Asks whether any card favours a fixed slot across many trials, via a chi-square over every card–position pair. A lone deterministic pile deal fails it outright.',
+    desc: 'Asks whether any card favours a fixed slot across many trials, using a chi-square over every card–position pair. A single deterministic pile deal fails it outright.',
     writeup: { to: '/global-tests', label: FULL },
   },
   {
     k: 'endret', group: 'structure', core: false, raw: true, unit: 'cards', side: 'two', title: 'End retention', fn: mEndRetention,
-    desc: 'Original end cards still within three of their end — 0.08 when random, judged two-sided on the trial-averaged rate. Riffles pin the ends.',
+    desc: 'Original end cards still within three of their end: 0.08 when random. It is judged two-sided on the trial-averaged rate. Riffles pin the ends.',
     writeup: { to: '/sticky-ends', label: 'The sticky-ends write-up' },
   },
   {
-    k: 'corr', group: 'order', core: true, raw: true, unit: 'r', side: 'two', title: 'Neighbor correlation', fn: mCorr,
-    desc: 'Correlation between adjacent card values: +1 sorted, −1 reversed, 0 random. Any correlation either way means neighbours are not independent, so it is two-sided.',
+    k: 'corr', group: 'order', core: true, raw: true, unit: 'r', side: 'two', title: 'Neighbour correlation', fn: mCorr,
+    desc: 'Correlation between adjacent card values: +1 sorted, −1 reversed, 0 random. Correlation in either direction means neighbours are not independent, so the test is two-sided.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
     k: 'classifier', group: 'holistic', core: false, raw: true, unit: '% detect', side: 'low', title: 'Distinguishability', fn: null,
-    desc: 'A classifier trained live to tell this deck from true random; 50% is a coin flip. Readings under about 53% are its own training noise and mean nothing.',
+    desc: 'A classifier trained live to tell this deck from a truly random one; 50% is a coin flip. Readings under about 53% are within its own training noise and mean nothing.',
     writeup: { to: '/global-tests', label: FULL },
   },
   {
     k: 'chain', group: 'order', core: false, raw: true, unit: 'cards', side: 'low', title: 'Longest chain', fn: mChain,
-    desc: 'The longest run of consecutive cards still in order anywhere in the deck — four or five when random; longer is a surviving fragment.',
+    desc: 'The longest run of consecutive cards still in order anywhere in the deck. Random decks show four or five; anything longer is a surviving fragment.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
     k: 'strided', group: 'structure', core: false, raw: true, unit: 'cards', side: 'low', title: 'Strided chain', fn: mStrided,
-    desc: 'The longest evenly-spaced run still in order — the lattice a pile deal leaves, invisible to a straight read-through.',
+    desc: 'The longest evenly spaced run still in order. A pile deal leaves this lattice behind, and reading the deck straight through will not reveal it.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
     k: 'gradient', group: 'order', core: false, raw: true, unit: 'density', side: 'low', title: 'Local order', fn: mGradient,
-    desc: 'The density of three-plus consecutive cards still sitting together — near zero when random, so any reading is leftover sequence.',
+    desc: 'The density of three or more consecutive cards still sitting together. It is near zero when random, so any reading is leftover sequence.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
     k: 'spacing', group: 'structure', core: false, raw: false, unit: '%', side: 'two', title: 'Land spacing', fn: mSpacing,
-    desc: 'How evenly the lands are spread. Clumped lands read high; lands spaced <i>too</i> regularly read low — the mana-weave signature. Two-sided.',
+    desc: 'How evenly the lands are spread. Clumped lands read high; lands spaced <i>too</i> regularly read low, which is the mana-weave signature. The test is two-sided.',
     writeup: { to: '/mana-tests', label: FULL },
   },
   {
     k: 'clump', group: 'composition', core: false, noCap: true, raw: true, unit: 'dev', side: 'band', title: 'Clump rate', fn: mClump,
-    desc: 'How much the deck clumps by card type, averaged over trials, against the rate a random deck clumps at. Two-sided: too little means the shuffle spreads lands more evenly than chance — over-dispersion.',
+    desc: 'How much the deck clumps by card type, averaged over trials, against the rate a random deck clumps at. It is two-sided: too little clumping means the shuffle spreads lands more evenly than chance.',
     writeup: { to: '/mana-tests', label: FULL },
   },
 ]
