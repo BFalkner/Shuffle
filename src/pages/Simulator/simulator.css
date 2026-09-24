@@ -818,6 +818,14 @@
   border-top: 2px dashed #1a6b3a;
 }
 
+.sim .sim-intro {
+  font-size: 0.8rem;
+  color: var(--dim);
+  line-height: 1.55;
+  max-width: 46rem;
+  margin: 0.55rem auto 0;
+}
+
 .sim .desc {
   font-size: 0.68rem;
   color: var(--dim);

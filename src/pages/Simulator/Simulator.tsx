@@ -97,9 +97,13 @@ export default function Simulator() {
           <h1>
             Shuffle <em>Simulator</em>
           </h1>
+          <p className="sim-intro">
+            Pick a starting deck, then choose a routine from the list or build your own. The simulator runs each routine many times and shows, for
+            every test, how close the deck gets to random after each step. Click a test to read what it checks.
+          </p>
           <div style={{ marginTop: '0.3rem' }}>
             <Link className="sim-backlink" to="/">
-              ← back to the conclusion
+              ← back to home
             </Link>
           </div>
         </div>
@@ -220,30 +224,19 @@ export default function Simulator() {
 
       <div className="simfoot">
         <p>
-          Ordering, Proximity, Position, Neighbour correlation and Land spacing are shown as a percentage of the way from a fresh deck to random,
-          because their raw scales depend on deck size or are bare statistics. A percentage reads cleanly and compares fairly across 52-, 60- and 99-card
-          decks. The other tests keep natural units. Longest chain and Strided chain give the length in cards of the longest in-order run (random ≈ 4–5).
-          Local order is the density of three or more consecutive cards. End retention is the expected number of original end cards still at their end
-          (0–2; random ≈ 0.08). Global proximity is the average distance, in the original order, between cards that now sit side by side (random ≈ 32 on
-          99 cards). Clump rate is how much the deck clumps by card type, averaged over trials, against the rate a random deck clumps at.
+          Four tests are shown as a percentage of the way from the starting deck to random: ordering, proximity, position and land spacing. Their raw
+          numbers depend on deck size, so a percentage compares fairly across 52-, 60- and 99-card decks. The other tests keep their own units, and
+          clicking one shows its random value.
         </p>
         <p>
-          Most tests fail high, meaning too much structure survived. Ordering, Neighbour correlation, Land spacing, Proximity, End retention and Global
-          proximity can also fail <i>low</i>, because a deck can differ from random in the other direction: mana-weaving spaces lands too regularly, a
-          strict riffle spreads neighbours too evenly, and an off-centre pass reliably moves the end cards away from the ends. Too regular is as detectable
-          as too clumped.
+          Most tests fail when too much order survives. Seven also fail when a deck misses random in the other direction: ordering, proximity, global
+          proximity, neighbour correlation, end retention, land spacing and clump rate. A pile deal or an early mash spreads neighbours too evenly, mana
+          weaving spaces lands too evenly, and an off-centre riffle moves the end cards away from the ends too reliably.
         </p>
         <p>
-          Distinguishability is the backstop for everything else. It is a classifier trained live on gap-spacing features to separate this deck from true
-          random, scored as held-out accuracy, where 50% is a coin flip. It exists to catch <i>joint</i> structure that each single-property test misses. It
-          is deliberately simple, so treat it as a lower bound on how detectable the deck is: a pass is necessary evidence, not proof, and readings under
-          about 54% are within its own training noise.
-        </p>
-        <p>
-          The composite score converts every diagnostic to the same percentage scale and averages them, capped at the lowest-scoring failing test, so a
-          deck cannot read as 90% randomized while any test is still failing. Clump rate counts toward the tally like any other test but is left out of
-          the cap: it can fail from an unshuffled start simply because the decklist placed the fresh deck&rsquo;s lands, which is not the shuffle&rsquo;s
-          doing.
+          The headline score puts every test on the same percentage scale and averages them. The four core tests (ordering, proximity, position and
+          neighbour correlation) count double. The score is capped at the lowest-scoring test that fails, so a deck can&rsquo;t read 90% randomized while a
+          test is still failing. Clump rate is left out of the cap, because a fresh deck can fail it just because of where the decklist put the lands.
         </p>
       </div>
     </div>
