@@ -85,20 +85,18 @@ function MoveDemo({ op }: { op: DemoMove }) {
 }
 
 export default function Home() {
-  useTitle('Does Your Shuffle Randomize the Deck?')
+  useTitle('The Shuffle Lab — does your shuffle randomize the deck?')
   return (
     <div className="home">
-      <div className="eyebrow">A 99-card Commander shuffling study</div>
+      <div className="eyebrow">Does your shuffle actually randomize the deck?</div>
       <h1>
-        Does your shuffle <em>randomize</em>
-        <br />
-        the deck?
+        The Shuffle <em>Lab</em>
       </h1>
       <p className="lede">
-        A riffle separates two neighbouring cards only when they fall in different packets, so some of a deck&rsquo;s order survives every shuffle, and
-        that leftover order can be measured. With packet sizes taken from a real hand, a fine mash breaks up bulk order within a handful of passes. What it
-        cannot do is move the ends of the deck: a card known to be on the bottom stays findable long after the aggregate tests read clean. Below are the four
-        moves, what each does on its own, and the two methods we recommend.
+        Shuffling is supposed to leave a deck in a random order, with no trace of how it was arranged before. It often doesn&rsquo;t. When you pick up
+        your cards after a game, the ones you played are in one clump. A quick shuffle can leave some of them side by side for the next
+        game. This site tests the usual ways people shuffle by hand and measures how well each one breaks up that order. A simulation performs each shuffle routine and checks the randomness against a battery of tests. Below are
+        the routines we recommend, what each shuffling move does on its own, and a simulator for testing your own routine.
       </p>
 
       <div className="rule double" />
