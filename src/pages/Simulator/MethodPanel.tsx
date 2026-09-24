@@ -1,5 +1,6 @@
 import { useMemo, type Dispatch, type SetStateAction } from 'react'
 import MiniDeck from '../../components/MiniDeck'
+import type { CardTypes } from '../../engine/decks'
 import { posOf } from '../../engine/decks'
 import type { Experiment } from '../../engine/experiments'
 import { OP_COST, OP_NAME, OP_TOKEN, runStates, type Deck } from '../../engine/moves'
@@ -10,6 +11,8 @@ interface Props {
   exp: Experiment
   result: ScoredResult | undefined
   start: Deck
+  /** card types, when the starting deck is shown by type */
+  types?: CardTypes
   startLabel: string
   /** shared step (also drives the dots on the charts) */
   step: number
@@ -21,7 +24,7 @@ interface Props {
 }
 
 /** Opened under a method's row: watch it shuffle one example deck, step by step. */
-export default function MethodPanel({ exp, result, start, startLabel, step: sharedStep, onStep, tracked, onTracked, animate, speed }: Props) {
+export default function MethodPanel({ exp, result, start, types, startLabel, step: sharedStep, onStep, tracked, onTracked, animate, speed }: Props) {
   // One example run of this method from the current starting deck.
   const states = useMemo(() => runStates(start, exp.seq), [start, exp.seq])
   const step = Math.min(sharedStep, states.length - 1)
@@ -49,7 +52,7 @@ export default function MethodPanel({ exp, result, start, startLabel, step: shar
           )}
         </div>
       </div>
-      <MiniDeck deck={states[step]} step={step} tracked={tracked} animate={animate} speed={speed} onCardClick={(card) => onTracked((slots) => toggleTracked(slots, card))} />
+      <MiniDeck types={types} deck={states[step]} step={step} tracked={tracked} animate={animate} speed={speed} onCardClick={(card) => onTracked((slots) => toggleTracked(slots, card))} />
       <div className="mininav">
         <button type="button" disabled={step === 0} onClick={() => onStep(step - 1)} aria-label="Step back">
           ‹

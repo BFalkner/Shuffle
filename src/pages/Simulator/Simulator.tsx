@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import { DECK_KINDS, DECK_SIZES, colorFor, startDeck, type DeckKind } from '../../engine/decks'
+import { DECK_KINDS, DECK_SIZES, LAND_COLOR, OTHER_COLOR, colorFor, startDeck, type DeckKind } from '../../engine/decks'
 import { defaultExperiments, loadExperiments, saveExperiments, uid, type Experiment } from '../../engine/experiments'
 import type { MetricKey } from '../../engine/metrics'
 import type { OpKey } from '../../engine/moves'
@@ -25,7 +25,9 @@ export default function Simulator() {
   const [kind, setKind] = useState<DeckKind>('sorted')
   const [deckSize, setDeckSize] = useState(99)
   // One fixed starting deck per condition, shared by every animation panel and the builder.
-  const start = useMemo(() => startDeck(kind, deckSize).deck, [kind, deckSize])
+  const starting = useMemo(() => startDeck(kind, deckSize), [kind, deckSize])
+  const start = starting.deck
+  const types = starting.byType ? starting.types : undefined
 
   // Saved methods
   const [experiments, setExperiments] = useState<Experiment[]>(loadExperiments)
@@ -106,6 +108,7 @@ export default function Simulator() {
           <MethodBuilder
             editing={builder.editId ? (experiments.find((experiment) => experiment.id === builder.editId) ?? null) : null}
             start={start}
+            types={types}
             tracked={tracked}
             onTracked={setTracked}
             animate={anim.enabled}
@@ -170,6 +173,7 @@ export default function Simulator() {
                     exp={openExp}
                     result={results.get(openExp.id)}
                     start={start}
+                    types={types}
                     startLabel={kind}
                     step={step}
                     onStep={setStep}
@@ -183,10 +187,23 @@ export default function Simulator() {
             />
 
             <div className="keyline">
-              <div className="kg">
-                <span className="kg-sw" style={{ background: `linear-gradient(to right,${colorFor(0, deckSize)},${colorFor(deckSize - 1, deckSize)})` }} />
-                original order
-              </div>
+              {types ? (
+                <>
+                  <div className="kg">
+                    <span className="kg-sw" style={{ background: LAND_COLOR }} />
+                    land
+                  </div>
+                  <div className="kg">
+                    <span className="kg-sw" style={{ background: OTHER_COLOR }} />
+                    other card
+                  </div>
+                </>
+              ) : (
+                <div className="kg">
+                  <span className="kg-sw" style={{ background: `linear-gradient(to right,${colorFor(0, deckSize)},${colorFor(deckSize - 1, deckSize)})` }} />
+                  original order
+                </div>
+              )}
               <div className="kg">
                 <span className="kg-dash" />
                 random baseline

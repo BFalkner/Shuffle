@@ -75,21 +75,27 @@ function randomTypes(deckSize: number): CardTypes {
 export interface StartingDeck {
   deck: Deck
   types: CardTypes
+  /** true when card numbers say nothing about type, so the deck reads best coloured by type */
+  byType: boolean
 }
+
+/** Card colours for a deck shown by type, matching the starting-deck strips on the home page. */
+export const LAND_COLOR = '#2e7d4f'
+export const OTHER_COLOR = '#e9dfc8'
 
 /**
  * The deck a routine starts from. The sorted and played decks keep types grouped by number. The woven and clumped
  * decks are random apart from where the lands sit: their card order and types are drawn fresh each time.
  */
 export function startDeck(kind: DeckKind, deckSize: number): StartingDeck {
-  if (kind === 'sorted') return { deck: sortedDeck(deckSize), types: numberedTypes(deckSize) }
+  if (kind === 'sorted') return { deck: sortedDeck(deckSize), types: numberedTypes(deckSize), byType: false }
   if (kind === 'played') {
     // seven mashes, then the top thirty cards sorted: an ordinary game plus the gathered block
     let deck = sortedDeck(deckSize)
     for (let game = 0; game < 7; game++) deck = mash(deck)
     const blockSize = Math.min(30, deckSize)
     const top = deck.slice(0, blockSize).sort((left, right) => left - right)
-    return { deck: top.concat(deck.slice(blockSize)), types: numberedTypes(deckSize) }
+    return { deck: top.concat(deck.slice(blockSize)), types: numberedTypes(deckSize), byType: false }
   }
 
   const types = randomTypes(deckSize)
@@ -101,7 +107,7 @@ export function startDeck(kind: DeckKind, deckSize: number): StartingDeck {
   let landIndex = 0
   let otherIndex = 0
   for (let position = 0; position < deckSize; position++) deck.push(landSlots[position] ? lands[landIndex++] : others[otherIndex++])
-  return { deck, types }
+  return { deck, types, byType: true }
 }
 
 /** Lands at perfectly even intervals. */

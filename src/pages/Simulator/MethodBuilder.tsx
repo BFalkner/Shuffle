@@ -1,5 +1,6 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import MiniDeck from '../../components/MiniDeck'
+import type { CardTypes } from '../../engine/decks'
 import { posOf } from '../../engine/decks'
 import type { Experiment } from '../../engine/experiments'
 import { OPS, OP_TOKEN, compressSeq, type Deck, type OpKey } from '../../engine/moves'
@@ -9,6 +10,8 @@ interface Props {
   /** the method being edited, or null for a new one */
   editing: Experiment | null
   start: Deck
+  /** card types, when the starting deck is shown by type */
+  types?: CardTypes
   tracked: TrackSlots
   onTracked: Dispatch<SetStateAction<TrackSlots>>
   animate: boolean
@@ -31,7 +34,7 @@ const MAX_UNDO = 120
  * performed immediately on a live deck; stepping back lets you insert earlier.
  * Undo restores the exact prior decks (history is never re-rolled).
  */
-export default function MethodBuilder({ editing, start, tracked, onTracked, animate, speed, onSave, onCancel, onDelete }: Props) {
+export default function MethodBuilder({ editing, start, types, tracked, onTracked, animate, speed, onSave, onCancel, onDelete }: Props) {
   const [title, setTitle] = useState(editing?.title ?? '')
   const [build, setBuild] = useState<Snapshot>(() => {
     const seq = editing ? editing.seq.slice() : []
@@ -102,7 +105,7 @@ export default function MethodBuilder({ editing, start, tracked, onTracked, anim
         <input className="btitle" placeholder="name this method" value={title} onChange={(event) => setTitle(event.target.value)} />
       </div>
       <div className="bframe">
-        <MiniDeck deck={states[cur]} step={cur} tracked={tracked} animate={animate} speed={speed} onCardClick={(card) => onTracked((slots) => toggleTracked(slots, card))} />
+        <MiniDeck types={types} deck={states[cur]} step={cur} tracked={tracked} animate={animate} speed={speed} onCardClick={(card) => onTracked((slots) => toggleTracked(slots, card))} />
       </div>
       <div className="seqrow bseqrow">
         <span className={`seqlabel${cur === 0 ? ' curr' : ''}`} title="Select the start, before the first move" onClick={() => goTo(0)}>
