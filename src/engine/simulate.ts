@@ -3,7 +3,7 @@ import { getBase, type Base } from './calibrate.ts'
 import { classifierAccuracy, deckFeatures, randomFeatures } from './classifier.ts'
 import { startDeck, type CardTypes, type DeckKind } from './decks.ts'
 import { METRICS, type MetricKey } from './metrics.ts'
-import { OPS, type OpKey } from './moves.ts'
+import { OPS, type Deck, type OpKey } from './moves.ts'
 import { compositeScore, passWith, type Averages } from './scoring.ts'
 
 // Trial counts: per-deck metrics, end retention, classifier features, and total runs (position χ²).
@@ -24,9 +24,16 @@ export interface MethodResult {
 
 /**
  * Run a routine T_TOTAL times and average every diagnostic at every step. With steps = 'ends', only the start and the
- * last step are measured (the others read NaN): enough to score a routine, and much faster for searches.
+ * last step are measured (the others read NaN): enough to score a routine, and much faster for searches. `apply` performs
+ * each move; the search replaces it with a perfect shuffle to measure a truly random deck for reference.
  */
-export function computeResult(kind: DeckKind, deckSize: number, seq: OpKey[], steps: 'all' | 'ends' = 'all'): MethodResult {
+export function computeResult(
+  kind: DeckKind,
+  deckSize: number,
+  seq: OpKey[],
+  steps: 'all' | 'ends' = 'all',
+  apply: (deck: Deck, op: OpKey) => Deck = (deck, op) => OPS[op](deck),
+): MethodResult {
   const moveCount = seq.length
   const measured = (step: number) => steps === 'all' || step === 0 || step === moveCount
   const base = getBase(deckSize)
@@ -55,7 +62,7 @@ export function computeResult(kind: DeckKind, deckSize: number, seq: OpKey[], st
     let deck = start.deck
     rec(0, deck, types)
     for (let step = 0; step < moveCount; step++) {
-      deck = OPS[seq[step]](deck)
+      deck = apply(deck, seq[step])
       if (measured(step + 1)) rec(step + 1, deck, types)
     }
   }

@@ -4,7 +4,7 @@
 // Usage: npm run search -- [--max-cost 7] [--from played] [--size 99] [--leaders 32] [--leader-runs 5] [--finalists 6] [--final-runs 200] [--json file]
 import { writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
-import { DECK_KINDS, type DeckKind } from '../src/engine/decks.ts'
+import { DECK_KINDS, fisher, type DeckKind } from '../src/engine/decks.ts'
 import { METRICS } from '../src/engine/metrics.ts'
 import { OPS, OP_COST, compressSeq, type OpKey } from '../src/engine/moves.ts'
 import { testDegree } from '../src/engine/scoring.ts'
@@ -87,12 +87,14 @@ interface DeckStats {
   degree: Record<string, number[]>
 }
 
+type Apply = Parameters<typeof computeResult>[4]
+
 /** Run a routine `runs` times from `kind` and collect pass counts, failing tests and degrees. */
-function deckStats(seq: OpKey[], kind: DeckKind, runs: number): DeckStats {
+function deckStats(seq: OpKey[], kind: DeckKind, runs: number, apply?: Apply): DeckStats {
   const stats: DeckStats = { clean: 0, runs, fails: {}, worst: [], worstTest: {}, degree: {} }
   METRICS.forEach((metric) => (stats.degree[metric.title] = []))
   for (let run = 0; run < runs; run++) {
-    const result = computeResult(kind, deckSize, seq, 'ends')
+    const result = computeResult(kind, deckSize, seq, 'ends', apply)
     const scored = scoreResult(result)
     if (scored.fails.length === 0) stats.clean++
     scored.fails.forEach((title) => (stats.fails[title] = (stats.fails[title] ?? 0) + 1))
@@ -108,8 +110,8 @@ function deckStats(seq: OpKey[], kind: DeckKind, runs: number): DeckStats {
  * A routine's results from every starting deck. It is judged by its weakest deck: the one whose worst-test degree is
  * highest on average. The mean across decks and the pass counts break ties.
  */
-function routineStats(seq: OpKey[], runs: number) {
-  const perDeck = kinds.map((kind) => deckStats(seq, kind, runs))
+function routineStats(seq: OpKey[], runs: number, apply?: Apply) {
+  const perDeck = kinds.map((kind) => deckStats(seq, kind, runs, apply))
   const means = perDeck.map((stats) => mean(stats.worst))
   const total = perDeck.reduce((sum, stats) => sum + stats.clean, 0)
   return { seq, perDeck, weakest: Math.max(...means), overall: mean(means), total }
@@ -182,11 +184,16 @@ const stage3 = finalists.map(({ seq }, index) => {
   return routineStats(seq, finalRuns)
 })
 stage3.sort(byWeakestDeck)
+// Reference: one perfect shuffle, measured the same way. A random deck's worst test isn't 0, because it's the largest
+// of twelve noisy readings, so this shows the floor the finalists are compared against.
+const reference = routineStats(['mash'], finalRuns, (deck) => fisher(deck.length))
 clearProgress()
 console.log(`  A test's degree is how far it sits from a random deck's average, as a fraction of the way to its pass line:`)
 console.log(`  0 is random, 1 is the pass line, and above 1 fails. "degree" is the worst test's degree in each run, mean ± SD.`)
 console.log(`  A high mean with a small SD is reliably a little off. A lower mean with a large SD is usually fine but`)
 console.log(`  sometimes far off. "closest" lists the two tests with the highest average degree. Pass counts have a 95% interval.\n`)
+console.log(`  Perfect shuffle (reference: a truly random deck)  weakest deck degree ${reference.weakest.toFixed(2)}, passed ${reference.total}/${finalRuns * kinds.length}`)
+kinds.forEach((kind, i) => console.log(deckLine(kind, reference.perDeck[i])))
 for (const { seq, perDeck, weakest, total } of stage3) {
   console.log(`  ${label(seq)}  weakest deck degree ${weakest.toFixed(2)}, passed ${total}/${finalRuns * kinds.length}`)
   kinds.forEach((kind, i) => console.log(deckLine(kind, perDeck[i])))
@@ -220,6 +227,6 @@ if (values.json) {
     ),
   })
   const options = { maxCost, from, deckSize, leaderCount, leaderRuns, finalistCount, finalRuns }
-  writeFileSync(values.json, JSON.stringify({ options, seconds: (Date.now() - started) / 1000, stage2: stage2.map(summarise), stage3: stage3.map(summarise) }, null, 2))
+  writeFileSync(values.json, JSON.stringify({ options, seconds: (Date.now() - started) / 1000, reference: summarise(reference), stage2: stage2.map(summarise), stage3: stage3.map(summarise) }, null, 2))
   console.log(`Wrote ${values.json}.`)
 }

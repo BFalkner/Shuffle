@@ -103,7 +103,9 @@ takes the degree of its worst test, and a routine is ranked by its weakest
 starting deck. For each finalist and starting deck, the search prints the
 worst-test degree as a mean and standard deviation, the two tests closest
 to failing, the pass count with a 95% interval, and how often each test
-failed.
+failed. A reference row measures perfectly shuffled decks the same way.
+Its worst-test degree is about 0.45, not 0, and that is the floor to
+compare the finalists against.
 To change the limits, pass options after `--`, for example
 `npm run search -- --max-cost 6 --from sorted`. Add `--json results.json`
 to save the full statistics for every test. The defaults match the
