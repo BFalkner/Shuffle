@@ -6,7 +6,7 @@ import { posOf, sortedDeck } from './decks.ts'
 import { EXAMPLES, SEED } from './experiments.ts'
 import { METRICS, metricByKey } from './metrics.ts'
 import { OPS, OP_COST, isOpKey, type OpKey } from './moves.ts'
-import { passWith } from './scoring.ts'
+import { passWith, testDegree } from './scoring.ts'
 import { TRACK_COLORS, emptySlots, toggleTracked } from './tracking.ts'
 
 function runSeq(seq: OpKey[], deckSize: number) {
@@ -124,6 +124,18 @@ describe('metric & calibration structure', () => {
   test('proximity band is asymmetric: rate-based low side tighter than per-deck high side', () => {
     const proximity = getBase(99).proximity
     expect(proximity.mean - proximity.low!).toBeLessThan(proximity.high! - proximity.mean)
+  })
+
+  test('a test degree above 1 means exactly that the test fails', () => {
+    const base = getBase(99)
+    for (const metric of METRICS) {
+      const baseline = base[metric.key]
+      const spread = Math.max(baseline.standardDeviation, Math.abs(baseline.threshold), 1e-6)
+      for (let step = -40; step <= 40; step++) {
+        const value = baseline.mean + (step / 10) * spread
+        expect(testDegree(metric, value, base) <= 1, `${metric.key} at ${value}`).toBe(passWith(metric, value, base))
+      }
+    }
   })
 
   test('end retention band is a rate (much tighter than one per-deck sd)', () => {

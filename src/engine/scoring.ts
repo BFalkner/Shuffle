@@ -13,6 +13,20 @@ export function passWith(metric: Metric, value: number, base: Base): boolean {
   return Math.abs(value - baseline.mean) <= baseline.threshold
 }
 
+/**
+ * How far a value sits from the random mean, as a fraction of the distance to the pass line on that side: 0 at the
+ * random mean, 1 on the pass line, above 1 when the test fails. Each test keeps its own tolerance, so degrees compare
+ * across tests. One-sided tests read 0 on the side that can't fail.
+ */
+export function testDegree(metric: Metric, value: number, base: Base): number {
+  const baseline = base[metric.key]
+  const offset = value - baseline.mean
+  if (metric.side === 'band') return offset >= 0 ? offset / (baseline.high! - baseline.mean) : -offset / (baseline.mean - baseline.low!)
+  if (metric.side === 'low') return Math.max(0, offset) / (baseline.threshold - baseline.mean)
+  if (metric.side === 'high') return Math.max(0, -offset) / (baseline.mean - baseline.threshold)
+  return Math.abs(offset) / baseline.threshold
+}
+
 /** Physical floor for chart scaling: -1 for correlation, 0 otherwise. */
 export function minFloor(metric: Metric): number {
   return metric.key === 'corr' ? -1 : 0

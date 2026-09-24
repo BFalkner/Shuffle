@@ -96,9 +96,14 @@ runs that aren't re-run in the browser. That data lives in
 `npm run search` reproduces the numbers behind the home page
 recommendations and footnote. It scores every routine up to a cost limit
 from a played deck, then reruns the leaders from all four starting decks.
-It ranks the leaders by their weakest starting deck. For each finalist and
-starting deck, it prints the pass count with a 95% interval, the composite
-score, the test that came closest to failing and how often each test failed.
+It ranks routines by degree, not by pass counts. A test's degree is how far
+its result sits from a random deck's average, as a fraction of the way to
+its pass line: 0 is random, 1 is the pass line, and above 1 fails. Each run
+takes the degree of its worst test, and a routine is ranked by its weakest
+starting deck. For each finalist and starting deck, the search prints the
+worst-test degree as a mean and standard deviation, the two tests closest
+to failing, the pass count with a 95% interval, and how often each test
+failed.
 To change the limits, pass options after `--`, for example
 `npm run search -- --max-cost 6 --from sorted`. Add `--json results.json`
 to save the full statistics for every test. The defaults match the

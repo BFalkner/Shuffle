@@ -5,9 +5,9 @@
 import { writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { DECK_KINDS, type DeckKind } from '../src/engine/decks.ts'
-import { METRICS, type Metric } from '../src/engine/metrics.ts'
+import { METRICS } from '../src/engine/metrics.ts'
 import { OPS, OP_COST, compressSeq, type OpKey } from '../src/engine/moves.ts'
-import { marginScale } from '../src/engine/scoring.ts'
+import { testDegree } from '../src/engine/scoring.ts'
 import { computeResult, scoreResult, type MethodResult } from '../src/engine/simulate.ts'
 
 const { values } = parseArgs({
@@ -67,18 +67,11 @@ function wilson(clean: number, runs: number): [number, number] {
   return [Math.max(0, centre - half) * 100, Math.min(1, centre + half) * 100]
 }
 
-/**
- * How far a test's final value sits inside its pass line: 1 at the random-deck average, 0 on the line, negative when it
- * fails. Uses the same scale as the composite score.
- */
-function headroom(metric: Metric, result: MethodResult): number {
-  const value = result.avg[metric.key][result.moveCount]
-  const baseline = result.base[metric.key]
-  const scale = marginScale(metric, baseline) || 1
-  if (metric.side === 'band') return Math.min(value - baseline.low!, baseline.high! - value) / scale
-  if (metric.side === 'low') return (baseline.threshold - value) / scale
-  if (metric.side === 'high') return (value - baseline.threshold) / scale
-  return (baseline.threshold - Math.abs(value - baseline.mean)) / scale
+/** Each test's degree at the last step (0 random, 1 on the pass line, above 1 failing), and the worst of them. */
+function degrees(result: MethodResult) {
+  const perTest = METRICS.map((metric) => ({ title: metric.title, degree: testDegree(metric, result.avg[metric.key][result.moveCount], result.base) }))
+  const worst = perTest.reduce((a, b) => (b.degree > a.degree ? b : a))
+  return { perTest, worst }
 }
 
 interface DeckStats {
@@ -86,83 +79,98 @@ interface DeckStats {
   runs: number
   /** runs that failed each test, by test title */
   fails: Record<string, number>
-  scores: number[]
-  /** headroom of each test in each run, by test title */
-  headroom: Record<string, number[]>
+  /** the worst test's degree in each run */
+  worst: number[]
+  /** how often each test was the worst one, by test title */
+  worstTest: Record<string, number>
+  /** each test's degree in each run, by test title */
+  degree: Record<string, number[]>
 }
 
-/** Run a routine `runs` times from `kind` and collect pass counts, failing tests, scores and headroom. */
+/** Run a routine `runs` times from `kind` and collect pass counts, failing tests and degrees. */
 function deckStats(seq: OpKey[], kind: DeckKind, runs: number): DeckStats {
-  const stats: DeckStats = { clean: 0, runs, fails: {}, scores: [], headroom: {} }
-  METRICS.forEach((metric) => (stats.headroom[metric.title] = []))
+  const stats: DeckStats = { clean: 0, runs, fails: {}, worst: [], worstTest: {}, degree: {} }
+  METRICS.forEach((metric) => (stats.degree[metric.title] = []))
   for (let run = 0; run < runs; run++) {
     const result = computeResult(kind, deckSize, seq, 'ends')
     const scored = scoreResult(result)
     if (scored.fails.length === 0) stats.clean++
     scored.fails.forEach((title) => (stats.fails[title] = (stats.fails[title] ?? 0) + 1))
-    stats.scores.push(scored.score)
-    METRICS.forEach((metric) => stats.headroom[metric.title].push(headroom(metric, result)))
+    const { perTest, worst } = degrees(result)
+    perTest.forEach(({ title, degree }) => stats.degree[title].push(degree))
+    stats.worst.push(worst.degree)
+    stats.worstTest[worst.title] = (stats.worstTest[worst.title] ?? 0) + 1
   }
   return stats
 }
 
-/** A routine's results from every starting deck, with its weakest deck and total for ranking. */
+/**
+ * A routine's results from every starting deck. It is judged by its weakest deck: the one whose worst-test degree is
+ * highest on average. The mean across decks and the pass counts break ties.
+ */
 function routineStats(seq: OpKey[], runs: number) {
   const perDeck = kinds.map((kind) => deckStats(seq, kind, runs))
-  const cleans = perDeck.map((stats) => stats.clean)
-  return { seq, perDeck, worst: Math.min(...cleans), total: cleans.reduce((a, b) => a + b, 0) }
+  const means = perDeck.map((stats) => mean(stats.worst))
+  const total = perDeck.reduce((sum, stats) => sum + stats.clean, 0)
+  return { seq, perDeck, weakest: Math.max(...means), overall: mean(means), total }
 }
 
-// A recommendation has to work from every starting deck, so rank by the weakest deck first.
 type Ranked = ReturnType<typeof routineStats>
-const byWorstDeck = (a: Ranked, b: Ranked) => b.worst - a.worst || b.total - a.total || costOf(a.seq) - costOf(b.seq)
+const byWeakestDeck = (a: Ranked, b: Ranked) => a.weakest - b.weakest || a.overall - b.overall || b.total - a.total || costOf(a.seq) - costOf(b.seq)
 
-const pct = (x: number) => `${Math.round(x * 100)}%`
-
-/** The detail lines for one starting deck: pass rate with its interval, score, the tightest test and any failures. */
-function deckLine(kind: DeckKind, stats: DeckStats): string {
-  const [low, high] = wilson(stats.clean, stats.runs)
-  const tightest = Object.entries(stats.headroom)
-    .map(([title, xs]) => ({ title, avg: mean(xs) }))
-    .sort((a, b) => a.avg - b.avg)[0]
-  const fails = Object.entries(stats.fails)
+const tally = (counts: Record<string, number>) =>
+  Object.entries(counts)
     .sort((a, b) => b[1] - a[1])
     .map(([title, count]) => `${title} ${count}`)
     .join(', ')
+
+/** The detail line for one starting deck: pass rate with its interval, worst-test degree, the tests closest to failing, and failures. */
+function deckLine(kind: DeckKind, stats: DeckStats): string {
+  const [low, high] = wilson(stats.clean, stats.runs)
+  const closest = Object.entries(stats.degree)
+    .map(([title, xs]) => ({ title, avg: mean(xs) }))
+    .sort((a, b) => b.avg - a.avg)
+    .slice(0, 2)
+    .map(({ title, avg }) => `${title} ${avg.toFixed(2)}`)
+    .join(', ')
+  const fails = tally(stats.fails)
   return [
-    `    ${kind.padEnd(7)} ${`${stats.clean}/${stats.runs}`.padStart(5)}  (${Math.round(low)}–${Math.round(high)}%)`.padEnd(30),
-    `score ${mean(stats.scores).toFixed(2)} ± ${sd(stats.scores).toFixed(2)}`,
-    `  tightest ${tightest.title} ${pct(tightest.avg)}`.padEnd(38),
-    fails ? `  fails: ${fails}` : '',
+    `    ${kind.padEnd(7)} ${`${stats.clean}/${stats.runs}`.padStart(7)}  (${Math.round(low)}–${Math.round(high)}%)`.padEnd(32),
+    `degree ${mean(stats.worst).toFixed(2)} ± ${sd(stats.worst).toFixed(2)}`.padEnd(22),
+    `closest: ${closest}`.padEnd(52),
+    fails ? `fails: ${fails}` : '',
   ].join('')
 }
 
 const started = Date.now()
 const elapsed = () => `${Math.round((Date.now() - started) / 1000)}s`
+const progress = (done: number, of: number) => process.stdout.write(`  ${done}/${of} ${elapsed()}\r`)
+const clearProgress = () => process.stdout.write('\r' + ' '.repeat(40) + '\r')
 
-// Stage 1: one run of every routine from the chosen deck.
+// Stage 1: one run of every routine from the chosen deck, ranked by its worst test's degree.
 const routines = allRoutines()
 console.log(`Stage 1: ${routines.length} routines costing up to ${maxCost} units, one run each from the ${from} deck (${deckSize} cards).`)
 const scored = routines.map((seq, index) => {
-  if (index % 500 === 0) process.stdout.write(`  ${index}/${routines.length} ${elapsed()}\r`)
-  const result = scoreResult(computeResult(from, deckSize, seq, 'ends'))
-  return { seq, passCount: result.passCount, score: result.score }
+  if (index % 500 === 0) progress(index, routines.length)
+  return { seq, worst: degrees(computeResult(from, deckSize, seq, 'ends')).worst.degree }
 })
-scored.sort((a, b) => b.passCount - a.passCount || b.score - a.score || costOf(a.seq) - costOf(b.seq))
-process.stdout.write('\r' + ' '.repeat(40) + '\r')
-console.log(`  done in ${elapsed()}. ${scored.filter((entry) => entry.passCount === METRICS.length).length} routines cleared every test in their one run.`)
+scored.sort((a, b) => a.worst - b.worst || costOf(a.seq) - costOf(b.seq))
+clearProgress()
+console.log(`  done in ${elapsed()}. ${scored.filter((entry) => entry.worst <= 1).length} routines cleared every test in their one run.`)
 
 // Stage 2: rerun the leaders from every starting deck.
 const leaders = scored.slice(0, leaderCount)
 console.log(`\nStage 2: the top ${leaders.length}, ${leaderRuns} runs from each starting deck, ranked by the weakest deck.`)
+console.log(`  Each deck shows the worst test's degree (mean ± SD), then the runs that cleared every test.`)
 const stage2 = leaders.map(({ seq }, index) => {
-  process.stdout.write(`  ${index}/${leaders.length} ${elapsed()}\r`)
+  progress(index, leaders.length)
   return routineStats(seq, leaderRuns)
 })
-stage2.sort(byWorstDeck)
-process.stdout.write('\r' + ' '.repeat(40) + '\r')
+stage2.sort(byWeakestDeck)
+clearProgress()
+const deckBrief = (stats: DeckStats) => `${mean(stats.worst).toFixed(2)}±${sd(stats.worst).toFixed(2)} ${stats.clean}/${stats.runs}`
 const stage2Shown = stage2.slice(0, Math.max(finalistCount, 30))
-for (const { seq, perDeck } of stage2Shown) console.log(`  ${label(seq).padEnd(30)} ${kinds.map((kind, i) => `${kind} ${perDeck[i].clean}/${leaderRuns}`).join('  ')}`)
+for (const { seq, perDeck } of stage2Shown) console.log(`  ${label(seq).padEnd(30)} ${kinds.map((kind, i) => `${kind} ${deckBrief(perDeck[i])}`.padEnd(24)).join('')}`)
 if (stage2.length > stage2Shown.length) console.log(`  … and ${stage2.length - stage2Shown.length} more.`)
 console.log(`  done in ${elapsed()}.`)
 
@@ -170,24 +178,28 @@ console.log(`  done in ${elapsed()}.`)
 const finalists = stage2.slice(0, finalistCount)
 console.log(`\nStage 3: the top ${finalists.length}, ${finalRuns} runs from each starting deck, ranked by the weakest deck.`)
 const stage3 = finalists.map(({ seq }, index) => {
-  process.stdout.write(`  ${index}/${finalists.length} ${elapsed()}\r`)
+  progress(index, finalists.length)
   return routineStats(seq, finalRuns)
 })
-stage3.sort(byWorstDeck)
-process.stdout.write('\r' + ' '.repeat(40) + '\r')
-console.log(`  Pass counts are runs that cleared every test, with a 95% interval. Score is the composite score, mean ± SD.`)
-console.log(`  Tightest is the test with the least headroom on average: 100% is a random deck's average, 0% is the pass line.\n`)
-for (const { seq, perDeck, worst, total } of stage3) {
-  console.log(`  ${label(seq)}  weakest ${worst}/${finalRuns}, total ${total}/${finalRuns * kinds.length}`)
+stage3.sort(byWeakestDeck)
+clearProgress()
+console.log(`  A test's degree is how far it sits from a random deck's average, as a fraction of the way to its pass line:`)
+console.log(`  0 is random, 1 is the pass line, and above 1 fails. "degree" is the worst test's degree in each run, mean ± SD.`)
+console.log(`  A high mean with a small SD is reliably a little off. A lower mean with a large SD is usually fine but`)
+console.log(`  sometimes far off. "closest" lists the two tests with the highest average degree. Pass counts have a 95% interval.\n`)
+for (const { seq, perDeck, weakest, total } of stage3) {
+  console.log(`  ${label(seq)}  weakest deck degree ${weakest.toFixed(2)}, passed ${total}/${finalRuns * kinds.length}`)
   kinds.forEach((kind, i) => console.log(deckLine(kind, perDeck[i])))
 }
 console.log(`\nFinished in ${elapsed()}.`)
 
 if (values.json) {
-  const summarise = ({ seq, perDeck, worst, total }: Ranked) => ({
+  const spread = (xs: number[]) => ({ mean: mean(xs), sd: sd(xs), max: Math.max(...xs) })
+  const summarise = ({ seq, perDeck, weakest, overall, total }: Ranked) => ({
     routine: compressSeq(seq),
     cost: costOf(seq),
-    worst,
+    weakest,
+    overall,
     total,
     decks: Object.fromEntries(
       kinds.map((kind, i) => {
@@ -199,8 +211,9 @@ if (values.json) {
             runs: stats.runs,
             interval: wilson(stats.clean, stats.runs),
             fails: stats.fails,
-            score: { mean: mean(stats.scores), sd: sd(stats.scores) },
-            headroom: Object.fromEntries(Object.entries(stats.headroom).map(([title, xs]) => [title, { mean: mean(xs), sd: sd(xs), min: Math.min(...xs) }])),
+            worst: spread(stats.worst),
+            worstTest: stats.worstTest,
+            degree: Object.fromEntries(Object.entries(stats.degree).map(([title, xs]) => [title, spread(xs)])),
           },
         ]
       }),
