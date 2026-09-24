@@ -264,9 +264,9 @@ export default function Home() {
         each of the four starting decks. A run counts as a pass only when it clears every test. Seven mashes passed all 20 runs from a played deck, and eight
         passed 18 to 20 of 20 from each starting deck. No six-unit routine was reliable: the best mixes passed 16 of 20, and six plain mashes passed 18. The
         pile routine we used to recommend (4 mashes, pile, 4 mashes) costs 12 units and passed only 1 of 5 runs from a sorted
-        deck. Pass thresholds sit two
-        standard deviations from random decks: ordering ≥ {SUMMARY.thr.seq} runs, proximity ≤ {SUMMARY.thr.cp} close pairs. Random baselines: ordering{' '}
-        {SUMMARY.rand.seq}, proximity {SUMMARY.rand.cp}. Figures in the steps above come from 1,200 simulated decks per routine.
+        deck. A test passes when the deck is within three standard deviations of a random deck. For a 99-card deck, that means
+        about 41.5 to 58.5 runs for ordering and about 5.3 to 12.5 close pairs for proximity. Random decks average {SUMMARY.rand.seq} runs and{' '}
+        {SUMMARY.rand.cp} close pairs. Figures in the steps above come from 1,200 simulated decks per routine.
       </p>
     </div>
   )
