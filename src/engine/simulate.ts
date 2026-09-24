@@ -1,7 +1,7 @@
 // Run a shuffle method many times and average every diagnostic at every step.
 import { getBase, type Base } from './calibrate'
 import { classifierAccuracy, deckFeatures, randomFeatures } from './classifier'
-import { catBounds, startDeck, type DeckKind } from './decks'
+import { startDeck, type CardTypes, type DeckKind } from './decks'
 import { METRICS, type MetricKey } from './metrics'
 import { OPS, type OpKey } from './moves'
 import { compositeScore, passWith, type Averages } from './scoring'
@@ -24,7 +24,6 @@ export interface MethodResult {
 
 export function computeResult(kind: DeckKind, deckSize: number, seq: OpKey[]): MethodResult {
   const moveCount = seq.length
-  const bounds = catBounds(deckSize)
   const base = getBase(deckSize)
   const scalar = METRICS.filter((metric) => metric.measure).map((metric) => metric.key)
   const sums = {} as Record<MetricKey, Float64Array>
@@ -35,10 +34,10 @@ export function computeResult(kind: DeckKind, deckSize: number, seq: OpKey[]): M
   for (let step = 0; step <= moveCount; step++) stepFeat.push([])
 
   let trial = 0
-  const rec = (step: number, deck: number[]) => {
+  const rec = (step: number, deck: number[], types: CardTypes) => {
     METRICS.forEach((metric) => {
       if (!metric.measure) return
-      if (trial < (metric.key === 'endret' ? T_ENDRET : T_METRIC)) sums[metric.key][step] += metric.measure(deck, deckSize, bounds)
+      if (trial < (metric.key === 'endret' ? T_ENDRET : T_METRIC)) sums[metric.key][step] += metric.measure(deck, deckSize, types)
     })
     const slotCounts = posCount[step]
     for (let position = 0; position < deckSize; position++) slotCounts[deck[position] * deckSize + position]++
@@ -46,11 +45,13 @@ export function computeResult(kind: DeckKind, deckSize: number, seq: OpKey[]): M
   }
 
   for (trial = 0; trial < T_TOTAL; trial++) {
-    let deck = startDeck(kind, deckSize)
-    rec(0, deck)
+    const start = startDeck(kind, deckSize)
+    const types = start.types
+    let deck = start.deck
+    rec(0, deck, types)
     for (let step = 0; step < moveCount; step++) {
       deck = OPS[seq[step]](deck)
-      rec(step + 1, deck)
+      rec(step + 1, deck, types)
     }
   }
 

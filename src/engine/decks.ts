@@ -39,7 +39,9 @@ export function posOf(deck: Deck): number[] {
   return positions
 }
 
-// Card types, by id range: lands (40%), draw (17%), interaction (12%), the rest.
+// Card types: lands (40%), draw (17%), interaction (12%), the rest.
+export const LAND = 0
+
 export function catSizes(deckSize: number): [number, number, number, number] {
   const land = Math.round(deckSize * 0.4)
   const draw = Math.round(deckSize * 0.17)
@@ -47,64 +49,88 @@ export function catSizes(deckSize: number): [number, number, number, number] {
   return [land, draw, interaction, deckSize - land - draw - interaction]
 }
 
-export function catBounds(deckSize: number): number[] {
-  const sizes = catSizes(deckSize)
-  return [sizes[0], sizes[0] + sizes[1], sizes[0] + sizes[1] + sizes[2], deckSize]
+/** The type of every card: types[card] is 0 (land), 1 (draw), 2 (interaction) or 3 (the rest). */
+export type CardTypes = number[]
+
+/** Types grouped by card number, lands first: a deck built and sorted by type. */
+export function numberedTypes(deckSize: number): CardTypes {
+  const types: CardTypes = []
+  catSizes(deckSize).forEach((count, type) => {
+    for (let i = 0; i < count; i++) types.push(type)
+  })
+  return types
 }
 
-export function catOf(id: number, bounds: number[]): number {
-  for (let category = 0; category < bounds.length; category++) if (id < bounds[category]) return category
-  return 3
+/** The same type counts, handed out to cards at random, so a card's number says nothing about its type. */
+function randomTypes(deckSize: number): CardTypes {
+  const types: CardTypes = new Array(deckSize)
+  const cards = fisher(deckSize)
+  let next = 0
+  catSizes(deckSize).forEach((count, type) => {
+    for (let i = 0; i < count; i++) types[cards[next++]] = type
+  })
+  return types
 }
 
-export function startDeck(kind: DeckKind, deckSize: number): Deck {
-  if (kind === 'sorted') return sortedDeck(deckSize)
+export interface StartingDeck {
+  deck: Deck
+  types: CardTypes
+}
+
+/**
+ * The deck a routine starts from. The sorted and played decks keep types grouped by number. The woven and clumped
+ * decks are random apart from where the lands sit: their card order and types are drawn fresh each time.
+ */
+export function startDeck(kind: DeckKind, deckSize: number): StartingDeck {
+  if (kind === 'sorted') return { deck: sortedDeck(deckSize), types: numberedTypes(deckSize) }
   if (kind === 'played') {
     // seven mashes, then the top thirty cards sorted: an ordinary game plus the gathered block
     let deck = sortedDeck(deckSize)
     for (let game = 0; game < 7; game++) deck = mash(deck)
     const blockSize = Math.min(30, deckSize)
     const top = deck.slice(0, blockSize).sort((left, right) => left - right)
-    return top.concat(deck.slice(blockSize))
-  }
-  const landCount = catSizes(deckSize)[0]
-  const lands: number[] = []
-  const spells: number[] = []
-  for (let card = 0; card < landCount; card++) lands.push(card)
-  for (let card = landCount; card < deckSize; card++) spells.push(card)
-
-  if (kind === 'weave') {
-    const out = new Array<number>(deckSize)
-    const taken = new Array<boolean>(deckSize).fill(false)
-    const step = deckSize / landCount
-    let landIndex = 0
-    let spellIndex = 0
-    for (let land = 0; land < landCount; land++) {
-      const pos = Math.min(deckSize - 1, Math.round(land * step))
-      taken[pos] = true
-      out[pos] = lands[landIndex++]
-    }
-    for (let position = 0; position < deckSize; position++) if (!taken[position]) out[position] = spells[spellIndex++]
-    return out
+    return { deck: top.concat(deck.slice(blockSize)), types: numberedTypes(deckSize) }
   }
 
-  // lumpy: lands gathered into three loose clusters
-  const out = new Array<number>(deckSize).fill(-1)
+  const types = randomTypes(deckSize)
+  const order = fisher(deckSize)
+  const lands = order.filter((card) => types[card] === LAND)
+  const others = order.filter((card) => types[card] !== LAND)
+  const landSlots = kind === 'weave' ? wovenLandSlots(deckSize, lands.length) : clumpedLandSlots(deckSize, lands.length)
+  const deck: Deck = []
+  let landIndex = 0
+  let otherIndex = 0
+  for (let position = 0; position < deckSize; position++) deck.push(landSlots[position] ? lands[landIndex++] : others[otherIndex++])
+  return { deck, types }
+}
+
+/** Lands at perfectly even intervals. */
+function wovenLandSlots(deckSize: number, landCount: number): boolean[] {
+  const slots = new Array<boolean>(deckSize).fill(false)
+  const step = deckSize / landCount
+  for (let land = 0; land < landCount; land++) slots[Math.min(deckSize - 1, Math.round(land * step))] = true
+  return slots
+}
+
+/** Lands gathered into three loose clusters. */
+function clumpedLandSlots(deckSize: number, landCount: number): boolean[] {
+  const slots = new Array<boolean>(deckSize).fill(false)
   const clusters = 3
   const perCluster = Math.ceil(landCount / clusters)
   const centers = [Math.floor(deckSize * 0.18), Math.floor(deckSize * 0.5), Math.floor(deckSize * 0.8)]
-  let landIndex = 0
-  for (let cluster = 0; cluster < clusters && landIndex < landCount; cluster++) {
+  let placed = 0
+  for (let cluster = 0; cluster < clusters && placed < landCount; cluster++) {
     const clusterStart = centers[cluster] - Math.floor(perCluster / 2)
-    for (let offset = 0; offset < perCluster && landIndex < landCount; offset++) {
+    for (let offset = 0; offset < perCluster && placed < landCount; offset++) {
       let position = clusterStart + offset
-      while (position < 0 || position >= deckSize || out[position] !== -1) position++
-      if (position < deckSize) out[position] = lands[landIndex++]
+      while (position < 0 || position >= deckSize || slots[position]) position++
+      if (position < deckSize) {
+        slots[position] = true
+        placed++
+      }
     }
   }
-  let spellIndex = 0
-  for (let position = 0; position < deckSize; position++) if (out[position] === -1) out[position] = spells[spellIndex++]
-  return out
+  return slots
 }
 
 /** Card colour by original position: dark green (top) to pale (bottom). */

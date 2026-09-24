@@ -25,7 +25,7 @@ export default function Simulator() {
   const [kind, setKind] = useState<DeckKind>('sorted')
   const [deckSize, setDeckSize] = useState(99)
   // One fixed starting deck per condition, shared by every animation panel and the builder.
-  const start = useMemo(() => startDeck(kind, deckSize), [kind, deckSize])
+  const start = useMemo(() => startDeck(kind, deckSize).deck, [kind, deckSize])
 
   // Saved methods
   const [experiments, setExperiments] = useState<Experiment[]>(loadExperiments)

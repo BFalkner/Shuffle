@@ -1,7 +1,7 @@
 // The twelve randomness diagnostics. Each per-deck metric takes the deck, its
-// size and the card-type bounds and returns one number; position and
+// size and the card types and returns one number; position and
 // classifier are computed across a whole batch of trials instead (measure: null).
-import { catOf, catSizes, posOf } from './decks'
+import { LAND, catSizes, posOf, type CardTypes } from './decks'
 import type { Deck } from './moves'
 
 export function mOrdering(deck: Deck): number {
@@ -58,7 +58,7 @@ export function mGradient(deck: Deck): number {
   return triples / deckSize
 }
 
-export function mClump(deck: Deck, deckSize: number, bounds: number[]): number {
+export function mClump(deck: Deck, deckSize: number, types: CardTypes): number {
   const sizes = catSizes(deckSize)
   const windowSize = 10
   const expected = sizes.map((size) => (windowSize * size) / deckSize)
@@ -66,7 +66,7 @@ export function mClump(deck: Deck, deckSize: number, bounds: number[]): number {
   let windows = 0
   for (let start = 0; start + windowSize <= deckSize; start += 1) {
     const counts = [0, 0, 0, 0]
-    for (let offset = 0; offset < windowSize; offset++) counts[catOf(deck[start + offset], bounds)]++
+    for (let offset = 0; offset < windowSize; offset++) counts[types[deck[start + offset]]]++
     let deviation = 0
     for (let category = 0; category < 4; category++) deviation += (counts[category] - expected[category]) * (counts[category] - expected[category])
     total += deviation
@@ -75,9 +75,9 @@ export function mClump(deck: Deck, deckSize: number, bounds: number[]): number {
   return windows ? total / windows : 0
 }
 
-export function mSpacing(deck: Deck, deckSize: number, bounds: number[]): number {
+export function mSpacing(deck: Deck, deckSize: number, types: CardTypes): number {
   const landPositions: number[] = []
-  for (let position = 0; position < deckSize; position++) if (catOf(deck[position], bounds) === 0) landPositions.push(position)
+  for (let position = 0; position < deckSize; position++) if (types[deck[position]] === LAND) landPositions.push(position)
   if (landPositions.length < 3) return 0
   const gaps: number[] = []
   for (let land = 1; land < landPositions.length; land++) gaps.push(landPositions[land] - landPositions[land - 1])
@@ -158,7 +158,7 @@ export interface Metric {
   side: Side
   /** excluded from the composite score cap */
   noCap?: boolean
-  measure: ((deck: Deck, deckSize: number, bounds: number[]) => number) | null
+  measure: ((deck: Deck, deckSize: number, types: CardTypes) => number) | null
   /** Short description. `<i>…</i>` marks italics; nothing else is markup. */
   desc: string
   writeup: { to: WriteupRoute; label: string }

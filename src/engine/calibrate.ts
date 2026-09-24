@@ -1,5 +1,5 @@
 // Random-deck baselines and pass thresholds for each metric.
-import { catBounds, fisher } from './decks'
+import { fisher, numberedTypes } from './decks'
 import { METRICS, type MetricKey } from './metrics'
 
 export interface Baseline {
@@ -16,7 +16,7 @@ export type Base = Record<MetricKey, Baseline>
 
 /** Measure deckCount random decks of size deckSize and derive each metric's pass rule. */
 export function calibrate(deckSize: number, deckCount: number): Base {
-  const bounds = catBounds(deckSize)
+  const types = numberedTypes(deckSize)
   const totals: Partial<Record<MetricKey, { sum: number; sumOfSquares: number }>> = {}
   METRICS.forEach((metric) => {
     if (metric.key !== 'position' && metric.key !== 'endret') totals[metric.key] = { sum: 0, sumOfSquares: 0 }
@@ -25,7 +25,7 @@ export function calibrate(deckSize: number, deckCount: number): Base {
     const deck = fisher(deckSize)
     METRICS.forEach((metric) => {
       if (!metric.measure || metric.key === 'endret') return
-      const value = metric.measure(deck, deckSize, bounds)
+      const value = metric.measure(deck, deckSize, types)
       totals[metric.key]!.sum += value
       totals[metric.key]!.sumOfSquares += value * value
     })
