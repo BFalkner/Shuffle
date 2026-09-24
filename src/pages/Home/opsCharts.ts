@@ -20,7 +20,7 @@ export const OPS_CHARTS: Config[] = [
   {
     key: 'seq',
     title: 'Ordering',
-    desc: 'How many runs of cards are still in sequence, forward or reverse. A sorted deck is one run. The overhand gets close to random quickly; the mash gets there slowly.',
+    desc: 'How many runs of cards are still in sequence, forward or reverse. A sorted deck is one run. The overhand gets close to random quickly. The mash gets there slowly.',
     sub: `sequence runs · random ≈ ${OPS.rand.seq} · higher is better`,
     target: OPS.rand.seq,
     log: false,
