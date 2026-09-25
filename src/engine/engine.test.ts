@@ -96,9 +96,11 @@ describe('metric & calibration structure', () => {
     for (const metric of METRICS) {
       expect(metric.title, metric.key).toBeTruthy()
       expect(metric.desc, metric.key).toBeTruthy()
-      // position and classifier are accumulated across a batch of trials, not per deck
-      const fnOk = typeof metric.measure === 'function' || (metric.measure === null && (metric.key === 'gaps' || metric.key === 'position' || metric.key === 'classifier'))
-      expect(fnOk, metric.key).toBe(true)
+      // Every metric reads decks through a batch; per-deck calibration also needs a per-deck measure.
+      expect(typeof metric.batch, metric.key).toBe('function')
+      expect(metric.trials, metric.key).toBeGreaterThan(0)
+      expect(['perDeck', 'batches', 'fixed']).toContain(metric.calibration.kind)
+      if (metric.calibration.kind === 'perDeck') expect(typeof metric.measure, metric.key).toBe('function')
       expect(['high', 'low', 'two', 'band']).toContain(metric.side)
     }
   })

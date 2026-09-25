@@ -41,7 +41,13 @@ const CASES: [string, () => unknown][] = [
     ]),
   ),
   // What the pages read: each test's metadata, and its pass rule, degree and formatting across a range of values.
-  ['test metadata', () => METRICS.map(({ measure, ...metadata }) => ({ ...metadata, perDeck: measure !== null }))],
+  [
+    'test metadata',
+    () =>
+      METRICS.map(({ key, group, title, core, raw, unit, side, noCap, desc, writeup, measure }) => ({
+        key, group, title, core, raw, unit, side, noCap, desc, writeup, perDeck: measure !== null,
+      })),
+  ],
   [
     'pass rules, degrees and formatting',
     () => {

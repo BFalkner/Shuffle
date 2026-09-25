@@ -1,6 +1,6 @@
 import { posOf } from '../decks.ts'
 import type { Deck } from '../moves.ts'
-import { FULL, type Metric } from './types.ts'
+import { FULL, PER_DECK_TRIALS, type Metric } from './types.ts'
 
 export interface GapBins {
   /** bin index for each distance 1 to deckSize - 1 */
@@ -54,6 +54,23 @@ export function gapChiSquare(counts: Int32Array, deckCount: number, deckSize: nu
 
 export const neighbourGaps: Metric = {
   key: 'gaps', group: 'order', core: false, raw: true, unit: 'χ²', side: 'low', title: 'Neighbour gaps', measure: null,
+  trials: PER_DECK_TRIALS,
+  batch: (deckSize) => {
+    const counts = new Int32Array(gapBins(deckSize).expected.length)
+    return { add: (deck) => addGaps(counts, deck), value: () => gapChiSquare(counts, PER_DECK_TRIALS, deckSize) }
+  },
+  calibration: {
+    kind: 'batches',
+    size: PER_DECK_TRIALS,
+    // The batch chi-square's own spread. With fewer than two batches, fall back to the chi-square distribution's mean
+    // and spread for the bin count.
+    finish: (chis, deckSize) => {
+      const freedom = gapBins(deckSize).expected.length - 1
+      const mean = chis.length >= 2 ? chis.reduce((a, b) => a + b, 0) / chis.length : freedom
+      const spread = chis.length >= 2 ? Math.sqrt(chis.reduce((a, x) => a + (x - mean) ** 2, 0) / (chis.length - 1)) : Math.sqrt(2 * freedom)
+      return { mean, standardDeviation: spread, threshold: mean + 3 * spread }
+    },
+  },
   desc: 'How far apart cards that started side by side now sit, at every distance, compared with a random deck. Seven mashes from a sorted deck leave too many pairs touching and too few two to eight apart.',
   writeup: { to: '/order-tests', label: FULL },
 }

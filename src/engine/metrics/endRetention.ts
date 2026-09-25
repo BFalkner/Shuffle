@@ -1,5 +1,5 @@
 import type { Deck } from '../moves.ts'
-import type { Metric } from './types.ts'
+import { averageBatch, type Metric } from './types.ts'
 
 /** Original end cards still within three of their end. */
 export function mEndRetention(deck: Deck, deckSize: number): number {
@@ -13,6 +13,17 @@ export function mEndRetention(deck: Deck, deckSize: number): number {
 
 export const endRetention: Metric = {
   key: 'endret', group: 'structure', core: false, raw: true, unit: 'cards', side: 'two', title: 'End retention', measure: mEndRetention,
+  // Judged as a rate over 400 trials.
+  trials: 400,
+  batch: averageBatch(mEndRetention, 400),
+  calibration: {
+    kind: 'fixed',
+    // Analytic: each end card is in its four end places with probability 4 / deckSize.
+    baseline: (deckSize) => {
+      const standardDeviation = Math.sqrt(2 * (4 / deckSize) * (1 - 4 / deckSize))
+      return { mean: (2 * 4) / deckSize, standardDeviation, threshold: (3 * standardDeviation) / Math.sqrt(400) }
+    },
+  },
   desc: 'Whether the original top card and bottom card are still within three places of their end: 0.08 when random. Built for the mash, which barely moves the ends. Two-sided, and judged on the average over many shuffles.',
   writeup: { to: '/sticky-ends', label: 'The sticky-ends write-up' },
 }

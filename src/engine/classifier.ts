@@ -2,7 +2,7 @@
 // method's decks from genuinely random ones. Held-out accuracy of 50% means it
 // cannot tell them apart.
 import { fisher } from './decks.ts'
-import { mCorr } from './metrics.ts'
+import { mCorr } from './metrics/correlation.ts'
 import type { Deck } from './moves.ts'
 
 /** Gap-spacing features plus neighbour correlation. */

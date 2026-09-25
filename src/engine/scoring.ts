@@ -1,6 +1,6 @@
 // Pass/fail rules, progress-toward-random, the composite score, and display formatting.
 import type { Base, Baseline } from './calibrate.ts'
-import { METRICS, type Metric, type MetricKey } from './metrics.ts'
+import { METRICS, metricByKey, type Metric, type MetricKey } from './metrics.ts'
 
 /** Per-metric averages at every step: avg[key][step]. */
 export type Averages = Record<MetricKey, number[]>
@@ -29,7 +29,7 @@ export function testDegree(metric: Metric, value: number, base: Base): number {
 
 /** Physical floor for chart scaling: -1 for correlation, 0 otherwise. */
 export function minFloor(metric: Metric): number {
-  return metric.key === 'corr' ? -1 : 0
+  return metric.floor ?? 0
 }
 
 /** How far from the mean still counts as "near random" for this metric. */
@@ -98,11 +98,8 @@ export function displayValue(metric: Metric, value: number, avg: Averages, base:
 }
 
 export function fmt(value: number, key: MetricKey): string {
-  if (key === 'classifier') return `${Math.round(value * 100)}%`
-  if (key === 'corr') return value.toFixed(2)
-  if (key === 'position') return value >= 1e6 ? `${(value / 1e6).toFixed(1)}M` : value >= 1e3 ? `${Math.round(value / 1e3)}k` : `${Math.round(value)}`
-  if (key === 'gradient') return value.toFixed(3)
-  if (key === 'clump') return value.toFixed(2)
+  const format = metricByKey(key).format
+  if (format) return format(value)
   if (value < 10) return value.toFixed(1)
   return `${Math.round(value)}`
 }
