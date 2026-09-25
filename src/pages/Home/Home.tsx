@@ -7,7 +7,7 @@ import OpsChart from './OpsChart'
 import { OPS_CHARTS } from './opsCharts'
 import './home.css'
 
-// The two recommended methods, from a search of every move sequence costing up to 7 units (see the footnote).
+// The two recommended routines. Each pairs mashing with a move that breaks up order by force (see the footnote).
 const SUMMARY = DATA.cards
 
 /**
@@ -61,7 +61,7 @@ const STEPS: Step[] = [
     how: 'Cut the deck, overhand one half, then mash the two halves back together.',
     paragraphs: [
       'Each move fixes what the other leaves behind. The overhand breaks up the runs the mash is slow on, and the mash spreads out the neighbours the overhand leaves together. From a sorted deck, four rounds break up order about as well as six plain mashes.',
-      'It still doesn’t beat plain mashing, because order isn’t the last thing to clear. The ends of the deck and the spacing of old neighbours clear last, as the next steps explain. The overhand does little for either. Each round is also two moves instead of one.',
+      'Round after round, it doesn’t beat plain mashing on every test. The overhand keeps each packet’s cards together, so the spacing of old neighbours clears slowly, and a half overhand never touches the other end of the deck. But one half overhand does something a mash can’t promise. It stacks its packets in reverse order, so any run longer than a packet is cut apart. Our between-games routine uses one.',
     ],
     bars: [100, 99, 100],
   },
@@ -74,7 +74,8 @@ const STEPS: Step[] = [
       'The deal always splits neighbours the same way, and none stay close. A random deck keeps a few close by chance, so the pile fails proximity on the low side.',
       <>
         Worse, dealing isn&rsquo;t random. Anyone who knows the deck before the deal knows it after. We added the{' '}
-        <Link to="/global-tests">position</Link> test for the pile. A pile adds nothing random, so it can&rsquo;t fix what other moves leave behind.
+        <Link to="/global-tests">position</Link> test for the pile. A pile adds nothing random, so it needs mashing before and after it. What it adds is
+        certain: cards that sit next to each other always go to different piles.
       </>,
     ],
     bars: [92, 93, 0],
@@ -94,7 +95,7 @@ const STEPS: Step[] = [
       </>,
       <>
         Even after seven mashes, old neighbours sit at the wrong distances: too often side by side, too rarely a few places apart.{' '}
-        <Link to="/order-tests">Neighbour gaps</Link> catches this, and it&rsquo;s the main reason a sorted deck needs an eighth mash.
+        <Link to="/order-tests">Neighbour gaps</Link> catches this, and it&rsquo;s the main reason plain mashing needs eight rounds on a sorted deck.
       </>,
     ],
   },
@@ -222,11 +223,16 @@ export default function Home() {
       </p>
 
       <div className="rule" />
-      <div className="sec-eyebrow">Why the answer is mashing</div>
+      <div className="sec-eyebrow">Why we don&rsquo;t just mash</div>
       <p className="opsintro">
-        Every other move leaves something that more of the same move won&rsquo;t fix. More overhands never separate neighbours, and another pile deal is
-        just as predictable as the first. What the mash leaves behind shrinks each time, and the ends of the deck are the last to go. That’s why both
-        recommendations are plain mashing, and why the number depends on where the deck starts.
+        A mash never changes the order of the cards within each half. It only weaves the two halves together, so all of its mixing comes from where you
+        cut and how the cards fall. In our simulation that works well, but the simulated mash is more even than a real one. Real halves are rarely
+        equal, and a block from the middle often drops to the bottom without weaving in.
+      </p>
+      <p className="opsintro">
+        The pile and the half overhand don&rsquo;t depend on how well your hands weave. The deal always splits up neighbours, and the overhand always
+        stacks its packets in reverse order. Both recommendations still mash, because neither move mixes the deck on its own. The mashing spreads the cards,
+        and the forced move breaks up the runs that are left.
       </p>
       <p className="opsintro">
         The charts below show the same story in numbers. Each one repeats a single move on a sorted deck and follows one test. The value for a random
@@ -263,12 +269,14 @@ export default function Home() {
       </div>
 
       <p className="foot-note">
-        We chose the recommendations by scoring every routine that costs up to 7 units, starting from a played deck. A mash and a half overhand cost 1
-        unit each, a full overhand costs 2, and a pile costs 4. The pile&rsquo;s cost is a guess until we time it. We then ran the leaders 200 times from
-        each of the four starting decks. A run counts as a pass only when it clears every test. From a played deck, seven mashes passed 195 of 200 runs and
-        six passed 181. Mixes of four mashes and two half overhands passed at most 1 of 200, because the overhand&rsquo;s packets keep old neighbours side
-        by side. From a sorted deck, eight mashes passed 184 of 200 and seven passed 1. Eight passed at least 197 from each of the other decks. The pile routine we used to recommend (4 mashes, pile, 4 mashes)
-        costs 12 units and passed 155 of 200 from a sorted deck. A test passes when the deck is within three standard deviations of a random deck. For a
+        We picked these routines because the pile and the half overhand break up order by force, not by chance. A mash and a half overhand cost 1 unit
+        each, a full overhand costs 2, and a pile costs 4. The pile&rsquo;s cost is a guess until we time it. We ran each routine 200 times from each of the
+        four starting decks. A run counts as a pass only when it clears every test. From a sorted deck, 5 mashes, a pile and 5 mashes passed 198 of 200,
+        as often as a perfectly random deck, and it passed at least 196 from each of the other decks. Eight plain mashes passed 184 from a sorted deck.
+        Between games, plain mashing passes more often. From a played deck, 3 mashes, a half overhand and a mash passed none of 200 runs. Every run
+        failed neighbour gaps, which finds old neighbours at slightly the wrong distances, and 36 also failed clump rate. Seven plain mashes passed 197.
+        Over 20,000 single shuffles, the shorter routine left no longer runs of spells, and no more spells side by side, than a random deck, even in
+        the worst game in 100. A test passes when the deck is within three standard deviations of a random deck. For a
         99-card deck, that means about 41.3 to 58.7 runs for ordering and about 5.4 to 12.9 close pairs for proximity. Random decks average {SUMMARY.rand.seq} runs and{' '}
         {SUMMARY.rand.cp} close pairs. Figures in the steps above come from 1,200 simulated decks per routine.
       </p>
