@@ -169,7 +169,7 @@ describe('tracking (fixed-slot semantics)', () => {
 })
 
 describe('plain mashing', () => {
-  test('the recommended any-start method (8 mashes) clears the core battery from sorted', () => {
+  test('eight mashes clear the core battery from sorted', () => {
     // Judged on trial averages, the same way the simulator judges pass/fail.
     const deckSize = 99
     const seq: OpKey[] = Array(8).fill('mash')

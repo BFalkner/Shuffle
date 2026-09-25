@@ -162,8 +162,8 @@ sticky-ends sweeps) came from ad hoc runs that weren't saved as scripts.
 It checks engine correctness (every move is a true permutation; the
 half-overhands never touch the wrong half; the pile is deterministic), the
 riffle model's calibration anchors, threshold structure, move costs,
-card-tracking slot behaviour, and that the recommended any-start method
-(eight mashes) clears the core battery from a sorted deck.
+card-tracking slot behaviour, and that eight plain mashes clear the core
+battery from a sorted deck.
 
 The engine is random, so the statistical checks use tolerances wide enough
 to be stable from run to run.

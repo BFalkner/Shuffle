@@ -12,12 +12,13 @@ const EXAMPLES_FLAG = 'shuffleExamplesV2'
 
 const fill = (op: OpKey, count: number): OpKey[] => Array(count).fill(op)
 
-/** The default list: recommended methods and simple baselines. */
+/** The default list: the home page's recommendations, plain mashing to compare them with, and simple baselines. */
 export const SEED: Omit<Experiment, 'id'>[] = [
-  { title: 'Between games — 7× Mash', seq: fill('mash', 7) },
-  { title: 'Any start — 8× Mash', seq: fill('mash', 8) },
-  { title: 'Best six-unit mix — 2× Mash, Top, Mash, Bottom, Mash', seq: ['mash', 'mash', 'ohr', 'mash', 'ohb', 'mash'] },
-  { title: '4 Mash · Pile · 4 Mash', seq: ['mash', 'mash', 'mash', 'mash', 'pile', 'mash', 'mash', 'mash', 'mash'] },
+  { title: 'Between games — 3× Mash, Half overhand, Mash', seq: ['mash', 'mash', 'mash', 'ohr', 'mash'] },
+  { title: 'New or sorted deck — 5× Mash, Pile, 5× Mash', seq: [...fill('mash', 5), 'pile', ...fill('mash', 5)] },
+  { title: 'Plain mashing — 7× Mash', seq: fill('mash', 7) },
+  { title: 'Plain mashing — 8× Mash', seq: fill('mash', 8) },
+  { title: 'Shorter pile — 4× Mash, Pile, 4× Mash', seq: ['mash', 'mash', 'mash', 'mash', 'pile', 'mash', 'mash', 'mash', 'mash'] },
   { title: 'Half-Overhand method', seq: ['mash', 'mash', 'ohr', 'mash', 'ohr', 'mash', 'ohr', 'mash', 'mash'] },
   { title: 'Repeated mash ×12', seq: fill('mash', 12) },
   { title: 'Repeated overhand ×10', seq: fill('overhand', 10) },
