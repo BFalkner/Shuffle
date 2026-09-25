@@ -37,6 +37,7 @@ def parse_args():
     parser.add_argument("--trees", type=int, default=300)
     parser.add_argument("--leaf", type=int, default=20, help="minimum decks per leaf; keeps trees small (default 20)")
     parser.add_argument("--jobs", type=int, default=8, help="parallel jobs for the forest (default 8)")
+    parser.add_argument("--seed", type=int, default=0, help="seed for the folds and the forest (default 0)")
     parser.add_argument("--out", default="logs/forest", help="folder for the feature files and results (default logs/forest)")
     return parser.parse_args()
 
@@ -64,9 +65,9 @@ def compare(name, positive, negative, header, args):
     """Cross-validated accuracy of a forest and a logistic regression at telling positive decks from negative ones."""
     x = np.vstack([positive, negative])
     y = np.concatenate([np.ones(len(positive)), np.zeros(len(negative))])
-    folds = StratifiedKFold(n_splits=args.folds, shuffle=True, random_state=0)
+    folds = StratifiedKFold(n_splits=args.folds, shuffle=True, random_state=args.seed)
     forest = RandomForestClassifier(
-        n_estimators=args.trees, min_samples_leaf=args.leaf, max_features="sqrt", n_jobs=args.jobs, random_state=0
+        n_estimators=args.trees, min_samples_leaf=args.leaf, max_features="sqrt", n_jobs=args.jobs, random_state=args.seed
     )
     logistic = make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000))
 
@@ -83,6 +84,13 @@ def compare(name, positive, negative, header, args):
     forest.fit(x, y)
     ranked = sorted(zip(header, forest.feature_importances_), key=lambda pair: -pair[1])
     result["top_features"] = [[feature, round(float(weight), 4)] for feature, weight in ranked[:8]]
+
+    # The logistic model's weights on standardized features: the size says how much a feature moves the guess, and the
+    # sign says which way (positive leans toward the routine's decks).
+    logistic.fit(x, y)
+    weights = logistic[-1].coef_[0]
+    ranked = sorted(zip(header, weights), key=lambda pair: -abs(pair[1]))
+    result["logistic_weights"] = [[feature, round(float(weight), 4)] for feature, weight in ranked[:8]]
     return result
 
 
@@ -92,6 +100,7 @@ def report(result):
     print(f"  random forest        {forest['accuracy']:.2f}%  (95% {forest['interval'][0]:.2f}–{forest['interval'][1]:.2f})  {forest['seconds']}s")
     print(f"  logistic regression  {logistic['accuracy']:.2f}%  (95% {logistic['interval'][0]:.2f}–{logistic['interval'][1]:.2f})  {logistic['seconds']}s")
     print("  forest's top features: " + ", ".join(f"{name} {weight}" for name, weight in result["top_features"]))
+    print("  logistic's largest weights: " + ", ".join(f"{name} {weight:+}" for name, weight in result["logistic_weights"]))
     sys.stdout.flush()
 
 
