@@ -2,7 +2,7 @@
 import { getBase, type Base } from './calibrate.ts'
 import { classifierAccuracy, deckFeatures, randomFeatures } from './classifier.ts'
 import { startDeck, type CardTypes, type DeckKind } from './decks.ts'
-import { METRICS, addGaps, gapBins, gapChiSquare, type MetricKey } from './metrics.ts'
+import { AREAS, METRICS, addGaps, gapBins, gapChiSquare, type MetricKey } from './metrics.ts'
 import { OPS, type Deck, type OpKey } from './moves.ts'
 import { compositeScore, passWith, type Averages } from './scoring.ts'
 
@@ -111,6 +111,8 @@ export function computeResult(
 export interface Scored {
   /** diagnostics passed at the final step */
   passCount: number
+  /** areas (of the four) whose tests all pass at the final step */
+  areasClear: number
   /** composite score 0–1 */
   score: number
   /** names of diagnostics still failing */
@@ -119,8 +121,10 @@ export interface Scored {
 
 export function scoreResult(result: MethodResult): Scored {
   const failing = METRICS.filter((metric) => !passWith(metric, result.avg[metric.key][result.moveCount], result.base))
+  const clear = AREAS.filter(([area]) => !failing.some((metric) => metric.area === area)).length
   return {
     passCount: METRICS.length - failing.length,
+    areasClear: clear,
     score: compositeScore(result.avg, result.base),
     fails: failing.map((metric) => metric.title),
   }

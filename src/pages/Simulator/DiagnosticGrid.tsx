@@ -1,4 +1,4 @@
-import { GROUPS, METRICS, type Metric, type MetricKey } from '../../engine/metrics'
+import { AREA_LABELS, METRICS, type Metric, type MetricKey } from '../../engine/metrics'
 import { displayValue, fmtDisplay, passWith } from '../../engine/scoring'
 import { useElementWidth } from '../../hooks/useElementWidth'
 import MetricChart from './MetricChart'
@@ -11,15 +11,15 @@ interface Props {
   step: number | null
 }
 
-/** The seventeen small charts, grouped; click one to see it large. */
+/** The seventeen small charts, grouped by area; click one to see it large. */
 export default function DiagnosticGrid({ series, selected, onSelect, step }: Props) {
   return (
     <div className="charts">
-      {GROUPS.map(([group, label]) => {
-        const groupMetrics = METRICS.filter((metric) => metric.group === group)
+      {AREA_LABELS.map(([area, label]) => {
+        const groupMetrics = METRICS.filter((metric) => metric.area === area)
         if (!groupMetrics.length) return null
         return [
-          <div key={group} className="cgrouph">
+          <div key={area} className="cgrouph">
             {label}
           </div>,
           ...groupMetrics.map((metric) => (

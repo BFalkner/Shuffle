@@ -96,16 +96,26 @@ runs that aren't re-run in the browser. That data lives in
 `npm run search` reproduces the numbers behind the home page
 recommendations and footnote. It scores every routine up to a cost limit
 from a played deck, then reruns the leaders from all four starting decks.
-It ranks routines by degree, not by pass counts. A test's degree is how far
-its result sits from a random deck's average, as a fraction of the way to
-its pass line: 0 is random, 1 is the pass line, and above 1 fails. Each run
-takes the degree of its worst test, and a routine is ranked by its weakest
-starting deck. For each finalist and starting deck, the search prints the
-worst-test degree as a mean and standard deviation, the two tests closest
-to failing, the pass count with a 95% interval, and how often each test
-failed. A reference row measures perfectly shuffled decks the same way.
-Its worst-test degree is about 0.45, not 0, and that is the floor to
-compare the finalists against.
+Most tests catch a corner case of one of four things, so the search judges
+routines by area: order, proximity, position and grouping. An area fails
+when any of its tests fails, so several failures in one area count once.
+Distinguishability, the catch-all classifier, is reported alongside.
+
+A test's degree is how far its result sits from a random deck's average,
+as a fraction of the way to its pass line: 0 is random, 1 is the pass line,
+and above 1 fails. An area reads its worst test's degree. Areas with more
+tests read higher even on a random deck, so the search subtracts what a
+perfect shuffle reads in each area (`src/engine/areaReference.ts`, made by
+`npm run calibrate`). That excess is about 0 for a perfect shuffle.
+
+Each test also records which failures a player would notice at the table,
+such as spells coming back in order or lands clumping. The search ranks by
+the worst noticeable excess first, then by the worst excess over all areas,
+on the routine's weakest starting deck. For each finalist and deck it
+prints both tiers: runs with nothing noticeable, runs with all four areas
+clear, the excess as a mean and standard deviation, which areas failed,
+and which tests were behind them. A reference row measures perfectly
+shuffled decks the same way.
 To change the limits, pass options after `--`, for example
 `npm run search -- --max-cost 6 --from sorted`. Add `--json results.json`
 to save the full statistics for every test. To test specific routines

@@ -4,9 +4,10 @@ import { describe, expect, test } from 'vitest'
 import { getBase } from './calibrate.ts'
 import { posOf, sortedDeck } from './decks.ts'
 import { EXAMPLES, SEED } from './experiments.ts'
-import { METRICS, metricByKey } from './metrics.ts'
+import { AREA_LABELS, METRICS, metricByKey } from './metrics.ts'
 import { OPS, OP_COST, isOpKey, type OpKey } from './moves.ts'
-import { noticeableDegree, passWith, testDegree } from './scoring.ts'
+import { areaReadings, noticeableDegree, passWith, testDegree } from './scoring.ts'
+import { computeResult } from './simulate.ts'
 import { TRACK_COLORS, emptySlots, toggleTracked } from './tracking.ts'
 
 function runSeq(seq: OpKey[], deckSize: number) {
@@ -148,6 +149,17 @@ describe('metric & calibration structure', () => {
         const noticed = noticeableDegree(metric, value, base)
         expect(noticed, metric.key).toBeLessThanOrEqual(testDegree(metric, value, base))
         if (!metric.noticeable || (metric.noticeable === 'high' && value < baseline.mean)) expect(noticed, metric.key).toBe(0)
+      }
+    }
+  })
+
+  test('an area reads above 1 exactly when one of its tests fails', () => {
+    for (const seq of [['mash', 'mash', 'mash'], ['overhand', 'overhand'], ['mash', 'mash', 'mash', 'mash', 'mash', 'mash', 'mash', 'mash']] as OpKey[][]) {
+      const result = computeResult('played', 52, seq, 'ends')
+      const readings = areaReadings(result.avg, result.base, result.moveCount, 52)
+      for (const [area] of AREA_LABELS) {
+        const anyFails = METRICS.filter((metric) => metric.area === area).some((metric) => !passWith(metric, result.avg[metric.key][result.moveCount], result.base))
+        expect(readings[area].degree > 1, `${seq.join(' ')}: ${area}`).toBe(anyFails)
       }
     }
   })

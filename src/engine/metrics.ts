@@ -240,7 +240,12 @@ export type MetricKey =
   | 'spacing'
   | 'clump'
 
-export type MetricGroup = 'spells' | 'order' | 'structure' | 'holistic' | 'composition'
+/**
+ * What a test looks at. Most tests catch a corner case of one of four things, so a routine is judged by area: an area
+ * fails when any of its tests fails, and failing several tests in one area counts once. Distinguishability ('holistic')
+ * is the catch-all classifier and is reported alongside the four areas rather than as one of them.
+ */
+export type Area = 'order' | 'proximity' | 'position' | 'grouping' | 'holistic'
 
 /**
  * How a metric passes:
@@ -255,7 +260,7 @@ export type WriteupRoute = '/order-tests' | '/global-tests' | '/mana-tests' | '/
 
 export interface Metric {
   key: MetricKey
-  group: MetricGroup
+  area: Area
   title: string
   /** core metrics count double in the composite score */
   core: boolean
@@ -281,99 +286,102 @@ const FULL = 'Full write-up'
 
 export const METRICS: Metric[] = [
   {
-    key: 'sordering', group: 'spells', core: false, raw: true, unit: 'runs', side: 'two', title: 'Spell ordering', measure: mSpellOrdering, noticeable: 'both',
+    key: 'sordering', area: 'order', core: false, raw: true, unit: 'runs', side: 'two', title: 'Spell ordering', measure: mSpellOrdering, noticeable: 'both',
     desc: 'Ordering for the spells alone, ignoring lands. A player notices spells coming back in the same order; lands are interchangeable. Too many runs means reversed order, which is as noticeable as too few.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    key: 'sproximity', group: 'spells', core: false, raw: true, unit: 'pairs', side: 'low', title: 'Spell proximity', measure: mSpellProximity, noticeable: 'high',
+    key: 'sproximity', area: 'proximity', core: false, raw: true, unit: 'pairs', side: 'low', title: 'Spell proximity', measure: mSpellProximity, noticeable: 'high',
     desc: 'Pairs of spells that were next to each other and are still within three places. Only too many fails: spells arriving together again is what a player sees.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    key: 'schain', group: 'spells', core: false, raw: true, unit: 'cards', side: 'low', title: 'Spell chain', measure: mSpellChain, noticeable: 'high',
+    key: 'schain', area: 'order', core: false, raw: true, unit: 'cards', side: 'low', title: 'Spell chain', measure: mSpellChain, noticeable: 'high',
     desc: 'The longest run of spells still in their old order, ignoring lands. A run of the same spells in a row is the most noticeable leftover of all.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    key: 'topspell', group: 'spells', core: false, raw: true, unit: 'rate', side: 'two', title: 'Top spell retention', measure: mTopSpell, noticeable: 'high',
+    key: 'topspell', area: 'position', core: false, raw: true, unit: 'rate', side: 'two', title: 'Top spell retention', measure: mTopSpell, noticeable: 'high',
     desc: 'How often the spell that started highest is still in the top seven places, the opening hand, over many shuffles. A random deck: 7 in 99. The bottom card is in end retention.',
     writeup: { to: '/sticky-ends', label: 'The sticky-ends write-up' },
   },
   {
-    key: 'ordering', group: 'order', core: true, raw: false, unit: '%', side: 'two', title: 'Ordering', measure: mOrdering,
+    key: 'ordering', area: 'order', core: true, raw: false, unit: '%', side: 'two', title: 'Ordering', measure: mOrdering,
     desc: 'Counts the rising runs the deck breaks into: one when sorted, about 50 when random. Built for the mash, which leaves long runs for several passes. Too many runs is leftover order too, so the test is two-sided.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    key: 'proximity', group: 'order', core: true, raw: false, unit: '%', side: 'band', title: 'Proximity', measure: mProximity,
+    key: 'proximity', area: 'proximity', core: true, raw: false, unit: '%', side: 'band', title: 'Proximity', measure: mProximity,
     desc: 'Counts pairs of cards that started side by side and are still within three places. Built for the overhand, which keeps neighbours together. Too few also fails: a pile deal or an early mash spreads neighbours <i>too</i> evenly.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    key: 'drift', group: 'order', core: false, raw: true, unit: 'avg', side: 'band', title: 'Global proximity', measure: mDrift,
+    key: 'drift', area: 'proximity', core: false, raw: true, unit: 'avg', side: 'band', title: 'Global proximity', measure: mDrift,
     desc: 'For each pair of cards now side by side, how far apart they started. Proximity as a distance rather than a count. An overhand-only routine fails it low, because its packets never separate the pairs inside them.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    key: 'gaps', group: 'order', core: false, raw: true, unit: 'χ²', side: 'low', title: 'Neighbour gaps', measure: null,
+    key: 'gaps', area: 'proximity', core: false, raw: true, unit: 'χ²', side: 'low', title: 'Neighbour gaps', measure: null,
     desc: 'How far apart cards that started side by side now sit, at every distance, compared with a random deck. Seven mashes from a sorted deck leave too many pairs touching and too few two to eight apart.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    key: 'position', group: 'structure', core: true, raw: false, unit: '%', side: 'low', title: 'Position', measure: null, noticeable: 'high',
+    key: 'position', area: 'position', core: true, raw: false, unit: '%', side: 'low', title: 'Position', measure: null, noticeable: 'high',
     desc: 'Whether cards keep landing in the same places across many shuffles, using a chi-square over every card and position. Built for the pile deal, which puts every card in a fixed place.',
     writeup: { to: '/global-tests', label: FULL },
   },
   {
-    key: 'endret', group: 'structure', core: false, raw: true, unit: 'cards', side: 'two', title: 'End retention', measure: mEndRetention,
+    key: 'endret', area: 'position', core: false, raw: true, unit: 'cards', side: 'two', title: 'End retention', measure: mEndRetention,
     desc: 'Whether the original top card and bottom card are still within three places of their end: 0.08 when random. Built for the mash, which barely moves the ends. Two-sided, and judged on the average over many shuffles.',
     writeup: { to: '/sticky-ends', label: 'The sticky-ends write-up' },
   },
   {
-    key: 'corr', group: 'order', core: true, raw: true, unit: 'r', side: 'two', title: 'Neighbour correlation', measure: mCorr,
+    key: 'corr', area: 'proximity', core: true, raw: true, unit: 'r', side: 'two', title: 'Neighbour correlation', measure: mCorr,
     desc: 'Correlation between each card and the next: +1 sorted, −1 reversed, 0 random. A second reading of what proximity measures. It has never caught anything on its own.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    key: 'classifier', group: 'holistic', core: false, raw: true, unit: '% detect', side: 'low', title: 'Distinguishability', measure: null,
+    key: 'classifier', area: 'holistic', core: false, raw: true, unit: '% detect', side: 'low', title: 'Distinguishability', measure: null,
     desc: 'A classifier trained during each run to tell these decks from truly random ones. 50% is a coin flip. The catch-all for patterns no named test looks for. Readings under about 54% are luck.',
     writeup: { to: '/global-tests', label: FULL },
   },
   {
-    key: 'chain', group: 'order', core: false, raw: true, unit: 'cards', side: 'low', title: 'Longest chain', measure: mChain,
+    key: 'chain', area: 'order', core: false, raw: true, unit: 'cards', side: 'low', title: 'Longest chain', measure: mChain,
     desc: 'The longest run of consecutive cards still in order anywhere in the deck. Random decks show four or five. The mash leaves longer runs for its first few passes.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    key: 'strided', group: 'structure', core: false, raw: true, unit: 'cards', side: 'low', title: 'Strided chain', measure: mStrided,
+    key: 'strided', area: 'position', core: false, raw: true, unit: 'cards', side: 'low', title: 'Strided chain', measure: mStrided,
     desc: 'The longest run of cards evenly spaced in the old order and still in sequence. Built for the pile deal’s every-sixth-card pattern, but ordering and proximity already catch that pile, so it confirms rather than catches.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    key: 'gradient', group: 'order', core: false, raw: true, unit: 'density', side: 'low', title: 'Local order', measure: mGradient,
+    key: 'gradient', area: 'order', core: false, raw: true, unit: 'density', side: 'low', title: 'Local order', measure: mGradient,
     desc: 'How often three or more consecutive cards still sit together in order. Near zero when random. Built for the overhand, which keeps short runs intact inside its packets.',
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    key: 'spacing', group: 'structure', core: false, raw: false, unit: '%', side: 'two', title: 'Land spacing', measure: mSpacing, noticeable: 'high',
+    key: 'spacing', area: 'grouping', core: false, raw: false, unit: '%', side: 'two', title: 'Land spacing', measure: mSpacing, noticeable: 'high',
     desc: 'How much the gaps between lands vary. Built for mana weaving: lands spaced <i>too</i> evenly read low, and clumped lands read high. It clears within a mash or two.',
     writeup: { to: '/mana-tests', label: FULL },
   },
   {
-    key: 'clump', group: 'composition', core: false, noCap: true, raw: true, unit: 'dev', side: 'band', title: 'Clump rate', measure: mClump,
+    key: 'clump', area: 'grouping', core: false, noCap: true, raw: true, unit: 'dev', side: 'band', title: 'Clump rate', measure: mClump,
     desc: 'How far each run of ten cards strays from the expected mix of card types, averaged over many shuffles. Catches the weaving and clumps that land spacing lets through. Too little clumping fails too.',
     writeup: { to: '/mana-tests', label: FULL },
   },
 ]
 
-export const GROUPS: [MetricGroup, string][] = [
-  ['spells', 'Spell order'],
-  ['order', 'Residual order'],
-  ['structure', 'Placement structure'],
-  ['holistic', 'Holistic'],
-  ['composition', 'Composition'],
+/** The four areas a routine is judged on, in display order, with their labels. */
+export const AREAS: [Exclude<Area, 'holistic'>, string][] = [
+  ['order', 'Order'],
+  ['proximity', 'Proximity'],
+  ['position', 'Position'],
+  ['grouping', 'Grouping'],
 ]
+
+/** Every area including the catch-all, for display. */
+export const AREA_LABELS: [Area, string][] = [...AREAS, ['holistic', 'Distinguishability']]
 
 export function metricByKey(key: MetricKey): Metric {
   return METRICS.find((metric) => metric.key === key)!

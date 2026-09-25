@@ -1,5 +1,6 @@
 // Recommendation search: score every routine up to a cost limit, then rerun the leaders from every starting deck.
-// This reproduces the numbers behind the home page recommendations and footnote.
+// This reproduces the numbers behind the home page recommendations and footnote. Routines are judged by area (order,
+// proximity, position, grouping), and on failures a player would notice before the rest; see readRun.
 //
 // Usage: npm run search -- [--max-cost 7] [--from played] [--size 99] [--leaders 32] [--leader-runs 5] [--finalists 6] [--final-runs 200] [--decks played] [--json file]
 //        npm run search -- --routine "M×4·P·M×4" [--routine M×8 ...] [--final-runs 200]   (skip the search, test these)
@@ -9,9 +10,9 @@
 import { writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { DECK_KINDS, fisher, type DeckKind } from '../src/engine/decks.ts'
-import { METRICS, type MetricKey } from '../src/engine/metrics.ts'
+import { AREAS } from '../src/engine/metrics.ts'
 import { OPS, OP_COST, compressSeq, type OpKey } from '../src/engine/moves.ts'
-import { noticeableDegree, testDegree } from '../src/engine/scoring.ts'
+import { areaReadings } from '../src/engine/scoring.ts'
 import { computeResult, scoreResult, type MethodResult } from '../src/engine/simulate.ts'
 
 const { values } = parseArgs({
@@ -91,81 +92,94 @@ function wilson(clean: number, runs: number): [number, number] {
   return [Math.max(0, centre - half) * 100, Math.min(1, centre + half) * 100]
 }
 
+type Readings = ReturnType<typeof areaReadings>
+
 /**
- * Each test's degree at the last step (0 random, 1 on the pass line, above 1 failing), the worst of them, and the worst
- * noticeable degree: only failures a player would see at the table (see Metric.noticeable).
+ * One run's reading. Routines are judged by area, so failing several tests in one area counts once. `worst` is the
+ * largest excess over a perfect shuffle among the four areas (0 is as random as a perfect shuffle, and the pass line
+ * is about 1 above that); `worstNoticed` is the same for failures a player would notice. Distinguishability is the
+ * catch-all and is reported alongside, not ranked.
  */
-function degrees(result: MethodResult) {
-  const valueOf = (key: MetricKey) => result.avg[key][result.moveCount]
-  const perTest = METRICS.map((metric) => ({
-    title: metric.title,
-    degree: testDegree(metric, valueOf(metric.key), result.base),
-    noticed: noticeableDegree(metric, valueOf(metric.key), result.base),
-  }))
-  const worst = perTest.reduce((a, b) => (b.degree > a.degree ? b : a))
-  const worstNoticed = perTest.reduce((a, b) => (b.noticed > a.noticed ? b : a))
-  return { perTest, worst, worstNoticed }
+function readRun(result: MethodResult) {
+  const readings: Readings = areaReadings(result.avg, result.base, result.moveCount, deckSize)
+  const scoredAreas = AREAS.map(([area]) => area)
+  return {
+    readings,
+    worst: Math.max(...scoredAreas.map((area) => readings[area].excess)),
+    worstNoticed: Math.max(...scoredAreas.map((area) => readings[area].noticedExcess)),
+    failed: AREAS.filter(([area]) => readings[area].degree > 1).map(([, label]) => label),
+    noticedFailed: AREAS.filter(([area]) => readings[area].noticed > 1).map(([, label]) => label),
+    catchAllFailed: readings.holistic.degree > 1,
+  }
 }
 
 interface DeckStats {
-  /** runs that cleared every test */
-  clean: number
-  /** runs with no noticeable failure */
-  noticedClean: number
   runs: number
-  /** runs that failed each test, by test title */
-  fails: Record<string, number>
-  /** runs with a noticeable failure on each test, by test title */
-  noticedFails: Record<string, number>
-  /** the worst test's degree in each run */
+  /** runs where all four areas cleared */
+  clean: number
+  /** runs with no noticeable failure in any area */
+  noticedClean: number
+  /** runs where distinguishability, the catch-all, failed */
+  catchAllFails: number
+  /** runs where each area failed, and failed noticeably, by area label */
+  areaFails: Record<string, number>
+  noticedAreaFails: Record<string, number>
+  /** runs where each test failed, by test title */
+  testFails: Record<string, number>
+  /** the worst area excess in each run, overall and noticeable */
   worst: number[]
-  /** the worst noticeable degree in each run */
   worstNoticed: number[]
-  /** how often each test was the worst one, by test title */
-  worstTest: Record<string, number>
-  /** each test's degree in each run, by test title */
-  degree: Record<string, number[]>
+  /** each area's excess in each run, by area label */
+  areaExcess: Record<string, number[]>
 }
 
 type Apply = Parameters<typeof computeResult>[4]
 
-/** Run a routine `runs` times from `kind` and collect pass counts, failing tests and degrees. */
+const count = (counts: Record<string, number>, key: string) => (counts[key] = (counts[key] ?? 0) + 1)
+
+/** Run a routine `runs` times from `kind` and collect area pass counts, failures and excess readings. */
 function deckStats(seq: OpKey[], kind: DeckKind, runs: number, apply?: Apply): DeckStats {
-  const stats: DeckStats = { clean: 0, noticedClean: 0, runs, fails: {}, noticedFails: {}, worst: [], worstNoticed: [], worstTest: {}, degree: {} }
-  METRICS.forEach((metric) => (stats.degree[metric.title] = []))
+  const stats: DeckStats = {
+    runs,
+    clean: 0,
+    noticedClean: 0,
+    catchAllFails: 0,
+    areaFails: {},
+    noticedAreaFails: {},
+    testFails: {},
+    worst: [],
+    worstNoticed: [],
+    areaExcess: Object.fromEntries(AREAS.map(([, label]) => [label, [] as number[]])),
+  }
   for (let run = 0; run < runs; run++) {
     const result = computeResult(kind, deckSize, seq, 'ends', apply)
-    const scored = scoreResult(result)
-    if (scored.fails.length === 0) stats.clean++
-    scored.fails.forEach((title) => (stats.fails[title] = (stats.fails[title] ?? 0) + 1))
-    const { perTest, worst, worstNoticed } = degrees(result)
-    perTest.forEach(({ title, degree, noticed }) => {
-      stats.degree[title].push(degree)
-      if (noticed > 1) stats.noticedFails[title] = (stats.noticedFails[title] ?? 0) + 1
-    })
-    if (worstNoticed.noticed <= 1) stats.noticedClean++
-    stats.worst.push(worst.degree)
-    stats.worstNoticed.push(worstNoticed.noticed)
-    stats.worstTest[worst.title] = (stats.worstTest[worst.title] ?? 0) + 1
+    const { readings, worst, worstNoticed, failed, noticedFailed, catchAllFailed } = readRun(result)
+    if (!failed.length) stats.clean++
+    if (!noticedFailed.length) stats.noticedClean++
+    if (catchAllFailed) stats.catchAllFails++
+    failed.forEach((label) => count(stats.areaFails, label))
+    noticedFailed.forEach((label) => count(stats.noticedAreaFails, label))
+    scoreResult(result).fails.forEach((title) => count(stats.testFails, title))
+    stats.worst.push(worst)
+    stats.worstNoticed.push(worstNoticed)
+    AREAS.forEach(([area, label]) => stats.areaExcess[label].push(readings[area].excess))
   }
   return stats
 }
 
 /**
- * A routine's results from every starting deck. It is judged by its weakest deck on noticeable failures first: the
- * deck whose worst noticeable degree is highest on average. The same on every test breaks ties, then pass counts.
+ * A routine's results from every starting deck, judged by its weakest deck: noticeable failures first (the deck whose
+ * worst noticeable excess is highest on average), then all areas, then pass counts.
  */
 function routineStats(seq: OpKey[], runs: number, apply?: Apply) {
   const perDeck = kinds.map((kind) => deckStats(seq, kind, runs, apply))
-  const total = perDeck.reduce((sum, stats) => sum + stats.clean, 0)
-  const noticedTotal = perDeck.reduce((sum, stats) => sum + stats.noticedClean, 0)
   return {
     seq,
     perDeck,
     weakestNoticed: Math.max(...perDeck.map((stats) => mean(stats.worstNoticed))),
     weakest: Math.max(...perDeck.map((stats) => mean(stats.worst))),
-    noticedTotal,
-    total,
+    noticedTotal: perDeck.reduce((sum, stats) => sum + stats.noticedClean, 0),
+    total: perDeck.reduce((sum, stats) => sum + stats.clean, 0),
   }
 }
 
@@ -176,39 +190,29 @@ const byWeakestDeck = (a: Ranked, b: Ranked) =>
 const tally = (counts: Record<string, number>) =>
   Object.entries(counts)
     .sort((a, b) => b[1] - a[1])
-    .map(([title, count]) => `${title} ${count}`)
+    .map(([title, n]) => `${title} ${n}`)
     .join(', ')
 
+const signed = (x: number) => `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(2)}`
+
 /**
- * The detail lines for one starting deck. The first line is the noticeable tier: runs with no noticeable failure, the
- * worst noticeable degree, and which tests failed noticeably. The second is every test: the same, plus the two tests
- * closest to failing.
+ * The detail lines for one starting deck: the noticeable tier, all four areas, then each area's average excess with
+ * the tests behind any failures.
  */
 function deckLine(kind: DeckKind, stats: DeckStats): string {
   const passed = (clean: number) => {
     const [low, high] = wilson(clean, stats.runs)
     return `${`${clean}/${stats.runs}`.padStart(7)}  (${Math.round(low)}–${Math.round(high)}%)`
   }
-  const closest = Object.entries(stats.degree)
-    .map(([title, xs]) => ({ title, avg: mean(xs) }))
-    .sort((a, b) => b.avg - a.avg)
-    .slice(0, 2)
-    .map(({ title, avg }) => `${title} ${avg.toFixed(2)}`)
-    .join(', ')
-  const noticedFails = tally(stats.noticedFails)
-  const fails = tally(stats.fails)
+  const spread = (xs: number[]) => `excess ${signed(mean(xs))} ± ${sd(xs).toFixed(2)}`
+  const noticedFails = tally(stats.noticedAreaFails)
+  const areaFails = tally(stats.areaFails)
+  const byArea = AREAS.map(([, label]) => `${label} ${signed(mean(stats.areaExcess[label]))}`).join('  ')
+  const tests = tally(stats.testFails)
   return [
-    [
-      `    ${kind.padEnd(7)} noticeable ${passed(stats.noticedClean)}`.padEnd(44),
-      `degree ${mean(stats.worstNoticed).toFixed(2)} ± ${sd(stats.worstNoticed).toFixed(2)}`.padEnd(22),
-      noticedFails ? `fails: ${noticedFails}` : '',
-    ].join(''),
-    [
-      `            all tests  ${passed(stats.clean)}`.padEnd(44),
-      `degree ${mean(stats.worst).toFixed(2)} ± ${sd(stats.worst).toFixed(2)}`.padEnd(22),
-      `closest: ${closest}`.padEnd(52),
-      fails ? `fails: ${fails}` : '',
-    ].join(''),
+    `    ${kind.padEnd(7)} noticeable  ${passed(stats.noticedClean)}`.padEnd(45) + spread(stats.worstNoticed).padEnd(24) + (noticedFails ? `area fails: ${noticedFails}` : ''),
+    `            all areas   ${passed(stats.clean)}`.padEnd(45) + spread(stats.worst).padEnd(24) + (areaFails ? `area fails: ${areaFails}` : ''),
+    `            by area     ${byArea}   catch-all fails ${stats.catchAllFails}` + (tests ? `   tests failed: ${tests}` : ''),
   ].join('\n')
 }
 
@@ -219,32 +223,31 @@ const clearProgress = () => process.stdout.write('\r' + ' '.repeat(40) + '\r')
 
 /** Stages 1 and 2: score every routine from one deck, then rerun the leaders from every deck. Returns stage 2, ranked. */
 function search(): Ranked[] {
-  // Stage 1: one run of every routine from the chosen deck, ranked by its worst noticeable degree, then its worst degree.
+  // Stage 1: one run of every routine from the chosen deck, ranked by its worst noticeable excess, then its worst excess.
   const routines = allRoutines()
   console.log(`Stage 1: ${routines.length} routines costing up to ${maxCost} units, one run each from the ${from} deck (${deckSize} cards).`)
   const scored = routines.map((seq, index) => {
     if (index % 500 === 0) progress(index, routines.length)
-    const { worst, worstNoticed } = degrees(computeResult(from, deckSize, seq, 'ends'))
-    return { seq, worst: worst.degree, noticed: worstNoticed.noticed }
+    const { worst, worstNoticed, failed, noticedFailed } = readRun(computeResult(from, deckSize, seq, 'ends'))
+    return { seq, worst, noticed: worstNoticed, clean: !failed.length, noticedClean: !noticedFailed.length }
   })
   scored.sort((a, b) => a.noticed - b.noticed || a.worst - b.worst || costOf(a.seq) - costOf(b.seq))
   clearProgress()
-  const noticedClean = scored.filter((entry) => entry.noticed <= 1).length
-  const allClean = scored.filter((entry) => entry.worst <= 1).length
-  console.log(`  done in ${elapsed()}. In their one run, ${noticedClean} routines had no noticeable failure and ${allClean} cleared every test.`)
+  const noticedClean = scored.filter((entry) => entry.noticedClean).length
+  const allClean = scored.filter((entry) => entry.clean).length
+  console.log(`  done in ${elapsed()}. In their one run, ${noticedClean} routines had no noticeable failure and ${allClean} cleared all four areas.`)
 
   // Stage 2: rerun the leaders from every starting deck.
   const leaders = scored.slice(0, leaderCount)
   console.log(`\nStage 2: the top ${leaders.length}, ${leaderRuns} runs ${fromDecks}, ranked by the weakest deck.`)
-  console.log(`  Each deck shows the worst noticeable degree (mean ± SD) and the worst degree over all tests.`)
+  console.log(`  Each deck shows the worst noticeable excess and the worst area excess (means), then runs with all four areas clear.`)
   const stage2 = leaders.map(({ seq }, index) => {
     progress(index, leaders.length)
     return routineStats(seq, leaderRuns)
   })
   stage2.sort(byWeakestDeck)
   clearProgress()
-  const deckBrief = (stats: DeckStats) =>
-    `${mean(stats.worstNoticed).toFixed(2)}±${sd(stats.worstNoticed).toFixed(2)} / ${mean(stats.worst).toFixed(2)}±${sd(stats.worst).toFixed(2)}`
+  const deckBrief = (stats: DeckStats) => `${signed(mean(stats.worstNoticed))} / ${signed(mean(stats.worst))} ${stats.clean}/${stats.runs}`
   const shown = stage2.slice(0, Math.max(finalistCount, 30))
   for (const { seq, perDeck } of shown) console.log(`  ${label(seq).padEnd(30)} ${kinds.map((kind, i) => `${kind} ${deckBrief(perDeck[i])}`.padEnd(30)).join('')}`)
   if (stage2.length > shown.length) console.log(`  … and ${stage2.length - shown.length} more.`)
@@ -252,7 +255,7 @@ function search(): Ranked[] {
   return stage2
 }
 
-// With --routines, skip the search and run stage 3 on the named routines.
+// With --routine, skip the search and run stage 3 on the named routines.
 const stage2 = named ? [] : search()
 const finalists = named ?? stage2.slice(0, finalistCount).map(({ seq }) => seq)
 console.log(`${named ? '' : '\n'}Stage 3: ${named ? 'the named routines' : `the top ${finalists.length}`}, ${finalRuns} runs ${fromDecks}, ranked by the weakest deck.`)
@@ -261,17 +264,18 @@ const stage3 = finalists.map((seq, index) => {
   return routineStats(seq, finalRuns)
 })
 stage3.sort(byWeakestDeck)
-// Reference: one perfect shuffle, measured the same way. A random deck's worst test isn't 0, because it's the largest
-// of many noisy readings, so this shows the floor the finalists are compared against.
+// Reference: a perfect shuffle, measured the same way. Its excess is about 0 by construction; its pass counts show how
+// often a truly random deck trips a test by chance.
 const reference = routineStats(['mash'], finalRuns, (deck) => fisher(deck.length))
 clearProgress()
-console.log(`  A test's degree is how far it sits from a random deck's average, as a fraction of the way to its pass line:`)
-console.log(`  0 is random, 1 is the pass line, and above 1 fails. "degree" is the worst degree in each run, mean ± SD.`)
-console.log(`  "noticeable" counts only failures a player would see at the table; "all tests" counts every test.`)
-console.log(`  A high mean with a small SD is reliably a little off. A lower mean with a large SD is usually fine but`)
-console.log(`  sometimes far off. "closest" lists the two tests with the highest average degree. Pass counts have a 95% interval.\n`)
+console.log(`  Routines are judged on four areas: order, proximity, position and grouping. An area fails when any of its tests`)
+console.log(`  fails, so several failures in one area count once. "excess" is how far the worst area reads above a perfect`)
+console.log(`  shuffle, on the degree scale where the pass line is 1: about 0 is as random as a perfect shuffle. "noticeable"`)
+console.log(`  counts only failures a player would see at the table. Distinguishability, the catch-all, is reported alongside.`)
+console.log(`  A high mean with a small SD is reliably a little off; a lower mean with a large SD is usually fine but sometimes`)
+console.log(`  far off. Pass counts have a 95% interval.\n`)
 const heading = ({ weakestNoticed, weakest, noticedTotal, total }: Ranked) =>
-  `weakest deck: noticeable ${weakestNoticed.toFixed(2)}, all tests ${weakest.toFixed(2)}; passed ${noticedTotal} and ${total} of ${finalRuns * kinds.length}`
+  `weakest deck excess: noticeable ${signed(weakestNoticed)}, all areas ${signed(weakest)}; ${noticedTotal} and ${total} of ${finalRuns * kinds.length} runs clear`
 console.log(`  Perfect shuffle (reference: a truly random deck)  ${heading(reference)}`)
 kinds.forEach((kind, i) => console.log(deckLine(kind, reference.perDeck[i])))
 for (const ranked of stage3) {
@@ -295,17 +299,18 @@ if (values.json) {
         return [
           kind,
           {
+            runs: stats.runs,
             clean: stats.clean,
             noticedClean: stats.noticedClean,
-            runs: stats.runs,
             interval: wilson(stats.clean, stats.runs),
             noticedInterval: wilson(stats.noticedClean, stats.runs),
-            fails: stats.fails,
-            noticedFails: stats.noticedFails,
+            catchAllFails: stats.catchAllFails,
+            areaFails: stats.areaFails,
+            noticedAreaFails: stats.noticedAreaFails,
+            testFails: stats.testFails,
             worst: spread(stats.worst),
             worstNoticed: spread(stats.worstNoticed),
-            worstTest: stats.worstTest,
-            degree: Object.fromEntries(Object.entries(stats.degree).map(([title, xs]) => [title, spread(xs)])),
+            areaExcess: Object.fromEntries(Object.entries(stats.areaExcess).map(([area, xs]) => [area, spread(xs)])),
           },
         ]
       }),

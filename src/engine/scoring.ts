@@ -1,6 +1,7 @@
 // Pass/fail rules, progress-toward-random, the composite score, and display formatting.
 import type { Base, Baseline } from './calibrate.ts'
-import { METRICS, type Metric, type MetricKey } from './metrics.ts'
+import { AREAS, METRICS, type Area, type Metric, type MetricKey } from './metrics.ts'
+import { AREA_REFERENCE } from './areaReference.ts'
 
 /** Per-metric averages at every step: avg[key][step]. */
 export type Averages = Record<MetricKey, number[]>
@@ -37,6 +38,55 @@ export function noticeableDegree(metric: Metric, value: number, base: Base): num
   return testDegree(metric, value, base)
 }
 
+export interface AreaReading {
+  /** worst test degree in the area: above 1 means the area fails */
+  degree: number
+  /** worst noticeable degree in the area: above 1 means a noticeable failure */
+  noticed: number
+  /**
+   * degree and noticed minus what a perfect shuffle reads in this area on average: 0 is as random as a perfect shuffle.
+   * Subtracting, not dividing, keeps the pass-line scale; a perfect shuffle's readings are near 0 in some areas.
+   */
+  excess: number
+  noticedExcess: number
+  /** the test behind degree, and behind noticed */
+  worstTest: string
+  noticedTest: string
+}
+
+/**
+ * Each area's reading at one step. An area's degree is its worst test's degree, so failing several tests in one area
+ * counts once. Areas with more tests read higher even on a random deck, because the worst of more noisy readings is
+ * higher; the excess figures subtract a perfect shuffle's average (areaReference.ts) so areas compare fairly.
+ */
+export function areaReadings(avg: Averages, base: Base, step: number, deckSize: number): Record<Area, AreaReading> {
+  const reference = AREA_REFERENCE[deckSize]
+  const readings = {} as Record<Area, AreaReading>
+  for (const area of [...AREAS.map(([key]) => key), 'holistic'] as Area[]) {
+    let degree = 0
+    let noticed = 0
+    let worstTest = ''
+    let noticedTest = ''
+    for (const metric of METRICS.filter((candidate) => candidate.area === area)) {
+      const value = avg[metric.key][step]
+      const testReading = testDegree(metric, value, base)
+      const noticedReading = noticeableDegree(metric, value, base)
+      if (testReading >= degree) [degree, worstTest] = [testReading, metric.title]
+      if (noticedReading >= noticed) [noticed, noticedTest] = [noticedReading, metric.title]
+    }
+    const scale = reference?.[area]
+    readings[area] = {
+      degree,
+      noticed,
+      excess: degree - (scale?.degree ?? 0),
+      noticedExcess: noticed - (scale?.noticed ?? 0),
+      worstTest,
+      noticedTest,
+    }
+  }
+  return readings
+}
+
 /** Physical floor for chart scaling: -1 for correlation, 0 otherwise. */
 export function minFloor(metric: Metric): number {
   return metric.key === 'corr' ? -1 : 0
@@ -67,18 +117,21 @@ export function metricProgress(metric: Metric, avg: Averages, base: Base): numbe
 }
 
 /**
- * Weighted mean of every metric's progress (core metrics count double),
- * capped at the lowest-scoring failing metric (except noCap metrics).
+ * Mean progress over the four areas, each area weighted equally no matter how many tests it has (inside an area, core
+ * metrics count double). Capped at the lowest-scoring failing metric, except noCap metrics.
  */
 export function compositeScore(avg: Averages, base: Base): number {
-  let totalWeight = 0
-  let weightedSum = 0
-  METRICS.forEach((metric) => {
-    const weight = metric.core ? 2 : 1
-    weightedSum += weight * metricProgress(metric, avg, base)
-    totalWeight += weight
+  const areaProgress = AREAS.map(([area]) => {
+    let totalWeight = 0
+    let weightedSum = 0
+    METRICS.filter((metric) => metric.area === area).forEach((metric) => {
+      const weight = metric.core ? 2 : 1
+      weightedSum += weight * metricProgress(metric, avg, base)
+      totalWeight += weight
+    })
+    return weightedSum / totalWeight
   })
-  const average = weightedSum / totalWeight
+  const average = areaProgress.reduce((a, b) => a + b, 0) / areaProgress.length
   let cap = 1
   METRICS.forEach((metric) => {
     if (metric.noCap) return

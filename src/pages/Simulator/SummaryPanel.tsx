@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import RichText from '../../components/RichText'
-import { METRICS, metricByKey, type MetricKey } from '../../engine/metrics'
+import { AREAS, METRICS, metricByKey, type MetricKey } from '../../engine/metrics'
 import { compositeScore, displayValue, fmt, fmtDisplay, metricProgress, passWith, worstMetric } from '../../engine/scoring'
 import { useElementWidth } from '../../hooks/useElementWidth'
 import MetricChart from './MetricChart'
@@ -44,21 +44,28 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
   )
 
   if (!selected) {
-    const passes = METRICS.filter((metric) => passWith(metric, avg[metric.key][moveCount], base)).length
+    const failing = METRICS.filter((metric) => !passWith(metric, avg[metric.key][moveCount], base))
     const score = Math.round(compositeScore(avg, base) * 100)
     const worst = worstMetric(avg, base)
-    const fails = METRICS.filter((metric) => !passWith(metric, avg[metric.key][moveCount], base)).map((metric) => metric.title)
-    const verdict = fails.length
-      ? `Still short on: ${fails.join(', ')}.`
-      : 'This sequence randomizes the deck: every diagnostic reaches random.'
+    // Judge by area: several failing tests in one area are one weakness.
+    const areaFails = AREAS.map(([area, label]) => ({ label, tests: failing.filter((metric) => metric.area === area).map((metric) => metric.title) })).filter(
+      (entry) => entry.tests.length,
+    )
+    const areasClear = AREAS.length - areaFails.length
+    const catchAll = failing.some((metric) => metric.area === 'holistic')
+    const verdict = areaFails.length
+      ? `Still short on: ${areaFails.map((entry) => `${entry.label} (${entry.tests.join(', ')})`).join('; ')}.${catchAll ? ' Distinguishability also flags it.' : ''}`
+      : catchAll
+        ? 'Every area is clear, but distinguishability still tells these decks from random ones.'
+        : 'This sequence randomizes the deck: every area reaches random.'
     return (
       <div className="bigchart">
         <div className="bctitle">
           <span>How random is the deck?</span>
         </div>
-        <div className={`bcval ${passes === METRICS.length ? 'pass' : 'fail'}`}>{score}% randomized</div>
+        <div className={`bcval ${failing.length === 0 ? 'pass' : 'fail'}`}>{score}% randomized</div>
         <div className="bcsub">
-          {passes} / {METRICS.length} diagnostics cleared · limited by {worst.metric.title} ({Math.round(worst.progress * 100)}%). {verdict}
+          {areasClear} / {AREAS.length} areas clear · limited by {worst.metric.title} ({Math.round(worst.progress * 100)}%). {verdict}
           {' '}Click any diagnostic below for detail, or compare methods further down.
         </div>
         {legend}

@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState, type ReactNode } from 'react'
 import type { Experiment } from '../../engine/experiments'
-import { METRICS } from '../../engine/metrics'
+import { AREAS } from '../../engine/metrics'
 import { PencilIcon, PulseIcon } from './icons'
 import type { ScoredResult } from './types'
 
@@ -50,7 +50,7 @@ export default function MethodList({ experiments, results, pending, colors, open
                 {experiment.title}
               </span>
               <span className="cmpscore">
-                <b>{Math.round(result.score * 100)}%</b> · {result.passCount}/{METRICS.length}
+                <b>{Math.round(result.score * 100)}%</b> · {result.areasClear}/{AREAS.length} areas
               </span>
               <span
                 className={`expov${color ? ' on' : ''}`}
