@@ -1,9 +1,9 @@
 import { useState, type CSSProperties } from 'react'
 import { LAND, posOf, type CardTypes } from '../engine/decks'
 import type { Deck } from '../engine/moves'
-import { TRACK_COLORS } from '../engine/tracking'
 import { useElementWidth } from '../hooks/useElementWidth'
 import { LAND_COLOR, OTHER_COLOR, colorFor } from './deckColors'
+import { TRACK_COLORS } from './tracking'
 import './MiniDeck.css'
 
 const GAP = 2

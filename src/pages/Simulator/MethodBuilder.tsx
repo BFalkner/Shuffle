@@ -5,7 +5,7 @@ import { posOf } from '../../engine/decks'
 import type { Experiment } from './experiments'
 import { OPS, type Deck, type OpKey } from '../../engine/moves'
 import { OP_TOKEN, compressSeq } from '../../engine/routines'
-import { toggleTracked, trackingSummary, type TrackSlots } from '../../engine/tracking'
+import { toggleTracked, trackingSummary, type TrackSlots } from '../../components/tracking'
 
 interface Props {
   /** the method being edited, or null for a new one */

@@ -5,7 +5,7 @@ import { DECK_KINDS, DECK_SIZES, startDeck, type DeckKind } from '../../engine/d
 import { defaultExperiments, loadExperiments, saveExperiments, uid, type Experiment } from './experiments'
 import type { MetricKey } from '../../engine/metrics'
 import type { OpKey } from '../../engine/moves'
-import { emptySlots, type TrackSlots } from '../../engine/tracking'
+import { emptySlots, type TrackSlots } from '../../components/tracking'
 import { useAnimationSetting } from '../../hooks/useAnimationSetting'
 import { useTitle } from '../../hooks/useTitle'
 import DiagnosticGrid from './DiagnosticGrid'

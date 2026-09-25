@@ -5,7 +5,7 @@ import { posOf } from '../../engine/decks'
 import type { Experiment } from './experiments'
 import { runStates, type Deck } from '../../engine/moves'
 import { OP_COST, OP_NAME, OP_TOKEN } from '../../engine/routines'
-import { liveTracked, toggleTracked, trackingSummary, type TrackSlots } from '../../engine/tracking'
+import { liveTracked, toggleTracked, trackingSummary, type TrackSlots } from '../../components/tracking'
 import type { ScoredResult } from './types'
 
 interface Props {

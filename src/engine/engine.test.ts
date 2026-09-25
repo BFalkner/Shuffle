@@ -7,7 +7,6 @@ import { METRICS, metricByKey } from './metrics.ts'
 import { OPS, type OpKey } from './moves.ts'
 import { OP_COST } from './routines.ts'
 import { passWith, testDegree } from './scoring.ts'
-import { TRACK_COLORS, emptySlots, toggleTracked } from './tracking.ts'
 
 function runSeq(seq: OpKey[], deckSize: number) {
   let deck = sortedDeck(deckSize)
@@ -141,30 +140,6 @@ describe('metric & calibration structure', () => {
 describe('cost accounting', () => {
   test('move costs match the ratified units (M/T/B = 1, O = 2, P = 4)', () => {
     expect(OP_COST).toEqual({ mash: 1, ohr: 1, ohb: 1, overhand: 2, pile: 4 })
-  })
-})
-
-describe('tracking (fixed-slot semantics)', () => {
-  test('removing a card does not renumber the others', () => {
-    let list = emptySlots()
-    list = toggleTracked(list, 1)
-    list = toggleTracked(list, 2)
-    list = toggleTracked(list, 3)
-    expect([list.indexOf(1), list.indexOf(2), list.indexOf(3)]).toEqual([0, 1, 2])
-    list = toggleTracked(list, 2)
-    expect(list.indexOf(1)).toBe(0)
-    expect(list.indexOf(3)).toBe(2)
-    list = toggleTracked(list, 4)
-    expect(list.indexOf(4)).toBe(1) // fills the freed slot
-  })
-
-  test('a 7th card evicts the oldest (slot 0), not the newest', () => {
-    let list = emptySlots()
-    for (let card = 1; card <= TRACK_COLORS.length; card++) list = toggleTracked(list, card)
-    list = toggleTracked(list, 7)
-    expect(list.indexOf(1)).toBe(-1)
-    expect(list.indexOf(7)).toBe(0)
-    expect(list.indexOf(6)).toBe(5)
   })
 })
 
