@@ -1,9 +1,10 @@
-// Run a shuffle method many times and average every diagnostic at every step.
+// Measurement: run a routine many times and read every test at every step. Dealing the decks lives in runs.ts.
 import { getBase, type Base } from './calibrate.ts'
-import { startDeck, type CardTypes, type DeckKind } from './decks.ts'
+import type { DeckKind } from './decks.ts'
 import { METRICS } from './metrics.ts'
 import type { Batch } from './metrics/types.ts'
-import { OPS, type Deck, type OpKey } from './moves.ts'
+import type { OpKey } from './moves.ts'
+import { applyMove, dealRuns, type Apply } from './runs.ts'
 import { compositeScore, passWith, type Averages } from './scoring.ts'
 
 /** Decks per run: as many as the metric that reads the most. Each metric reads the first `trials` of them. */
@@ -29,7 +30,7 @@ export function computeResult(
   deckSize: number,
   seq: OpKey[],
   steps: 'all' | 'ends' = 'all',
-  apply: (deck: Deck, op: OpKey) => Deck = (deck, op) => OPS[op](deck),
+  apply: Apply = applyMove,
 ): MethodResult {
   const moveCount = seq.length
   const measured = (step: number) => steps === 'all' || step === 0 || step === moveCount
@@ -39,23 +40,19 @@ export function computeResult(
     Array.from({ length: moveCount + 1 }, (_, step) => (measured(step) ? metric.batch(deckSize) : null)),
   )
 
-  let trial = 0
-  const rec = (step: number, deck: number[], types: CardTypes) => {
-    METRICS.forEach((metric, index) => {
-      if (trial < metric.trials) batches[index][step]!.add(deck, types)
-    })
-  }
-
-  for (trial = 0; trial < T_TOTAL; trial++) {
-    const start = startDeck(kind, deckSize)
-    const types = start.types
-    let deck = start.deck
-    rec(0, deck, types)
-    for (let step = 0; step < moveCount; step++) {
-      deck = apply(deck, seq[step])
-      if (measured(step + 1)) rec(step + 1, deck, types)
-    }
-  }
+  dealRuns(
+    kind,
+    deckSize,
+    seq,
+    T_TOTAL,
+    (trial, step, deck, types) => {
+      METRICS.forEach((metric, index) => {
+        if (trial < metric.trials) batches[index][step]!.add(deck, types)
+      })
+    },
+    measured,
+    apply,
+  )
 
   // Values in metric order, then step order. Only the classifier draws random numbers here, and it keeps the order it
   // always had: its random decks first, then one train/test split per step.
