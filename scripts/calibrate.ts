@@ -7,19 +7,10 @@ import { writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { calibrate } from '../src/engine/calibrate.ts'
 import { DECK_SIZES } from '../src/engine/decks.ts'
+import { seed } from '../src/engine/seeded.ts'
 
 const { values } = parseArgs({ options: { decks: { type: 'string', default: '1000000' } } })
 const deckCount = Number(values.decks)
-
-/** A seeded stand-in for Math.random (mulberry32), so the stored baselines can be regenerated exactly. */
-function seed(state: number) {
-  Math.random = () => {
-    state = (state + 0x6d2b79f5) | 0
-    let value = Math.imul(state ^ (state >>> 15), 1 | state)
-    value = (value + Math.imul(value ^ (value >>> 7), 61 | value)) ^ value
-    return ((value ^ (value >>> 14)) >>> 0) / 4294967296
-  }
-}
 
 const baselines: Record<number, ReturnType<typeof calibrate>> = {}
 for (const { value: deckSize } of DECK_SIZES) {
