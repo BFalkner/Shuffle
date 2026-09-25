@@ -3,8 +3,11 @@ import { METRICS, type Metric } from '../../engine/metrics'
 import { displayValue, fmt } from '../../engine/scoring'
 import type { Series } from './types'
 
-// Trial counts behind each metric's average, for its standard error.
-const TRIALS: Partial<Record<Metric['key'], number>> = { endret: 400, position: 1, classifier: 1 }
+/**
+ * Decks behind a metric's value, for its standard error. An averaged metric's baseline spread is per deck, so its average
+ * over `trials` decks is that much steadier. A metric read across the whole batch already has the batch's spread.
+ */
+const trialsBehind = (metric: Metric) => (metric.measure ? metric.trials : 1)
 
 /**
  * Side-by-side table of overlaid methods. A method "leads" on a diagnostic
@@ -16,7 +19,7 @@ export default function HeadToHead({ series }: { series: Series[] }) {
 
   const rows = METRICS.map((metric) => {
     const baseline = series[0].base[metric.key]
-    const trials = TRIALS[metric.key] ?? 200
+    const trials = trialsBehind(metric)
     const seDiff = (Math.SQRT2 * (baseline.standardDeviation || 1)) / Math.sqrt(trials)
     const distances = series.map((entry) => ({ entry, value: entry.avg[metric.key][entry.moveCount], distance: Math.abs(entry.avg[metric.key][entry.moveCount] - baseline.mean) }))
     const sorted = distances.slice().sort((x, y) => x.distance - y.distance)
