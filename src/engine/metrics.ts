@@ -1,6 +1,5 @@
-// The thirteen randomness diagnostics. Each lives in its own file in metrics/, with its measure and how it is read.
-// Each per-deck metric takes the deck, its size and the card types and returns one number; neighbour gaps, position
-// and classifier are computed across a whole batch of trials instead (measure: null). This file lists them in order.
+// The thirteen randomness diagnostics, in display order. Each lives in its own file in metrics/, which says what it
+// measures, how many decks it reads, how the engine reads them and how its pass line is calibrated.
 import type { Metric, MetricGroup, MetricKey } from './metrics/types.ts'
 import { ordering } from './metrics/ordering.ts'
 import { proximity } from './metrics/proximity.ts'
@@ -17,17 +16,6 @@ import { landSpacing } from './metrics/landSpacing.ts'
 import { clumpRate } from './metrics/clumpRate.ts'
 
 export type { Metric, MetricGroup, MetricKey, Side } from './metrics/types.ts'
-export { mOrdering } from './metrics/ordering.ts'
-export { mProximity } from './metrics/proximity.ts'
-export { mDrift } from './metrics/globalProximity.ts'
-export { addGaps, gapBins, gapChiSquare, type GapBins } from './metrics/neighbourGaps.ts'
-export { mEndRetention } from './metrics/endRetention.ts'
-export { mCorr } from './metrics/correlation.ts'
-export { mChain } from './metrics/longestChain.ts'
-export { mStrided } from './metrics/stridedChain.ts'
-export { mGradient } from './metrics/localOrder.ts'
-export { mSpacing } from './metrics/landSpacing.ts'
-export { mClump } from './metrics/clumpRate.ts'
 
 export const METRICS: Metric[] = [
   ordering,
