@@ -79,10 +79,6 @@ export interface StartingDeck {
   byType: boolean
 }
 
-/** Card colours for a deck shown by type, matching the starting-deck strips on the home page. */
-export const LAND_COLOR = '#2e7d4f'
-export const OTHER_COLOR = '#e9dfc8'
-
 /**
  * The deck a routine starts from. The sorted and played decks keep types grouped by number. The woven and clumped
  * decks are random apart from where the lands sit: their card order and types are drawn fresh each time.
@@ -137,10 +133,4 @@ function clumpedLandSlots(deckSize: number, landCount: number): boolean[] {
     }
   }
   return slots
-}
-
-/** Card colour by original position: dark green (top) to pale (bottom). */
-export function colorFor(id: number, deckSize: number): string {
-  const depth = id / (deckSize - 1)
-  return `hsl(${(150 + (depth - 0.5) * 30).toFixed(0)},42%,${(30 + depth * 48).toFixed(0)}%)`
 }

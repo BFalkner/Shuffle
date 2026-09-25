@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import { DECK_KINDS, DECK_SIZES, LAND_COLOR, OTHER_COLOR, colorFor, startDeck, type DeckKind } from '../../engine/decks'
+import { LAND_COLOR, OTHER_COLOR, colorFor } from '../../components/deckColors'
+import { DECK_KINDS, DECK_SIZES, startDeck, type DeckKind } from '../../engine/decks'
 import { defaultExperiments, loadExperiments, saveExperiments, uid, type Experiment } from '../../engine/experiments'
 import type { MetricKey } from '../../engine/metrics'
 import type { OpKey } from '../../engine/moves'
