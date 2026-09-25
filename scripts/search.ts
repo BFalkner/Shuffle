@@ -10,7 +10,7 @@ import { writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { DECK_KINDS, fisher, type DeckKind } from '../src/engine/decks.ts'
 import { METRICS } from '../src/engine/metrics.ts'
-import { OPS, OP_COST, compressSeq, type OpKey } from '../src/engine/moves.ts'
+import { OPS, OP_COST, compressSeq, parseRoutine, type OpKey } from '../src/engine/moves.ts'
 import { testDegree } from '../src/engine/scoring.ts'
 import { computeResult, scoreResult, type MethodResult } from '../src/engine/simulate.ts'
 
@@ -45,19 +45,6 @@ const moves = Object.keys(OPS) as OpKey[]
 const costOf = (seq: OpKey[]) => seq.reduce((total, op) => total + OP_COST[op], 0)
 const label = (seq: OpKey[]) => `${compressSeq(seq)} (${costOf(seq)}u)`
 
-const TOKEN_OP: Record<string, OpKey> = { m: 'mash', oh: 'overhand', p: 'pile', oht: 'ohr', ohb: 'ohb' }
-
-/** Parse a routine written like the search prints it: "M×4·P·M×4". Also accepts spaces or commas, and x or * for ×. */
-function parseRoutine(text: string): OpKey[] {
-  return text
-    .split(/[·\s,]+/)
-    .filter(Boolean)
-    .flatMap((token) => {
-      const match = /^(oht|ohb|oh|m|p)(?:[×x*](\d+))?$/i.exec(token)
-      if (!match) throw new Error(`Unknown move "${token}" in "${text}". Use M, OH, P, OHt or OHb, with ×n to repeat.`)
-      return Array<OpKey>(Number(match[2] ?? 1)).fill(TOKEN_OP[match[1].toLowerCase()])
-    })
-}
 const named = values.routine?.map(parseRoutine)
 
 /** Every sequence of moves whose total cost is at most maxCost. */

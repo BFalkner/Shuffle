@@ -115,6 +115,18 @@ starting decks, the sorted deck usually decides the ranking. To judge a
 routine for one situation, limit the decks: a between-games search is
 `npm run search -- --from played --decks played`. The defaults
 match the footnote. The options are listed at the top of `scripts/search.ts`.
+
+`scripts/forest.py` asks whether a random forest can tell a routine's decks
+from truly random ones. It needs Python with scikit-learn and numpy
+(`pip install -r scripts/requirements.txt`). For each routine,
+`scripts/forest-features.ts` shuffles decks from sorted with the engine and
+writes 44 features per deck: the order tests, old-neighbour distances, land
+spacing and clumps, and where tracked cards ended up. The forest's accuracy
+comes from 5-fold cross-validation, next to a random-against-random control
+and a logistic regression on the same features. Run it with
+`python scripts/forest.py --routine "M×12" --routine "M×5·P·M×5"`. Results
+go to `logs/forest/results.json`.
+
 The other precomputed data (the chart series, the move demos and the
 sticky-ends sweeps) came from ad hoc runs that weren't saved as scripts.
 
