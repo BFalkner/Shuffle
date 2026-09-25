@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState, type ReactNode } from 'react'
-import type { Experiment } from '../../engine/experiments'
+import type { Experiment } from './experiments'
 import { METRICS } from '../../engine/metrics'
 import { PencilIcon, PulseIcon } from './icons'
 import type { ScoredResult } from './types'

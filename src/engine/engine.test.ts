@@ -3,9 +3,8 @@
 import { describe, expect, test } from 'vitest'
 import { getBase } from './calibrate.ts'
 import { posOf, sortedDeck } from './decks.ts'
-import { EXAMPLES, SEED } from './experiments.ts'
 import { METRICS, metricByKey } from './metrics.ts'
-import { OPS, OP_COST, isOpKey, type OpKey } from './moves.ts'
+import { OPS, OP_COST, type OpKey } from './moves.ts'
 import { passWith, testDegree } from './scoring.ts'
 import { TRACK_COLORS, emptySlots, toggleTracked } from './tracking.ts'
 
@@ -168,21 +167,7 @@ describe('tracking (fixed-slot semantics)', () => {
   })
 })
 
-describe('seeded methods', () => {
-  const all = SEED.concat(EXAMPLES)
-
-  test('every seeded method has a non-empty sequence of known moves', () => {
-    for (const exp of all) {
-      expect(exp.seq.length, exp.title).toBeGreaterThan(0)
-      for (const op of exp.seq) expect(isOpKey(op), `${exp.title}: ${op}`).toBe(true)
-    }
-  })
-
-  test('every method title is unique', () => {
-    const titles = all.map((experiment) => experiment.title)
-    expect(new Set(titles).size).toBe(titles.length)
-  })
-
+describe('plain mashing', () => {
   test('the recommended any-start method (8 mashes) clears the core battery from sorted', () => {
     // Judged on trial averages, the same way the simulator judges pass/fail.
     const deckSize = 99

@@ -2,7 +2,7 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import MiniDeck from '../../components/MiniDeck'
 import type { CardTypes } from '../../engine/decks'
 import { posOf } from '../../engine/decks'
-import type { Experiment } from '../../engine/experiments'
+import type { Experiment } from './experiments'
 import { OPS, OP_TOKEN, compressSeq, type Deck, type OpKey } from '../../engine/moves'
 import { toggleTracked, trackingSummary, type TrackSlots } from '../../engine/tracking'
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DeckKind } from '../../engine/decks'
-import type { Experiment } from '../../engine/experiments'
+import type { Experiment } from './experiments'
 import { computeResult, scoreResult } from '../../engine/simulate'
 import type { ScoredResult } from './types'
 
