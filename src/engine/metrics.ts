@@ -209,11 +209,14 @@ export function mCorr(deck: Deck, deckSize: number): number {
 }
 
 /** Original end cards still within three of their end. */
-export function mEndRetention(deck: Deck, deckSize: number): number {
+/** Whether the cards that started on top and on the bottom are still within four places of their end (0, 1 or 2). */
+export function mEndRetention(deck: Deck, deckSize: number, _types: CardTypes, start: Deck): number {
+  const top = start[0]
+  const bottom = start[deckSize - 1]
   let count = 0
   for (let depth = 0; depth <= 3; depth++) {
-    if (deck[depth] === 0) count++
-    if (deck[deckSize - 1 - depth] === deckSize - 1) count++
+    if (deck[depth] === top) count++
+    if (deck[deckSize - 1 - depth] === bottom) count++
   }
   return count
 }

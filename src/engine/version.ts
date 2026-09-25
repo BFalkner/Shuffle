@@ -11,6 +11,7 @@
  * 5  a thirteenth test, neighbour gaps, compares how far apart old neighbours sit with a random deck's spread
  * 6  four spell-only tests (ordering, proximity, chain, top spell retention), and tests marked by which failures a
  *    player would notice
+ * 7  end retention tracks the starting deck's top and bottom cards, not card 0 and the last card by number
  */
-export const ENGINE_VERSION = 6
-export const ENGINE_FINGERPRINT = '913424da'
+export const ENGINE_VERSION = 7
+export const ENGINE_FINGERPRINT = 'b7148180'
