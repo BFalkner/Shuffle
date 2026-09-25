@@ -9,6 +9,8 @@ import { compositeScore, passWith, type Averages } from './scoring.ts'
 // Trial counts: per-deck metrics, end retention, classifier features, and total runs (position χ²).
 const T_METRIC = 200
 const T_ENDRET = 400
+/** Tests read as a rate over T_ENDRET trials rather than a per-deck average. */
+const RATE_KEYS: MetricKey[] = ['endret', 'topspell']
 const T_CLASSIFIER = 1000
 const T_TOTAL = 1200
 
@@ -49,10 +51,10 @@ export function computeResult(
   for (let step = 0; step <= moveCount; step++) stepFeat.push([])
 
   let trial = 0
-  const rec = (step: number, deck: number[], types: CardTypes) => {
+  const rec = (step: number, deck: number[], types: CardTypes, start: number[]) => {
     METRICS.forEach((metric) => {
       if (!metric.measure) return
-      if (trial < (metric.key === 'endret' ? T_ENDRET : T_METRIC)) sums[metric.key][step] += metric.measure(deck, deckSize, types)
+      if (trial < (RATE_KEYS.includes(metric.key) ? T_ENDRET : T_METRIC)) sums[metric.key][step] += metric.measure(deck, deckSize, types, start)
     })
     if (trial < T_METRIC) addGaps(gapCount[step], deck)
     const slotCounts = posCount[step]
@@ -64,16 +66,16 @@ export function computeResult(
     const start = startDeck(kind, deckSize)
     const types = start.types
     let deck = start.deck
-    rec(0, deck, types)
+    rec(0, deck, types, start.deck)
     for (let step = 0; step < moveCount; step++) {
       deck = apply(deck, seq[step])
-      if (measured(step + 1)) rec(step + 1, deck, types)
+      if (measured(step + 1)) rec(step + 1, deck, types, start.deck)
     }
   }
 
   const avg = {} as Averages
   scalar.forEach((key) => {
-    const div = key === 'endret' ? T_ENDRET : T_METRIC
+    const div = RATE_KEYS.includes(key) ? T_ENDRET : T_METRIC
     avg[key] = []
     for (let step = 0; step <= moveCount; step++) avg[key].push(measured(step) ? sums[key][step] / div : NaN)
   })

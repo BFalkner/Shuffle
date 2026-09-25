@@ -6,7 +6,7 @@ import { posOf, sortedDeck } from './decks.ts'
 import { EXAMPLES, SEED } from './experiments.ts'
 import { METRICS, metricByKey } from './metrics.ts'
 import { OPS, OP_COST, isOpKey, type OpKey } from './moves.ts'
-import { passWith, testDegree } from './scoring.ts'
+import { noticeableDegree, passWith, testDegree } from './scoring.ts'
 import { TRACK_COLORS, emptySlots, toggleTracked } from './tracking.ts'
 
 function runSeq(seq: OpKey[], deckSize: number) {
@@ -78,14 +78,14 @@ describe('riffle model anchors', () => {
 
   test('random-deck ordering matches its anchor (mean ≈ 50)', () => {
     const measure = metricByKey('ordering').measure!
-    const vals = mixedDecks(800).map((deck) => measure(deck, 99, []))
+    const vals = mixedDecks(800).map((deck) => measure(deck, 99, [], []))
     const mean = vals.reduce((total, value) => total + value, 0) / vals.length
     expect(Math.abs(mean - 50)).toBeLessThanOrEqual(2.5)
   })
 
   test('random-deck proximity matches its anchor (mean ≈ 5.8–5.9)', () => {
     const measure = metricByKey('proximity').measure!
-    const vals = mixedDecks(800).map((deck) => measure(deck, 99, []))
+    const vals = mixedDecks(800).map((deck) => measure(deck, 99, [], []))
     const mean = vals.reduce((total, value) => total + value, 0) / vals.length
     expect(Math.abs(mean - 5.85)).toBeLessThanOrEqual(0.6)
   })
@@ -134,6 +134,20 @@ describe('metric & calibration structure', () => {
       for (let step = -40; step <= 40; step++) {
         const value = baseline.mean + (step / 10) * spread
         expect(testDegree(metric, value, base) <= 1, `${metric.key} at ${value}`).toBe(passWith(metric, value, base))
+      }
+    }
+  })
+
+  test('a noticeable degree never exceeds the test degree, and is 0 for statistical-only tests or the quiet side', () => {
+    const base = getBase(99)
+    for (const metric of METRICS) {
+      const baseline = base[metric.key]
+      const spread = Math.max(baseline.standardDeviation, Math.abs(baseline.threshold), 1e-6)
+      for (let step = -40; step <= 40; step++) {
+        const value = baseline.mean + (step / 10) * spread
+        const noticed = noticeableDegree(metric, value, base)
+        expect(noticed, metric.key).toBeLessThanOrEqual(testDegree(metric, value, base))
+        if (!metric.noticeable || (metric.noticeable === 'high' && value < baseline.mean)) expect(noticed, metric.key).toBe(0)
       }
     }
   })
@@ -200,7 +214,7 @@ describe('seeded methods', () => {
     const trials = 300
     for (let trial = 0; trial < trials; trial++) {
       const deck = runSeq(seq, deckSize)
-      for (const metric of core) sums[metric.key] = (sums[metric.key] ?? 0) + metric.measure!(deck, deckSize, [])
+      for (const metric of core) sums[metric.key] = (sums[metric.key] ?? 0) + metric.measure!(deck, deckSize, [], [])
     }
     for (const metric of core) {
       const avg = sums[metric.key] / trials

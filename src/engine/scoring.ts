@@ -27,6 +27,16 @@ export function testDegree(metric: Metric, value: number, base: Base): number {
   return Math.abs(offset) / baseline.threshold
 }
 
+/**
+ * The degree of a failure a player would notice: testDegree on the noticeable side only, 0 on the other side, and 0
+ * for statistical-only tests. A noticeable degree above 1 means the test fails in a way that shows up at the table.
+ */
+export function noticeableDegree(metric: Metric, value: number, base: Base): number {
+  if (!metric.noticeable) return 0
+  if (metric.noticeable === 'high' && value < base[metric.key].mean) return 0
+  return testDegree(metric, value, base)
+}
+
 /** Physical floor for chart scaling: -1 for correlation, 0 otherwise. */
 export function minFloor(metric: Metric): number {
   return metric.key === 'corr' ? -1 : 0

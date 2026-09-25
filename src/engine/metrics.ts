@@ -1,4 +1,4 @@
-// The thirteen randomness diagnostics. Each per-deck metric takes the deck, its
+// The seventeen randomness diagnostics. Each per-deck metric takes the deck, its
 // size and the card types and returns one number; neighbour gaps, position and
 // classifier are computed across a whole batch of trials instead (measure: null).
 import { LAND, catSizes, posOf, type CardTypes } from './decks.ts'
@@ -66,6 +66,55 @@ export function gapChiSquare(counts: Int32Array, deckCount: number, deckSize: nu
     chi += (counts[bin] - expectedCount) ** 2 / expectedCount
   }
   return chi
+}
+
+/** Spell cards (everything but lands) in old order: ascending card number. */
+function spellsInOrder(deckSize: number, types: CardTypes): number[] {
+  const spells: number[] = []
+  for (let card = 0; card < deckSize; card++) if (types[card] !== LAND) spells.push(card)
+  return spells
+}
+
+/** Rising runs among the spells alone, ignoring lands: ordering for the cards whose order a player notices. */
+export function mSpellOrdering(deck: Deck, deckSize: number, types: CardTypes): number {
+  const positions = posOf(deck)
+  const spells = spellsInOrder(deckSize, types)
+  let runs = 1
+  for (let i = 1; i < spells.length; i++) if (positions[spells[i]] < positions[spells[i - 1]]) runs++
+  return runs
+}
+
+/** Pairs of spells that were next to each other among the spells and are still within three places in the deck. */
+export function mSpellProximity(deck: Deck, deckSize: number, types: CardTypes): number {
+  const positions = posOf(deck)
+  const spells = spellsInOrder(deckSize, types)
+  let closePairs = 0
+  for (let i = 1; i < spells.length; i++) if (Math.abs(positions[spells[i]] - positions[spells[i - 1]]) <= 3) closePairs++
+  return closePairs
+}
+
+/** Longest chain among the spells alone: consecutive spells still in forward order. */
+export function mSpellChain(deck: Deck, deckSize: number, types: CardTypes): number {
+  const positions = posOf(deck)
+  const spells = spellsInOrder(deckSize, types)
+  let best = 1
+  let run = 1
+  for (let i = 1; i < spells.length; i++) {
+    run = positions[spells[i]] > positions[spells[i - 1]] ? run + 1 : 1
+    best = Math.max(best, run)
+  }
+  return best
+}
+
+/** Places a player sees at once: the opening hand. */
+export const OPENING_HAND = 7
+
+/** 1 when the spell that started highest in the deck is still in the opening hand's seven places, else 0. */
+export function mTopSpell(deck: Deck, _deckSize: number, types: CardTypes, start: Deck): number {
+  const topSpell = start.find((card) => types[card] !== LAND)
+  if (topSpell === undefined) return 0
+  for (let position = 0; position < OPENING_HAND; position++) if (deck[position] === topSpell) return 1
+  return 0
 }
 
 export function mDrift(deck: Deck): number {
@@ -173,6 +222,10 @@ export type MetricKey =
   | 'ordering'
   | 'proximity'
   | 'drift'
+  | 'sordering'
+  | 'sproximity'
+  | 'schain'
+  | 'topspell'
   | 'gaps'
   | 'position'
   | 'endret'
@@ -184,7 +237,7 @@ export type MetricKey =
   | 'spacing'
   | 'clump'
 
-export type MetricGroup = 'order' | 'structure' | 'holistic' | 'composition'
+export type MetricGroup = 'spells' | 'order' | 'structure' | 'holistic' | 'composition'
 
 /**
  * How a metric passes:
@@ -209,7 +262,13 @@ export interface Metric {
   side: Side
   /** excluded from the composite score cap */
   noCap?: boolean
-  measure: ((deck: Deck, deckSize: number, types: CardTypes) => number) | null
+  /** start is the deck before the routine; only top-spell retention uses it */
+  measure: ((deck: Deck, deckSize: number, types: CardTypes, start: Deck) => number) | null
+  /**
+   * Which failures a player would notice at the table: 'both' sides, only 'high' readings, or none (statistical only).
+   * Recommendations are judged on these; every test is still measured and reported.
+   */
+  noticeable?: 'both' | 'high'
   /** Short description. `<i>…</i>` marks italics; nothing else is markup. */
   desc: string
   writeup: { to: WriteupRoute; label: string }
@@ -218,6 +277,26 @@ export interface Metric {
 const FULL = 'Full write-up'
 
 export const METRICS: Metric[] = [
+  {
+    key: 'sordering', group: 'spells', core: false, raw: true, unit: 'runs', side: 'two', title: 'Spell ordering', measure: mSpellOrdering, noticeable: 'both',
+    desc: 'Ordering for the spells alone, ignoring lands. A player notices spells coming back in the same order; lands are interchangeable. Too many runs means reversed order, which is as noticeable as too few.',
+    writeup: { to: '/order-tests', label: FULL },
+  },
+  {
+    key: 'sproximity', group: 'spells', core: false, raw: true, unit: 'pairs', side: 'low', title: 'Spell proximity', measure: mSpellProximity, noticeable: 'high',
+    desc: 'Pairs of spells that were next to each other and are still within three places. Only too many fails: spells arriving together again is what a player sees.',
+    writeup: { to: '/order-tests', label: FULL },
+  },
+  {
+    key: 'schain', group: 'spells', core: false, raw: true, unit: 'cards', side: 'low', title: 'Spell chain', measure: mSpellChain, noticeable: 'high',
+    desc: 'The longest run of spells still in their old order, ignoring lands. A run of the same spells in a row is the most noticeable leftover of all.',
+    writeup: { to: '/order-tests', label: FULL },
+  },
+  {
+    key: 'topspell', group: 'spells', core: false, raw: true, unit: 'rate', side: 'two', title: 'Top spell retention', measure: mTopSpell, noticeable: 'high',
+    desc: 'How often the spell that started highest is still in the top seven places, the opening hand, over many shuffles. A random deck: 7 in 99. The bottom card is in end retention.',
+    writeup: { to: '/sticky-ends', label: 'The sticky-ends write-up' },
+  },
   {
     key: 'ordering', group: 'order', core: true, raw: false, unit: '%', side: 'two', title: 'Ordering', measure: mOrdering,
     desc: 'Counts the rising runs the deck breaks into: one when sorted, about 50 when random. Built for the mash, which leaves long runs for several passes. Too many runs is leftover order too, so the test is two-sided.',
@@ -239,7 +318,7 @@ export const METRICS: Metric[] = [
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    key: 'position', group: 'structure', core: true, raw: false, unit: '%', side: 'low', title: 'Position', measure: null,
+    key: 'position', group: 'structure', core: true, raw: false, unit: '%', side: 'low', title: 'Position', measure: null, noticeable: 'high',
     desc: 'Whether cards keep landing in the same places across many shuffles, using a chi-square over every card and position. Built for the pile deal, which puts every card in a fixed place.',
     writeup: { to: '/global-tests', label: FULL },
   },
@@ -274,7 +353,7 @@ export const METRICS: Metric[] = [
     writeup: { to: '/order-tests', label: FULL },
   },
   {
-    key: 'spacing', group: 'structure', core: false, raw: false, unit: '%', side: 'two', title: 'Land spacing', measure: mSpacing,
+    key: 'spacing', group: 'structure', core: false, raw: false, unit: '%', side: 'two', title: 'Land spacing', measure: mSpacing, noticeable: 'high',
     desc: 'How much the gaps between lands vary. Built for mana weaving: lands spaced <i>too</i> evenly read low, and clumped lands read high. It clears within a mash or two.',
     writeup: { to: '/mana-tests', label: FULL },
   },
@@ -286,6 +365,7 @@ export const METRICS: Metric[] = [
 ]
 
 export const GROUPS: [MetricGroup, string][] = [
+  ['spells', 'Spell order'],
   ['order', 'Residual order'],
   ['structure', 'Placement structure'],
   ['holistic', 'Holistic'],

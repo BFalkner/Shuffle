@@ -1,7 +1,7 @@
 // Random-deck baselines and pass thresholds for each metric.
 import { BASELINES } from './baselines.ts'
-import { fisher, numberedTypes } from './decks.ts'
-import { METRICS, addGaps, gapBins, gapChiSquare, type MetricKey } from './metrics.ts'
+import { fisher, numberedTypes, sortedDeck } from './decks.ts'
+import { METRICS, OPENING_HAND, addGaps, gapBins, gapChiSquare, type MetricKey } from './metrics.ts'
 
 export interface Baseline {
   mean: number
@@ -18,9 +18,11 @@ export type Base = Record<MetricKey, Baseline>
 /** Measure deckCount random decks of size deckSize and derive each metric's pass rule. */
 export function calibrate(deckSize: number, deckCount: number): Base {
   const types = numberedTypes(deckSize)
+  const start = sortedDeck(deckSize)
+  const rateKeys: MetricKey[] = ['position', 'endret', 'topspell']
   const totals: Partial<Record<MetricKey, { sum: number; sumOfSquares: number }>> = {}
   METRICS.forEach((metric) => {
-    if (metric.key !== 'position' && metric.key !== 'endret') totals[metric.key] = { sum: 0, sumOfSquares: 0 }
+    if (!rateKeys.includes(metric.key)) totals[metric.key] = { sum: 0, sumOfSquares: 0 }
   })
   // Neighbour gaps are judged on a batch of 200 decks, so calibrate on batches of 200 random decks.
   const gapBatch = 200
@@ -34,15 +36,15 @@ export function calibrate(deckSize: number, deckCount: number): Base {
       gapCounts = new Int32Array(gapCounts.length)
     }
     METRICS.forEach((metric) => {
-      if (!metric.measure || metric.key === 'endret') return
-      const value = metric.measure(deck, deckSize, types)
+      if (!metric.measure || rateKeys.includes(metric.key)) return
+      const value = metric.measure(deck, deckSize, types, start)
       totals[metric.key]!.sum += value
       totals[metric.key]!.sumOfSquares += value * value
     })
   }
   const base = {} as Base
   METRICS.forEach((metric) => {
-    if (metric.key === 'position' || metric.key === 'endret') return
+    if (rateKeys.includes(metric.key)) return
     const total = totals[metric.key]!
     const mean = total.sum / deckCount
     const standardDeviation = Math.sqrt(Math.max(0, total.sumOfSquares / deckCount - mean * mean))
@@ -74,6 +76,11 @@ export function calibrate(deckSize: number, deckCount: number): Base {
   const endRate = (2 * 4) / deckSize
   const endStandardDeviation = Math.sqrt(2 * (4 / deckSize) * (1 - 4 / deckSize))
   base.endret = { mean: endRate, standardDeviation: endStandardDeviation, threshold: (3 * endStandardDeviation) / Math.sqrt(400) }
+
+  // Top spell retention: one card in the opening hand, analytic, judged as a rate over 400 trials like end retention.
+  const topRate = OPENING_HAND / deckSize
+  const topStandardDeviation = Math.sqrt(topRate * (1 - topRate))
+  base.topspell = { mean: topRate, standardDeviation: topStandardDeviation, threshold: (3 * topStandardDeviation) / Math.sqrt(400) }
 
   // Neighbour gaps: the batch chi-square's own spread. With fewer than two batches, fall back to the chi-square
   // distribution's mean and spread for the bin count.

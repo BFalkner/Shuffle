@@ -5,6 +5,21 @@ export const CALIBRATION_DECKS = 1000000
 
 export const BASELINES: Record<number, Base> = {
   "52": {
+    "sordering": {
+      "mean": 15.999391,
+      "standardDeviation": 1.632092101910613,
+      "threshold": 4.896276305731838
+    },
+    "sproximity": {
+      "mean": 3.39455,
+      "standardDeviation": 1.7190114302994026,
+      "threshold": 8.551584290898209
+    },
+    "schain": {
+      "mean": 3.861926,
+      "standardDeviation": 0.7972023397632497,
+      "threshold": 6.253533019289749
+    },
     "ordering": {
       "mean": 26.49984,
       "standardDeviation": 2.1010678176584694,
@@ -71,6 +86,11 @@ export const BASELINES: Record<number, Base> = {
       "standardDeviation": 0.3768445758127966,
       "threshold": 0.05652668637191949
     },
+    "topspell": {
+      "mean": 0.1346153846153846,
+      "standardDeviation": 0.341312295178824,
+      "threshold": 0.051196844276823604
+    },
     "position": {
       "mean": 2601,
       "standardDeviation": 72.12489168102785,
@@ -78,6 +98,21 @@ export const BASELINES: Record<number, Base> = {
     }
   },
   "60": {
+    "sordering": {
+      "mean": 18.500521,
+      "standardDeviation": 1.7569785794252104,
+      "threshold": 5.270935738275631
+    },
+    "sproximity": {
+      "mean": 3.435161,
+      "standardDeviation": 1.747425507447743,
+      "threshold": 8.67743752234323
+    },
+    "schain": {
+      "mean": 3.958098,
+      "standardDeviation": 0.7988543186313763,
+      "threshold": 6.354660955894129
+    },
     "ordering": {
       "mean": 30.503382,
       "standardDeviation": 2.256142407312992,
@@ -144,6 +179,11 @@ export const BASELINES: Record<number, Base> = {
       "standardDeviation": 0.35276684147527876,
       "threshold": 0.052915026221291815
     },
+    "topspell": {
+      "mean": 0.11666666666666667,
+      "standardDeviation": 0.3210226714043037,
+      "threshold": 0.048153400710645555
+    },
     "position": {
       "mean": 3481,
       "standardDeviation": 83.43860018001261,
@@ -151,6 +191,21 @@ export const BASELINES: Record<number, Base> = {
     }
   },
   "99": {
+    "sordering": {
+      "mean": 29.99886,
+      "standardDeviation": 2.237144318187798,
+      "threshold": 6.711432954563394
+    },
+    "sproximity": {
+      "mean": 3.47911,
+      "standardDeviation": 1.7996509683546973,
+      "threshold": 8.878062905064091
+    },
+    "schain": {
+      "mean": 4.278702,
+      "standardDeviation": 0.783704788294673,
+      "threshold": 6.629816364884019
+    },
     "ordering": {
       "mean": 50.001833,
       "standardDeviation": 2.889031609399804,
@@ -216,6 +271,11 @@ export const BASELINES: Record<number, Base> = {
       "mean": 0.08080808080808081,
       "standardDeviation": 0.278465631355358,
       "threshold": 0.04176984470330371
+    },
+    "topspell": {
+      "mean": 0.0707070707070707,
+      "standardDeviation": 0.256334899807061,
+      "threshold": 0.03845023497105915
     },
     "position": {
       "mean": 9604,

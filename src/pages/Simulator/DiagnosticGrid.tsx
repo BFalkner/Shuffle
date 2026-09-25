@@ -11,7 +11,7 @@ interface Props {
   step: number | null
 }
 
-/** The thirteen small charts, grouped; click one to see it large. */
+/** The seventeen small charts, grouped; click one to see it large. */
 export default function DiagnosticGrid({ series, selected, onSelect, step }: Props) {
   return (
     <div className="charts">

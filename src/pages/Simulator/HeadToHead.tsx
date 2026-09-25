@@ -4,7 +4,7 @@ import { displayValue, fmt } from '../../engine/scoring'
 import type { Series } from './types'
 
 // Trial counts behind each metric's average, for its standard error.
-const TRIALS: Partial<Record<Metric['key'], number>> = { endret: 400, position: 1, classifier: 1 }
+const TRIALS: Partial<Record<Metric['key'], number>> = { endret: 400, topspell: 400, position: 1, classifier: 1 }
 
 /**
  * Side-by-side table of overlaid methods. A method "leads" on a diagnostic

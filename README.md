@@ -47,7 +47,7 @@ src/
   engine/                   the maths — plain TypeScript, no React
     moves.ts                the shuffle moves (mash, overhand, pile, …) and the riffle model
     decks.ts                starting decks, card types, colours
-    metrics.ts              the thirteen diagnostics and their descriptions
+    metrics.ts              the seventeen diagnostics and their descriptions
     calibrate.ts            random-deck baselines and pass thresholds
     classifier.ts           the Distinguishability classifier
     scoring.ts              pass/fail, % toward random, the composite score, formatting
