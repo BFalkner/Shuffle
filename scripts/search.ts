@@ -1,8 +1,11 @@
 // Recommendation search: score every routine up to a cost limit, then rerun the leaders from every starting deck.
 // This reproduces the numbers behind the home page recommendations and footnote.
 //
-// Usage: npm run search -- [--max-cost 7] [--from played] [--size 99] [--leaders 32] [--leader-runs 5] [--finalists 6] [--final-runs 200] [--json file]
+// Usage: npm run search -- [--max-cost 7] [--from played] [--size 99] [--leaders 32] [--leader-runs 5] [--finalists 6] [--final-runs 200] [--decks played] [--json file]
 //        npm run search -- --routine "M×4·P·M×4" [--routine M×8 ...] [--final-runs 200]   (skip the search, test these)
+//
+// --decks limits which starting decks are run and ranked (comma-separated). A routine is ranked by its weakest listed
+// deck, so with all four the sorted deck usually decides. For a between-games routine, use --from played --decks played.
 import { writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { DECK_KINDS, fisher, type DeckKind } from '../src/engine/decks.ts'
@@ -14,6 +17,7 @@ import { computeResult, scoreResult, type MethodResult } from '../src/engine/sim
 const { values } = parseArgs({
   options: {
     'max-cost': { type: 'string', default: '7' },
+    decks: { type: 'string' },
     from: { type: 'string', default: 'played' },
     size: { type: 'string', default: '99' },
     leaders: { type: 'string', default: '32' },
@@ -31,8 +35,11 @@ const leaderCount = Number(values.leaders)
 const leaderRuns = Number(values['leader-runs'])
 const finalistCount = Number(values.finalists)
 const finalRuns = Number(values['final-runs'])
-const kinds = DECK_KINDS.map((deckKind) => deckKind.value)
-if (!kinds.includes(from)) throw new Error(`--from must be one of: ${kinds.join(', ')}`)
+const allKinds = DECK_KINDS.map((deckKind) => deckKind.value)
+if (!allKinds.includes(from)) throw new Error(`--from must be one of: ${allKinds.join(', ')}`)
+const kinds = values.decks ? (values.decks.split(',').map((kind) => kind.trim()) as DeckKind[]) : allKinds
+for (const kind of kinds) if (!allKinds.includes(kind)) throw new Error(`--decks takes a comma-separated list of: ${allKinds.join(', ')}`)
+const fromDecks = kinds.length === allKinds.length ? 'from each starting deck' : `from the ${kinds.join(' and ')} deck${kinds.length > 1 ? 's' : ''}`
 
 const moves = Object.keys(OPS) as OpKey[]
 const costOf = (seq: OpKey[]) => seq.reduce((total, op) => total + OP_COST[op], 0)
@@ -181,7 +188,7 @@ function search(): Ranked[] {
 
   // Stage 2: rerun the leaders from every starting deck.
   const leaders = scored.slice(0, leaderCount)
-  console.log(`\nStage 2: the top ${leaders.length}, ${leaderRuns} runs from each starting deck, ranked by the weakest deck.`)
+  console.log(`\nStage 2: the top ${leaders.length}, ${leaderRuns} runs ${fromDecks}, ranked by the weakest deck.`)
   console.log(`  Each deck shows the worst test's degree (mean ± SD), then the runs that cleared every test.`)
   const stage2 = leaders.map(({ seq }, index) => {
     progress(index, leaders.length)
@@ -200,7 +207,7 @@ function search(): Ranked[] {
 // With --routines, skip the search and run stage 3 on the named routines.
 const stage2 = named ? [] : search()
 const finalists = named ?? stage2.slice(0, finalistCount).map(({ seq }) => seq)
-console.log(`${named ? '' : '\n'}Stage 3: ${named ? 'the named routines' : `the top ${finalists.length}`}, ${finalRuns} runs from each starting deck, ranked by the weakest deck.`)
+console.log(`${named ? '' : '\n'}Stage 3: ${named ? 'the named routines' : `the top ${finalists.length}`}, ${finalRuns} runs ${fromDecks}, ranked by the weakest deck.`)
 const stage3 = finalists.map((seq, index) => {
   progress(index, finalists.length)
   return routineStats(seq, finalRuns)
@@ -248,7 +255,7 @@ if (values.json) {
       }),
     ),
   })
-  const options = { maxCost, from, deckSize, leaderCount, leaderRuns, finalistCount, finalRuns }
+  const options = { maxCost, from, decks: kinds, deckSize, leaderCount, leaderRuns, finalistCount, finalRuns }
   writeFileSync(values.json, JSON.stringify({ options, seconds: (Date.now() - started) / 1000, reference: summarise(reference), stage2: stage2.map(summarise), stage3: stage3.map(summarise) }, null, 2))
   console.log(`Wrote ${values.json}.`)
 }
