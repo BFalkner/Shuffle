@@ -8,6 +8,7 @@
  * 2  the pile deal reverses each pile (2f968b5)
  * 3  the woven and clumped decks draw their card order and card types at random (ad939d2)
  * 4  pass lines come from a stored calibration of 1,000,000 seeded random decks (baselines.ts), not 400 decks per start (9774886)
+ * 5  a thirteenth test, neighbour gaps, compares how far apart old neighbours sit with a random deck's spread
  */
-export const ENGINE_VERSION = 4
-export const ENGINE_FINGERPRINT = '4f5de4aa'
+export const ENGINE_VERSION = 5
+export const ENGINE_FINGERPRINT = '3be32c94'

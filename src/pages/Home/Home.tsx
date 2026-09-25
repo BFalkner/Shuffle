@@ -82,15 +82,19 @@ const STEPS: Step[] = [
   {
     name: 'The mash, again',
     paragraphs: [
-      'The mash is the only move here whose leftovers shrink the more you repeat it. It has two more weak spots.',
+      'The mash is the only move here whose leftovers shrink the more you repeat it. It has three more weak spots.',
       <>
         The top and bottom few cards barely move. A card you saw on the bottom is often still near the bottom several mashes later.{' '}
-        <Link to="/sticky-ends">End retention</Link> catches this, and it is why a sorted deck needs an eighth mash.
+        <Link to="/sticky-ends">End retention</Link> catches this.
       </>,
       <>
         Early mashes also spread old neighbours out more evenly than chance would. A spread that even is as easy to detect as a clump.{' '}
         <Link to="/global-tests">Distinguishability</Link> found it first. That test trains a simple program to tell shuffled decks from random ones.
         Proximity now checks for it too.
+      </>,
+      <>
+        Even after seven mashes, old neighbours sit at the wrong distances: too often side by side, too rarely a few places apart.{' '}
+        <Link to="/order-tests">Neighbour gaps</Link> catches this, and it&rsquo;s the main reason a sorted deck needs an eighth mash.
       </>,
     ],
   },
@@ -261,9 +265,9 @@ export default function Home() {
       <p className="foot-note">
         We chose the recommendations by scoring every routine that costs up to 7 units, starting from a played deck. A mash and a half overhand cost 1
         unit each, a full overhand costs 2, and a pile costs 4. The pile&rsquo;s cost is a guess until we time it. We then ran the leaders 200 times from
-        each of the four starting decks. A run counts as a pass only when it clears every test. From a played deck, seven mashes passed 196 of 200 runs and
-        six passed 178. The best six-unit mixes, four mashes and two half overhands, passed about 180. From a sorted deck, eight mashes passed 188 of 200
-        and seven passed 125. Eight passed at least 199 from each of the other decks. The pile routine we used to recommend (4 mashes, pile, 4 mashes)
+        each of the four starting decks. A run counts as a pass only when it clears every test. From a played deck, seven mashes passed 195 of 200 runs and
+        six passed 181. Mixes of four mashes and two half overhands passed at most 1 of 200, because the overhand&rsquo;s packets keep old neighbours side
+        by side. From a sorted deck, eight mashes passed 184 of 200 and seven passed 1. Eight passed at least 197 from each of the other decks. The pile routine we used to recommend (4 mashes, pile, 4 mashes)
         costs 12 units and passed 155 of 200 from a sorted deck. A test passes when the deck is within three standard deviations of a random deck. For a
         99-card deck, that means about 41.3 to 58.7 runs for ordering and about 5.4 to 12.9 close pairs for proximity. Random decks average {SUMMARY.rand.seq} runs and{' '}
         {SUMMARY.rand.cp} close pairs. Figures in the steps above come from 1,200 simulated decks per routine.

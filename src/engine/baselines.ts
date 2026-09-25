@@ -24,6 +24,11 @@ export const BASELINES: Record<number, Base> = {
       "high": 16.988502415605655,
       "low": 16.348451270668615
     },
+    "gaps": {
+      "mean": 21.628893883114333,
+      "standardDeviation": 6.5442937833882615,
+      "threshold": 41.26177523327912
+    },
     "corr": {
       "mean": -0.01980790166419426,
       "standardDeviation": 0.13884617139835675,
@@ -92,6 +97,11 @@ export const BASELINES: Record<number, Base> = {
       "high": 19.675428365072786,
       "low": 18.98693760102773
     },
+    "gaps": {
+      "mean": 25.700212429813572,
+      "standardDeviation": 7.179801055592832,
+      "threshold": 47.23961559659207
+    },
     "corr": {
       "mean": -0.0167358870774846,
       "standardDeviation": 0.12938217389526557,
@@ -159,6 +169,11 @@ export const BASELINES: Record<number, Base> = {
       "threshold": 32.77484721781694,
       "high": 32.77484721781694,
       "low": 31.888707945447123
+    },
+    "gaps": {
+      "mean": 40.5775212352845,
+      "standardDeviation": 9.022720959436182,
+      "threshold": 67.64568411359305
     },
     "corr": {
       "mean": -0.010162745890004172,

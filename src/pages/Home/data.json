@@ -10,7 +10,7 @@
         "name": "Mash 8 times",
         "crown": "New or sorted deck",
         "when": "a freshly built or sorted deck, or any deck you’re unsure about.",
-        "blurb": "A sorted deck starts with every card in order. The top and bottom cards are the last to move, so they need one more mash than a gathered deck. Eight mashes cleared every test in nearly every run, from each starting deck we tried."
+        "blurb": "A sorted deck starts with every card in order. After seven mashes, cards that started side by side are still next to each other more often than chance, and the top and bottom cards have barely moved. So it needs one more mash than a gathered deck. Eight mashes cleared every test in nearly every run, from each starting deck we tried."
       }
     ],
     "rand": {

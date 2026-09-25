@@ -207,7 +207,7 @@ const stage3 = finalists.map((seq, index) => {
 })
 stage3.sort(byWeakestDeck)
 // Reference: one perfect shuffle, measured the same way. A random deck's worst test isn't 0, because it's the largest
-// of twelve noisy readings, so this shows the floor the finalists are compared against.
+// of thirteen noisy readings, so this shows the floor the finalists are compared against.
 const reference = routineStats(['mash'], finalRuns, (deck) => fisher(deck.length))
 clearProgress()
 console.log(`  A test's degree is how far it sits from a random deck's average, as a fraction of the way to its pass line:`)

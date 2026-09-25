@@ -1,7 +1,7 @@
 // Random-deck baselines and pass thresholds for each metric.
 import { BASELINES } from './baselines.ts'
 import { fisher, numberedTypes } from './decks.ts'
-import { METRICS, type MetricKey } from './metrics.ts'
+import { METRICS, addGaps, gapBins, gapChiSquare, type MetricKey } from './metrics.ts'
 
 export interface Baseline {
   mean: number
@@ -22,8 +22,17 @@ export function calibrate(deckSize: number, deckCount: number): Base {
   METRICS.forEach((metric) => {
     if (metric.key !== 'position' && metric.key !== 'endret') totals[metric.key] = { sum: 0, sumOfSquares: 0 }
   })
+  // Neighbour gaps are judged on a batch of 200 decks, so calibrate on batches of 200 random decks.
+  const gapBatch = 200
+  let gapCounts = new Int32Array(gapBins(deckSize).expected.length)
+  const gapChis: number[] = []
   for (let trial = 0; trial < deckCount; trial++) {
     const deck = fisher(deckSize)
+    addGaps(gapCounts, deck)
+    if ((trial + 1) % gapBatch === 0) {
+      gapChis.push(gapChiSquare(gapCounts, gapBatch, deckSize))
+      gapCounts = new Int32Array(gapCounts.length)
+    }
     METRICS.forEach((metric) => {
       if (!metric.measure || metric.key === 'endret') return
       const value = metric.measure(deck, deckSize, types)
@@ -65,6 +74,14 @@ export function calibrate(deckSize: number, deckCount: number): Base {
   const endRate = (2 * 4) / deckSize
   const endStandardDeviation = Math.sqrt(2 * (4 / deckSize) * (1 - 4 / deckSize))
   base.endret = { mean: endRate, standardDeviation: endStandardDeviation, threshold: (3 * endStandardDeviation) / Math.sqrt(400) }
+
+  // Neighbour gaps: the batch chi-square's own spread. With fewer than two batches, fall back to the chi-square
+  // distribution's mean and spread for the bin count.
+  const gapFreedom = gapBins(deckSize).expected.length - 1
+  const gapMean = gapChis.length >= 2 ? gapChis.reduce((a, b) => a + b, 0) / gapChis.length : gapFreedom
+  const gapSpread =
+    gapChis.length >= 2 ? Math.sqrt(gapChis.reduce((a, x) => a + (x - gapMean) ** 2, 0) / (gapChis.length - 1)) : Math.sqrt(2 * gapFreedom)
+  base.gaps = { mean: gapMean, standardDeviation: gapSpread, threshold: gapMean + 3 * gapSpread }
 
   // Position: chi-square with (deckSize - 1)² degrees of freedom.
   const degreesOfFreedom = (deckSize - 1) * (deckSize - 1)

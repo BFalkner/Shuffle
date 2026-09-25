@@ -2,7 +2,7 @@
 import { getBase, type Base } from './calibrate.ts'
 import { classifierAccuracy, deckFeatures, randomFeatures } from './classifier.ts'
 import { startDeck, type CardTypes, type DeckKind } from './decks.ts'
-import { METRICS, type MetricKey } from './metrics.ts'
+import { METRICS, addGaps, gapBins, gapChiSquare, type MetricKey } from './metrics.ts'
 import { OPS, type Deck, type OpKey } from './moves.ts'
 import { compositeScore, passWith, type Averages } from './scoring.ts'
 
@@ -42,6 +42,9 @@ export function computeResult(
   scalar.forEach((key) => (sums[key] = new Float64Array(moveCount + 1)))
   const posCount: Int32Array[] = []
   for (let step = 0; step <= moveCount; step++) posCount.push(new Int32Array(deckSize * deckSize))
+  const binCount = gapBins(deckSize).expected.length
+  const gapCount: Int32Array[] = []
+  for (let step = 0; step <= moveCount; step++) gapCount.push(new Int32Array(binCount))
   const stepFeat: number[][][] = []
   for (let step = 0; step <= moveCount; step++) stepFeat.push([])
 
@@ -51,6 +54,7 @@ export function computeResult(
       if (!metric.measure) return
       if (trial < (metric.key === 'endret' ? T_ENDRET : T_METRIC)) sums[metric.key][step] += metric.measure(deck, deckSize, types)
     })
+    if (trial < T_METRIC) addGaps(gapCount[step], deck)
     const slotCounts = posCount[step]
     for (let position = 0; position < deckSize; position++) slotCounts[deck[position] * deckSize + position]++
     if (trial < T_CLASSIFIER) stepFeat[step].push(deckFeatures(deck, deckSize))
@@ -73,6 +77,10 @@ export function computeResult(
     avg[key] = []
     for (let step = 0; step <= moveCount; step++) avg[key].push(measured(step) ? sums[key][step] / div : NaN)
   })
+
+  // Neighbour gaps: chi-square of the old-neighbour distances pooled over T_METRIC decks.
+  avg.gaps = []
+  for (let step = 0; step <= moveCount; step++) avg.gaps.push(measured(step) ? gapChiSquare(gapCount[step], T_METRIC, deckSize) : NaN)
 
   // Position: chi-square of the card × slot table against uniform.
   avg.position = []

@@ -111,6 +111,25 @@ export default function OrderTests() {
         three standard errors below the random mean. Spreading neighbours too evenly is as far from random as leaving them together, and proximity now
         fails it.
       </p>
+
+      <h2>Seven mashes leave neighbours at the wrong distances</h2>
+      <p>
+        Before the last test on this page, seven mashes from a sorted deck passed every test in about 6 of 10 runs. The close-pair count looked random, but
+        the pairs behind it didn&rsquo;t. Old neighbours sat right next to each other about 11% more often than chance, and two to eight places apart 7% to
+        16% less often. Proximity counts everything within three places as one number, so the excess and the shortage cancel. Global proximity averages the
+        distances, so they cancel there too.
+      </p>
+
+      <h3>Neighbour gaps</h3>
+      <p>
+        Neighbour gaps keeps the whole spread. For each pair of cards that started side by side, it notes how far apart they now sit. Each distance up to 39
+        places gets its own tally, and longer distances share three tallies. It pools the tallies over 200 decks and compares them with a random deck&rsquo;s
+        spread, using a chi-square. Batches of 200 random decks read about 41, with a standard deviation of 9. The test fails above about 68.
+      </p>
+      <p>
+        Seven mashes from a sorted deck read about 108 and fail almost every time. Eight mashes read about 49 and pass about 39 times in 40. This test,
+        more than end retention, is why a sorted deck needs an eighth mash.
+      </p>
     </Writeup>
   )
 }

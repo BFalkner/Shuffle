@@ -97,7 +97,7 @@ describe('metric & calibration structure', () => {
       expect(metric.title, metric.key).toBeTruthy()
       expect(metric.desc, metric.key).toBeTruthy()
       // position and classifier are accumulated across a batch of trials, not per deck
-      const fnOk = typeof metric.measure === 'function' || (metric.measure === null && (metric.key === 'position' || metric.key === 'classifier'))
+      const fnOk = typeof metric.measure === 'function' || (metric.measure === null && (metric.key === 'gaps' || metric.key === 'position' || metric.key === 'classifier'))
       expect(fnOk, metric.key).toBe(true)
       expect(['high', 'low', 'two', 'band']).toContain(metric.side)
     }
