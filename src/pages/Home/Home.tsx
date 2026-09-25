@@ -5,10 +5,8 @@ import DATA from './data.json'
 import { startMoveDemo, type DemoMove } from './moveDemo'
 import OpsChart from './OpsChart'
 import { OPS_CHARTS } from './opsCharts'
+import { RECOMMENDATIONS } from './recommendations'
 import './home.css'
-
-// The two recommended routines. Each pairs mashing with a move that breaks up order by force (see the footnote).
-const SUMMARY = DATA.cards
 
 /**
  * One step in the chain: a shuffle, the order it leaves behind, and the test
@@ -151,7 +149,7 @@ export default function Home() {
 
       <div className="sec-eyebrow">What we recommend</div>
       <div className="cards">
-        {SUMMARY.cards.map((card) => (
+        {RECOMMENDATIONS.map((card) => (
           <div key={card.name} className="mcard">
             <div className="top">
               <div>
@@ -277,8 +275,8 @@ export default function Home() {
         failed neighbour gaps, which finds old neighbours at slightly the wrong distances, and 36 also failed clump rate. Seven plain mashes passed 197.
         Over 20,000 single shuffles, the shorter routine left no longer runs of spells, and no more spells side by side, than a random deck, even in
         the worst game in 100. A test passes when the deck is within three standard deviations of a random deck. For a
-        99-card deck, that means about 41.3 to 58.7 runs for ordering and about 5.4 to 12.9 close pairs for proximity. Random decks average {SUMMARY.rand.seq} runs and{' '}
-        {SUMMARY.rand.cp} close pairs. Figures in the steps above come from 1,200 simulated decks per routine.
+        99-card deck, that means about 41.3 to 58.7 runs for ordering and about 5.4 to 12.9 close pairs for proximity. Random decks average {DATA.randomDeck.seq} runs and{' '}
+        {DATA.randomDeck.cp} close pairs. Figures in the steps above come from 1,200 simulated decks per routine.
       </p>
     </div>
   )
