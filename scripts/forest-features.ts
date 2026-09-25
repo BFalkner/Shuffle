@@ -8,7 +8,8 @@ import { parseArgs } from 'node:util'
 import { deckFeatures } from '../src/engine/classifier.ts'
 import { LAND, fisher, numberedTypes, posOf, sortedDeck } from '../src/engine/decks.ts'
 import { mChain, mClump, mCorr, mGradient, mOrdering, mProximity, mSpacing, mStrided } from '../src/engine/metrics.ts'
-import { OPS, parseRoutine, type Deck } from '../src/engine/moves.ts'
+import { OPS, type Deck } from '../src/engine/moves.ts'
+import { parseRoutine } from '../src/engine/routines.ts'
 
 const { values } = parseArgs({
   options: {
