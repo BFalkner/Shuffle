@@ -1,4 +1,4 @@
-import { FULL, type Metric } from './types.ts'
+import type { Metric } from './types.ts'
 
 export const position: Metric = {
   key: 'position', group: 'structure', core: true, raw: false, unit: '%', side: 'low', title: 'Position', measure: null,
@@ -31,6 +31,4 @@ export const position: Metric = {
     },
   },
   format: (value) => (value >= 1e6 ? `${(value / 1e6).toFixed(1)}M` : value >= 1e3 ? `${Math.round(value / 1e3)}k` : `${Math.round(value)}`),
-  desc: 'Whether cards keep landing in the same places across many shuffles, using a chi-square over every card and position. Built for the pile deal, which puts every card in a fixed place.',
-  writeup: { to: '/global-tests', label: FULL },
 }

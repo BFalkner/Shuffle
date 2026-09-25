@@ -4,6 +4,7 @@ import { METRICS, metricByKey, type MetricKey } from '../../engine/metrics'
 import { compositeScore, displayValue, fmt, fmtDisplay, metricProgress, passWith, worstMetric } from '../../engine/scoring'
 import { useElementWidth } from '../../hooks/useElementWidth'
 import MetricChart from './MetricChart'
+import { METRIC_TEXT } from './metricText'
 import type { Series } from './types'
 
 interface Props {
@@ -67,6 +68,7 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
   }
 
   const metric = metricByKey(selected)
+  const text = METRIC_TEXT[metric.key]
   const baseline = base[metric.key]
   const fin = avg[metric.key][moveCount]
   const pct = !metric.raw
@@ -89,7 +91,7 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
         <MetricChart metric={metric} series={series} width={width} big step={step} />
       </div>
       <div className="bcsub">
-        <RichText text={metric.desc} /> <Link to={metric.writeup.to}>{metric.writeup.label}</Link>. {pct ? 'Shown as % of the way to random' : `Unit: ${metric.unit}`}; random ≈ {rnd}; {rule}. Average at the end:{' '}
+        <RichText text={text.desc} /> <Link to={text.writeup.to}>{text.writeup.label}</Link>. {pct ? 'Shown as % of the way to random' : `Unit: ${metric.unit}`}; random ≈ {rnd}; {rule}. Average at the end:{' '}
         {fmtDisplay(metric, displayValue(metric, fin, avg, base))}.
       </div>
       {legend}

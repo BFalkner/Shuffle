@@ -1,6 +1,6 @@
 import { LAND, type CardTypes } from '../decks.ts'
 import type { Deck } from '../moves.ts'
-import { FULL, PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
+import { PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
 
 export function mSpacing(deck: Deck, deckSize: number, types: CardTypes): number {
   const landPositions: number[] = []
@@ -19,6 +19,4 @@ export const landSpacing: Metric = {
   trials: PER_DECK_TRIALS,
   batch: averageBatch(mSpacing, PER_DECK_TRIALS),
   calibration: { kind: 'perDeck' },
-  desc: 'How much the gaps between lands vary. Built for mana weaving: lands spaced <i>too</i> evenly read low, and clumped lands read high. It clears within a mash or two.',
-  writeup: { to: '/mana-tests', label: FULL },
 }

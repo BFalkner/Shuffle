@@ -6,6 +6,7 @@
 // classifier's random decks, so the cases run in a fixed order. Vitest gives each test file fresh modules, so the
 // caches start empty here.
 import { afterAll, expect, test } from 'vitest'
+import { METRIC_TEXT } from '../pages/Simulator/metricText.ts'
 import { calibrate, getBase } from './calibrate.ts'
 import { DECK_KINDS, sortedDeck } from './decks.ts'
 import { METRICS } from './metrics.ts'
@@ -40,12 +41,13 @@ const CASES: [string, () => unknown][] = [
       },
     ]),
   ),
-  // What the pages read: each test's metadata, and its pass rule, degree and formatting across a range of values.
+  // What the pages read: each test's metadata, and its pass rule, degree and formatting across a range of values. The
+  // description and write-up link live with the simulator page, so they're read from there.
   [
     'test metadata',
     () =>
-      METRICS.map(({ key, group, title, core, raw, unit, side, noCap, desc, writeup, measure }) => ({
-        key, group, title, core, raw, unit, side, noCap, desc, writeup, perDeck: measure !== null,
+      METRICS.map(({ key, group, title, core, raw, unit, side, noCap, measure }) => ({
+        key, group, title, core, raw, unit, side, noCap, ...METRIC_TEXT[key], perDeck: measure !== null,
       })),
   ],
   [

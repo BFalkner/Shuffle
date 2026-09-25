@@ -1,6 +1,6 @@
 import { catSizes, type CardTypes } from '../decks.ts'
 import type { Deck } from '../moves.ts'
-import { FULL, PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
+import { PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
 
 export function mClump(deck: Deck, deckSize: number, types: CardTypes): number {
   const sizes = catSizes(deckSize)
@@ -35,6 +35,4 @@ export const clumpRate: Metric = {
     }),
   },
   format: (value) => value.toFixed(2),
-  desc: 'How far each run of ten cards strays from the expected mix of card types, averaged over many shuffles. Catches the weaving and clumps that land spacing lets through. Too little clumping fails too.',
-  writeup: { to: '/mana-tests', label: FULL },
 }

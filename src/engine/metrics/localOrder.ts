@@ -1,5 +1,5 @@
 import type { Deck } from '../moves.ts'
-import { FULL, PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
+import { PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
 
 export function mGradient(deck: Deck): number {
   const deckSize = deck.length
@@ -14,6 +14,4 @@ export const localOrder: Metric = {
   batch: averageBatch(mGradient, PER_DECK_TRIALS),
   calibration: { kind: 'perDeck' },
   format: (value) => value.toFixed(3),
-  desc: 'How often three or more consecutive cards still sit together in order. Near zero when random. Built for the overhand, which keeps short runs intact inside its packets.',
-  writeup: { to: '/order-tests', label: FULL },
 }

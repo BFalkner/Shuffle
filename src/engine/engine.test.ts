@@ -95,21 +95,12 @@ describe('metric & calibration structure', () => {
   test('every metric has the required fields', () => {
     for (const metric of METRICS) {
       expect(metric.title, metric.key).toBeTruthy()
-      expect(metric.desc, metric.key).toBeTruthy()
       // Every metric reads decks through a batch; per-deck calibration also needs a per-deck measure.
       expect(typeof metric.batch, metric.key).toBe('function')
       expect(metric.trials, metric.key).toBeGreaterThan(0)
       expect(['perDeck', 'batches', 'fixed']).toContain(metric.calibration.kind)
       if (metric.calibration.kind === 'perDeck') expect(typeof metric.measure, metric.key).toBe('function')
       expect(['high', 'low', 'two', 'band']).toContain(metric.side)
-    }
-  })
-
-  test('metric descriptions stay near the ~30-word budget', () => {
-    // Depth belongs on the write-up pages, not inline.
-    for (const metric of METRICS) {
-      const words = metric.desc.replace(/<[^>]+>/g, '').split(/\s+/).filter(Boolean).length
-      expect(words, metric.key).toBeLessThanOrEqual(45)
     }
   })
 

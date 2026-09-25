@@ -24,6 +24,4 @@ export const endRetention: Metric = {
       return { mean: (2 * 4) / deckSize, standardDeviation, threshold: (3 * standardDeviation) / Math.sqrt(400) }
     },
   },
-  desc: 'Whether the original top card and bottom card are still within three places of their end: 0.08 when random. Built for the mash, which barely moves the ends. Two-sided, and judged on the average over many shuffles.',
-  writeup: { to: '/sticky-ends', label: 'The sticky-ends write-up' },
 }

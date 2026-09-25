@@ -1,6 +1,6 @@
 import { posOf } from '../decks.ts'
 import type { Deck } from '../moves.ts'
-import { FULL, PER_DECK_TRIALS, type Metric } from './types.ts'
+import { PER_DECK_TRIALS, type Metric } from './types.ts'
 
 export interface GapBins {
   /** bin index for each distance 1 to deckSize - 1 */
@@ -71,6 +71,4 @@ export const neighbourGaps: Metric = {
       return { mean, standardDeviation: spread, threshold: mean + 3 * spread }
     },
   },
-  desc: 'How far apart cards that started side by side now sit, at every distance, compared with a random deck. Seven mashes from a sorted deck leave too many pairs touching and too few two to eight apart.',
-  writeup: { to: '/order-tests', label: FULL },
 }

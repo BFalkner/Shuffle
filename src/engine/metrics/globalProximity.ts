@@ -1,5 +1,5 @@
 import type { Deck } from '../moves.ts'
-import { FULL, PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
+import { PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
 
 export function mDrift(deck: Deck): number {
   const deckSize = deck.length
@@ -23,6 +23,4 @@ export const globalProximity: Metric = {
       low: mean - (3 * standardDeviation) / Math.sqrt(200),
     }),
   },
-  desc: 'For each pair of cards now side by side, how far apart they started. Proximity as a distance rather than a count. An overhand-only routine fails it low, because its packets never separate the pairs inside them.',
-  writeup: { to: '/order-tests', label: FULL },
 }

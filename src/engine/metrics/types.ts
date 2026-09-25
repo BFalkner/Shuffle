@@ -55,8 +55,6 @@ export type Calibration =
   | { kind: 'batches'; size: number; finish: (values: number[], deckSize: number) => Baseline }
   | { kind: 'fixed'; baseline: (deckSize: number) => Baseline }
 
-export type WriteupRoute = '/order-tests' | '/global-tests' | '/mana-tests' | '/sticky-ends'
-
 export interface Metric {
   key: MetricKey
   group: MetricGroup
@@ -80,13 +78,7 @@ export interface Metric {
   format?: (value: number) => string
   /** Physical floor for chart scaling; 0 unless set. */
   floor?: number
-  /** Short description. `<i>…</i>` marks italics; nothing else is markup. */
-  desc: string
-  writeup: { to: WriteupRoute; label: string }
 }
-
-/** The usual label for a link to a test's write-up. */
-export const FULL = 'Full write-up'
 
 /** Decks read by a metric averaged per deck. */
 export const PER_DECK_TRIALS = 200

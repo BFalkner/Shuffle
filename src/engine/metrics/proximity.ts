@@ -1,6 +1,6 @@
 import { posOf } from '../decks.ts'
 import type { Deck } from '../moves.ts'
-import { FULL, PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
+import { PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
 
 export function mProximity(deck: Deck): number {
   const positions = posOf(deck)
@@ -24,6 +24,4 @@ export const proximity: Metric = {
       low: mean - (3 * standardDeviation) / Math.sqrt(200),
     }),
   },
-  desc: 'Counts pairs of cards that started side by side and are still within three places. Built for the overhand, which keeps neighbours together. Too few also fails: a pile deal or an early mash spreads neighbours <i>too</i> evenly.',
-  writeup: { to: '/order-tests', label: FULL },
 }

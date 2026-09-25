@@ -1,6 +1,6 @@
 import { posOf } from '../decks.ts'
 import type { Deck } from '../moves.ts'
-import { FULL, PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
+import { PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
 
 export function mStrided(deck: Deck): number {
   const positions = posOf(deck)
@@ -22,6 +22,4 @@ export const stridedChain: Metric = {
   trials: PER_DECK_TRIALS,
   batch: averageBatch(mStrided, PER_DECK_TRIALS),
   calibration: { kind: 'perDeck' },
-  desc: 'The longest run of cards evenly spaced in the old order and still in sequence. Built for the pile deal’s every-sixth-card pattern, but ordering and proximity already catch that pile, so it confirms rather than catches.',
-  writeup: { to: '/order-tests', label: FULL },
 }

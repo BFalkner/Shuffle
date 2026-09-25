@@ -1,5 +1,5 @@
 import type { Deck } from '../moves.ts'
-import { FULL, PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
+import { PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
 
 export function mCorr(deck: Deck, deckSize: number): number {
   let sumCurrent = 0
@@ -30,6 +30,4 @@ export const correlation: Metric = {
   calibration: { kind: 'perDeck' },
   format: (value) => value.toFixed(2),
   floor: -1,
-  desc: 'Correlation between each card and the next: +1 sorted, −1 reversed, 0 random. A second reading of what proximity measures. It has never caught anything on its own.',
-  writeup: { to: '/order-tests', label: FULL },
 }

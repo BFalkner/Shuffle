@@ -1,6 +1,6 @@
 import { posOf } from '../decks.ts'
 import type { Deck } from '../moves.ts'
-import { FULL, PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
+import { PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
 
 export function mOrdering(deck: Deck): number {
   const positions = posOf(deck)
@@ -14,6 +14,4 @@ export const ordering: Metric = {
   trials: PER_DECK_TRIALS,
   batch: averageBatch(mOrdering, PER_DECK_TRIALS),
   calibration: { kind: 'perDeck' },
-  desc: 'Counts the rising runs the deck breaks into: one when sorted, about 50 when random. Built for the mash, which leaves long runs for several passes. Too many runs is leftover order too, so the test is two-sided.',
-  writeup: { to: '/order-tests', label: FULL },
 }

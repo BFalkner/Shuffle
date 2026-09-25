@@ -1,6 +1,6 @@
 import { posOf } from '../decks.ts'
 import type { Deck } from '../moves.ts'
-import { FULL, PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
+import { PER_DECK_TRIALS, averageBatch, type Metric } from './types.ts'
 
 export function mChain(deck: Deck): number {
   const positions = posOf(deck)
@@ -18,6 +18,4 @@ export const longestChain: Metric = {
   trials: PER_DECK_TRIALS,
   batch: averageBatch(mChain, PER_DECK_TRIALS),
   calibration: { kind: 'perDeck' },
-  desc: 'The longest run of consecutive cards still in order anywhere in the deck. Random decks show four or five. The mash leaves longer runs for its first few passes.',
-  writeup: { to: '/order-tests', label: FULL },
 }

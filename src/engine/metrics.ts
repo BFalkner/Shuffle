@@ -1,4 +1,4 @@
-// The thirteen randomness diagnostics. Each lives in its own file in metrics/, with its measure and its description.
+// The thirteen randomness diagnostics. Each lives in its own file in metrics/, with its measure and how it is read.
 // Each per-deck metric takes the deck, its size and the card types and returns one number; neighbour gaps, position
 // and classifier are computed across a whole batch of trials instead (measure: null). This file lists them in order.
 import type { Metric, MetricGroup, MetricKey } from './metrics/types.ts'
@@ -16,7 +16,7 @@ import { localOrder } from './metrics/localOrder.ts'
 import { landSpacing } from './metrics/landSpacing.ts'
 import { clumpRate } from './metrics/clumpRate.ts'
 
-export type { Metric, MetricGroup, MetricKey, Side, WriteupRoute } from './metrics/types.ts'
+export type { Metric, MetricGroup, MetricKey, Side } from './metrics/types.ts'
 export { mOrdering } from './metrics/ordering.ts'
 export { mProximity } from './metrics/proximity.ts'
 export { mDrift } from './metrics/globalProximity.ts'
