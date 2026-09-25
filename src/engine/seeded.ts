@@ -10,6 +10,18 @@ export function seed(state: number): void {
   }
 }
 
+/**
+ * JSON with every object's keys sorted, so the text depends only on the values, not on the order code added the keys.
+ * Arrays keep their order.
+ */
+export function canonicalJson(value: unknown): string {
+  return JSON.stringify(value, (_key, item) =>
+    item && typeof item === 'object' && !Array.isArray(item)
+      ? Object.fromEntries(Object.keys(item).sort().map((key) => [key, (item as Record<string, unknown>)[key]]))
+      : item,
+  )
+}
+
 /** FNV-1a: a short, stable hash of some text. */
 export function hash(text: string): string {
   let result = 0x811c9dc5

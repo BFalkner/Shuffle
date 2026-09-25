@@ -4,7 +4,7 @@ import { BASELINES } from './baselines.ts'
 import { calibrate } from './calibrate.ts'
 import { DECK_KINDS } from './decks.ts'
 import type { OpKey } from './moves.ts'
-import { hash, seed } from './seeded.ts'
+import { canonicalJson, hash, seed } from './seeded.ts'
 import { computeResult } from './simulate.ts'
 import { ENGINE_FINGERPRINT, ENGINE_VERSION } from './version.ts'
 
@@ -23,7 +23,7 @@ test(`engine output matches version ${ENGINE_VERSION}`, () => {
     baselines: BASELINES,
     runs: DECK_KINDS.map(({ value }) => computeResult(value, 60, routine).avg),
   }
-  const fingerprint = hash(JSON.stringify(output))
+  const fingerprint = hash(canonicalJson(output))
   expect(
     fingerprint,
     `Engine output changed. If that was intended, set ENGINE_VERSION to ${ENGINE_VERSION + 1} and ENGINE_FINGERPRINT to '${fingerprint}' in version.ts, then recheck the claims in docs/claims.md.`,

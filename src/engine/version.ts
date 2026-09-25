@@ -11,4 +11,4 @@
  * 5  a thirteenth test, neighbour gaps, compares how far apart old neighbours sit with a random deck's spread
  */
 export const ENGINE_VERSION = 5
-export const ENGINE_FINGERPRINT = '3be32c94'
+export const ENGINE_FINGERPRINT = 'f9e753a4'

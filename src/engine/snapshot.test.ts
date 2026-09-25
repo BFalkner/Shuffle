@@ -11,7 +11,7 @@ import { DECK_KINDS, sortedDeck } from './decks.ts'
 import { METRICS } from './metrics.ts'
 import { OPS, parseRoutine } from './moves.ts'
 import { fmt, marginScale, passWith, testDegree } from './scoring.ts'
-import { hash, seed } from './seeded.ts'
+import { canonicalJson, hash, seed } from './seeded.ts'
 import { computeResult, scoreResult } from './simulate.ts'
 
 const realRandom = Math.random
@@ -19,8 +19,11 @@ afterAll(() => {
   Math.random = realRandom
 })
 
-/** Hash of a value's JSON. Numbers print to full precision, so any change in any digit changes the hash. */
-const hashOf = (value: unknown) => hash(JSON.stringify(value))
+/**
+ * Hash of a value's JSON, with keys sorted so only values count. Numbers print to full precision, so any change in any
+ * digit changes the hash.
+ */
+const hashOf = (value: unknown) => hash(canonicalJson(value))
 
 /** The cases, in the order they run. Each returns the output to hash. */
 const CASES: [string, () => unknown][] = [
@@ -70,26 +73,26 @@ const EXPECTED: Record<string, string> = {
   'move pile': 'be2e6955',
   'move ohr': '488b7903',
   'move ohb': '9b6eeb47',
-  'calibrate 52 cards, 400 decks': '9cafb038',
-  'M×8 from sorted': '34603b10',
-  'M×8 from weave': '20b0f0c2',
-  'M×8 from lumpy': 'cc57e62d',
-  'M×8 from played': 'cb47fa4c',
-  'M×4·P·M×4 from sorted': 'ebfcc7a6',
-  'M×4·P·M×4 from weave': '613f5958',
-  'M×4·P·M×4 from lumpy': '74daf1d5',
-  'M×4·P·M×4 from played': 'd8f9e543',
-  'M×3·OHt·M from sorted': '16cdfaf6',
-  'M×3·OHt·M from weave': '465cc4a1',
-  'M×3·OHt·M from lumpy': '15c16fc0',
-  'M×3·OHt·M from played': 'cfbda4ba',
-  'OH×2·OHb·M×2 from sorted': '6a7992c4',
-  'OH×2·OHb·M×2 from weave': 'b74a092d',
-  'OH×2·OHb·M×2 from lumpy': '35f1d8a1',
-  'OH×2·OHb·M×2 from played': 'ca2336e3',
-  'test metadata': '9396135e',
+  'calibrate 52 cards, 400 decks': 'f2af3276',
+  'M×8 from sorted': 'd6dce2d6',
+  'M×8 from weave': '1bcf6e9c',
+  'M×8 from lumpy': '76917411',
+  'M×8 from played': '8d8b581a',
+  'M×4·P·M×4 from sorted': '50905334',
+  'M×4·P·M×4 from weave': 'a83ef918',
+  'M×4·P·M×4 from lumpy': '670c0af3',
+  'M×4·P·M×4 from played': '1fbe6751',
+  'M×3·OHt·M from sorted': 'e1846b66',
+  'M×3·OHt·M from weave': '389297a5',
+  'M×3·OHt·M from lumpy': '38ced710',
+  'M×3·OHt·M from played': 'cdb10420',
+  'OH×2·OHb·M×2 from sorted': '111a270c',
+  'OH×2·OHb·M×2 from weave': '851935a1',
+  'OH×2·OHb·M×2 from lumpy': '403c78f9',
+  'OH×2·OHb·M×2 from played': '3161abfd',
+  'test metadata': 'c8d5b2be',
   'pass rules, degrees and formatting': 'c9500e3d',
-  'M×3·OHt·M from played, every step': 'cf59d190',
+  'M×3·OHt·M from played, every step': '6902c626',
 }
 
 test('engine output matches the seeded snapshot', () => {
