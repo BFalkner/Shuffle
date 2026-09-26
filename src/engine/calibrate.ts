@@ -1,7 +1,7 @@
-// Random-deck baselines and pass thresholds for each metric.
+// Each metric's baseline: what it reads for random decks (level 0) and for an unshuffled sorted deck (level 1).
 import { BASELINES } from './baselines.ts'
-import { fisher, numberedTypes } from './decks.ts'
-import { METRICS, type Metric, type MetricKey } from './metrics.ts'
+import { fisher, numberedTypes, sortedDeck } from './decks.ts'
+import { METRICS, type MetricKey } from './metrics.ts'
 import type { Baseline } from './metrics/types.ts'
 
 export type { Baseline }
@@ -9,70 +9,56 @@ export type { Baseline }
 export type Base = Record<MetricKey, Baseline>
 
 /**
- * Measure deckCount random decks of size deckSize and derive each metric's pass rule. How depends on the metric's
- * calibration: per-deck metrics use the mean and spread of their measure, batch metrics use their value over batches of
- * random decks, and fixed metrics use a formula.
+ * Read `batchCount` batches of random decks of size deckSize, each as large as the run the metric reads, and a batch of
+ * sorted decks. A batch metric's baseline is the mean and spread of its random readings plus its sorted reading. A fixed
+ * metric's comes from its formula.
  */
-export function calibrate(deckSize: number, deckCount: number): Base {
+export function calibrate(deckSize: number, batchCount: number): Base {
   const types = numberedTypes(deckSize)
-  const perDeck = METRICS.filter((metric) => metric.calibration.kind === 'perDeck')
-  const totals = perDeck.map(() => ({ sum: 0, sumOfSquares: 0 }))
+  const sorted = sortedDeck(deckSize)
   const batched = METRICS.filter((metric) => metric.calibration.kind === 'batches')
-  const batchSize = (metric: Metric) => (metric.calibration as { size: number }).size
-  const open = batched.map((metric) => metric.batch(deckSize))
-  const values: number[][] = batched.map(() => [])
-  for (let trial = 0; trial < deckCount; trial++) {
-    const deck = fisher(deckSize)
-    batched.forEach((metric, index) => {
-      open[index].add(deck, types)
-      if ((trial + 1) % batchSize(metric) === 0) {
-        values[index].push(open[index].value())
-        open[index] = metric.batch(deckSize)
-      }
-    })
-    perDeck.forEach((metric, index) => {
-      const value = metric.measure!(deck, deckSize, types)
-      totals[index].sum += value
-      totals[index].sumOfSquares += value * value
-    })
+  const decksPerBatch = Math.max(...batched.map((metric) => metric.trials))
+  const readings: number[][] = batched.map(() => [])
+  for (let batchNumber = 0; batchNumber < batchCount; batchNumber++) {
+    const open = batched.map((metric) => metric.batch(deckSize))
+    for (let trial = 0; trial < decksPerBatch; trial++) {
+      // A random deck dealt from the sorted one, so the sorted deck is also where each card started.
+      const deck = fisher(deckSize)
+      batched.forEach((metric, index) => {
+        if (trial < metric.trials) open[index].add(deck, types, sorted)
+      })
+    }
+    open.forEach((batch, index) => readings[index].push(batch.value()))
   }
 
   const base = {} as Base
   for (const metric of METRICS) {
     const calibration = metric.calibration
-    if (calibration.kind === 'perDeck') {
-      const total = totals[perDeck.indexOf(metric)]
-      const mean = total.sum / deckCount
-      const standardDeviation = Math.sqrt(Math.max(0, total.sumOfSquares / deckCount - mean * mean))
-      base[metric.key] = calibration.rule ? calibration.rule(mean, standardDeviation) : { mean, standardDeviation, threshold: sideThreshold(metric, mean, standardDeviation) }
-    } else if (calibration.kind === 'batches') {
-      base[metric.key] = calibration.finish(values[batched.indexOf(metric)], deckSize)
-    } else {
+    if (calibration.kind === 'fixed') {
       base[metric.key] = calibration.baseline(deckSize)
+      continue
     }
+    const values = readings[batched.indexOf(metric)]
+    const mean = values.reduce((total, value) => total + value, 0) / values.length
+    const variance = values.length > 1 ? values.reduce((total, value) => total + (value - mean) ** 2, 0) / (values.length - 1) : 0
+    const unshuffled = metric.batch(deckSize)
+    for (let trial = 0; trial < metric.trials; trial++) unshuffled.add(sorted, types, sorted)
+    base[metric.key] = { mean, standardDeviation: Math.sqrt(variance), sorted: unshuffled.value() }
   }
   return base
-}
-
-/** The default pass line for a per-deck metric, by its side. */
-function sideThreshold(metric: Metric, mean: number, standardDeviation: number): number {
-  if (metric.side === 'high') return mean - 2.5 * standardDeviation
-  if (metric.side === 'low') return mean + 3 * standardDeviation
-  return 3 * standardDeviation
 }
 
 const BASE_CACHE = new Map<number, Base>()
 
 /**
- * Baseline for deckSize. The deck sizes the site offers use the stored calibration in baselines.ts, so every run judges
- * against the same pass lines. Any other size is calibrated from 400 random decks on first use, and its pass lines
- * move a little from one start to the next.
+ * Baseline for deckSize. The deck sizes the site offers use the stored calibration in baselines.ts, so every run is
+ * judged against the same baselines. Any other size is calibrated from 40 batches of random decks on first use.
  */
 export function getBase(deckSize: number): Base {
   if (BASELINES[deckSize]) return BASELINES[deckSize]
   let base = BASE_CACHE.get(deckSize)
   if (!base) {
-    base = calibrate(deckSize, 400)
+    base = calibrate(deckSize, 40)
     BASE_CACHE.set(deckSize, base)
   }
   return base

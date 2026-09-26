@@ -3,10 +3,13 @@
 import { describe, expect, test } from 'vitest'
 import { getBase } from './calibrate.ts'
 import { posOf, sortedDeck } from './decks.ts'
-import { METRICS, metricByKey } from './metrics.ts'
+import { METRICS } from './metrics.ts'
+import { landGapShares } from './metrics/lands.ts'
+import { orderBalance } from './metrics/order.ts'
 import { OPS, type OpKey } from './moves.ts'
 import { OP_COST } from './routines.ts'
-import { passWith, testDegree } from './scoring.ts'
+import { level, noiseLevel } from './scoring.ts'
+import { computeResult, scoreResult } from './simulate.ts'
 
 function runSeq(seq: OpKey[], deckSize: number) {
   let deck = sortedDeck(deckSize)
@@ -75,18 +78,10 @@ describe('riffle model anchors', () => {
   const mixedDecks = (count: number) =>
     Array.from({ length: count }, () => runSeq(Array(8).fill('mash'), 99))
 
-  test('random-deck ordering matches its anchor (mean ≈ 50)', () => {
-    const measure = metricByKey('ordering').measure!
-    const vals = mixedDecks(800).map((deck) => measure(deck, 99, []))
-    const mean = vals.reduce((total, value) => total + value, 0) / vals.length
-    expect(Math.abs(mean - 50)).toBeLessThanOrEqual(2.5)
-  })
-
-  test('random-deck proximity matches its anchor (mean ≈ 5.8–5.9)', () => {
-    const measure = metricByKey('proximity').measure!
-    const vals = mixedDecks(800).map((deck) => measure(deck, 99, []))
-    const mean = vals.reduce((total, value) => total + value, 0) / vals.length
-    expect(Math.abs(mean - 5.85)).toBeLessThanOrEqual(0.6)
+  test('eight mashes leave old neighbours in order about half the time, as a random deck does', () => {
+    const balances = mixedDecks(800).map(orderBalance)
+    const mean = balances.reduce((total, value) => total + value, 0) / balances.length
+    expect(Math.abs(mean)).toBeLessThanOrEqual(0.02)
   })
 })
 
@@ -94,46 +89,27 @@ describe('metric & calibration structure', () => {
   test('every metric has the required fields', () => {
     for (const metric of METRICS) {
       expect(metric.title, metric.key).toBeTruthy()
-      // Every metric reads decks through a batch; per-deck calibration also needs a per-deck measure.
       expect(typeof metric.batch, metric.key).toBe('function')
       expect(metric.trials, metric.key).toBeGreaterThan(0)
-      expect(['perDeck', 'batches', 'fixed']).toContain(metric.calibration.kind)
-      if (metric.calibration.kind === 'perDeck') expect(typeof metric.measure, metric.key).toBe('function')
-      expect(['high', 'low', 'two', 'band']).toContain(metric.side)
+      expect(['batches', 'fixed']).toContain(metric.calibration.kind)
     }
   })
 
-  test('band-side metrics (proximity, drift, clump) define hi/lo after calibration', () => {
-    const base = getBase(99)
-    for (const metric of METRICS.filter((candidate) => candidate.side === 'band')) {
-      const baseline = base[metric.key]
-      expect(Number.isFinite(baseline.high), metric.key).toBe(true)
-      expect(Number.isFinite(baseline.low), metric.key).toBe(true)
-      expect(baseline.low!, metric.key).toBeLessThan(baseline.high!)
-    }
-  })
-
-  test('proximity band is asymmetric: rate-based low side tighter than per-deck high side', () => {
-    const proximity = getBase(99).proximity
-    expect(proximity.mean - proximity.low!).toBeLessThan(proximity.high! - proximity.mean)
-  })
-
-  test('a test degree above 1 means exactly that the test fails', () => {
+  test('every baseline puts random decks at level 0, a sorted deck at level 1, and the noise well below 1', () => {
     const base = getBase(99)
     for (const metric of METRICS) {
       const baseline = base[metric.key]
-      const spread = Math.max(baseline.standardDeviation, Math.abs(baseline.threshold), 1e-6)
-      for (let step = -40; step <= 40; step++) {
-        const value = baseline.mean + (step / 10) * spread
-        expect(testDegree(metric, value, base) <= 1, `${metric.key} at ${value}`).toBe(passWith(metric, value, base))
-      }
+      expect(level(metric, baseline.mean, base), metric.key).toBeCloseTo(0, 10)
+      expect(level(metric, baseline.sorted, base), metric.key).toBeCloseTo(1, 10)
+      expect(noiseLevel(metric, base), metric.key).toBeLessThan(0.2)
     }
   })
 
-  test('end retention band is a rate (much tighter than one per-deck sd)', () => {
-    const endRetention = getBase(99).endret
-    expect(Number.isFinite(endRetention.threshold)).toBe(true)
-    expect(endRetention.threshold).toBeLessThan(endRetention.standardDeviation)
+  test('a random deck’s land gaps have shares that add up to 1', () => {
+    for (const deckSize of [52, 60, 99]) {
+      const total = landGapShares(deckSize).reduce((sum, share) => sum + share, 0)
+      expect(total, `${deckSize} cards`).toBeCloseTo(1, 10)
+    }
   })
 })
 
@@ -144,22 +120,11 @@ describe('cost accounting', () => {
 })
 
 describe('plain mashing', () => {
-  test('eight mashes clear the core battery from sorted', () => {
-    // Judged on trial averages, the same way the simulator judges pass/fail.
-    const deckSize = 99
-    const seq: OpKey[] = Array(8).fill('mash')
-    const base = getBase(deckSize)
-    const core = METRICS.filter((metric) => metric.core && metric.measure)
-    const sums: Record<string, number> = {}
-    const trials = 300
-    for (let trial = 0; trial < trials; trial++) {
-      const deck = runSeq(seq, deckSize)
-      for (const metric of core) sums[metric.key] = (sums[metric.key] ?? 0) + metric.measure!(deck, deckSize, [])
-    }
-    for (const metric of core) {
-      const avg = sums[metric.key] / trials
-      expect(passWith(metric, avg, base), `8 mashes fail ${metric.title} (avg ${avg.toFixed(3)})`).toBe(true)
-    }
+  test('each pair of extra mashes brings a sorted deck closer to random', () => {
+    const totals = [2, 4, 8].map((mashes) => scoreResult(computeResult('sorted', 99, Array(mashes).fill('mash'), 'ends')).total)
+    expect(totals[0]).toBeGreaterThan(totals[1])
+    expect(totals[1]).toBeGreaterThan(totals[2])
+    expect(totals[2]).toBeLessThan(0.1)
   })
 })
 

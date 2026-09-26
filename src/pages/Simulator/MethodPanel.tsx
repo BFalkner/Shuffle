@@ -30,7 +30,7 @@ export default function MethodPanel({ exp, result, start, types, startLabel, ste
   const states = useMemo(() => runStates(start, exp.seq), [start, exp.seq])
   const step = Math.min(sharedStep, states.length - 1)
   const cost = exp.seq.reduce((total, op) => total + OP_COST[op], 0)
-  const fails = result?.fails ?? []
+  const notClear = result?.categories.filter((reading) => !reading.clear).map((reading) => reading.title) ?? []
   const hasTracked = liveTracked(tracked).length > 0
 
   return (
@@ -45,7 +45,7 @@ export default function MethodPanel({ exp, result, start, types, startLabel, ste
         </div>
         <div className="panmeta">
           {exp.seq.length} moves · {cost} unit{cost === 1 ? '' : 's'} ·{' '}
-          {result ? (fails.length ? `short on: ${fails.join(', ')}` : 'clears every diagnostic') : 'scoring…'}
+          {result ? (notClear.length ? `short on: ${notClear.join(', ')}` : 'every category within noise') : 'scoring…'}
           {hasTracked && (
             <span className="panuntrack" onClick={() => onTracked(tracked.map(() => null))}>
               clear tracking

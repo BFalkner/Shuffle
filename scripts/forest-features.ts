@@ -5,16 +5,9 @@
 //        node scripts/forest-features.ts --random --decks 50000 --out logs/forest/random.csv   (truly random decks)
 import { writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
-import { deckFeatures } from '../src/engine/classifier.ts'
+import { deckFeatures, mCorr } from '../src/engine/classifier.ts'
 import { LAND, fisher, numberedTypes, posOf, sortedDeck } from '../src/engine/decks.ts'
-import { mClump } from '../src/engine/metrics/clumpRate.ts'
-import { mCorr } from '../src/engine/metrics/correlation.ts'
-import { mSpacing } from '../src/engine/metrics/landSpacing.ts'
-import { mGradient } from '../src/engine/metrics/localOrder.ts'
-import { mChain } from '../src/engine/metrics/longestChain.ts'
-import { mOrdering } from '../src/engine/metrics/ordering.ts'
-import { mProximity } from '../src/engine/metrics/proximity.ts'
-import { mStrided } from '../src/engine/metrics/stridedChain.ts'
+import { mChain, mClump, mGradient, mOrdering, mProximity, mSpacing, mStrided } from './forest-measures.ts'
 import { OPS, type Deck } from '../src/engine/moves.ts'
 import { parseRoutine } from '../src/engine/routines.ts'
 

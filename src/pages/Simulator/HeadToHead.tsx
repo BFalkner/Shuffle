@@ -1,27 +1,23 @@
 import { Fragment } from 'react'
-import { METRICS, type Metric } from '../../engine/metrics'
-import { displayValue, fmt } from '../../engine/scoring'
+import { METRICS } from '../../engine/metrics'
+import { fmtLevel, level } from '../../engine/scoring'
 import type { Series } from './types'
 
 /**
- * Decks behind a metric's value, for its standard error. An averaged metric's baseline spread is per deck, so its average
- * over `trials` decks is that much steadier. A metric read across the whole batch already has the batch's spread.
- */
-const trialsBehind = (metric: Metric) => (metric.measure ? metric.trials : 1)
-
-/**
- * Side-by-side table of overlaid methods. A method "leads" on a diagnostic
- * only when it's closer to random than the runner-up by more than two
- * standard errors of the difference; anything less is noise.
+ * Side-by-side table of overlaid methods. A method "leads" on a metric only when it's closer to random than the
+ * runner-up by more than two standard errors of the difference; anything less is noise.
  */
 export default function HeadToHead({ series }: { series: Series[] }) {
   if (series.length < 2) return null
 
   const rows = METRICS.map((metric) => {
     const baseline = series[0].base[metric.key]
-    const trials = trialsBehind(metric)
-    const seDiff = (Math.SQRT2 * (baseline.standardDeviation || 1)) / Math.sqrt(trials)
-    const distances = series.map((entry) => ({ entry, value: entry.avg[metric.key][entry.moveCount], distance: Math.abs(entry.avg[metric.key][entry.moveCount] - baseline.mean) }))
+    // A metric's baseline spread is already the spread of one run's reading, here on the level scale.
+    const seDiff = (Math.SQRT2 * baseline.standardDeviation) / Math.abs(baseline.sorted - baseline.mean)
+    const distances = series.map((entry) => {
+      const value = level(metric, entry.avg[metric.key][entry.moveCount], entry.base)
+      return { entry, value, distance: Math.abs(value) }
+    })
     const sorted = distances.slice().sort((x, y) => x.distance - y.distance)
     const win = sorted.length > 1 && sorted[1].distance - sorted[0].distance > 2 * seDiff ? sorted[0].entry : null
     return { metric, distances, win }
@@ -36,7 +32,7 @@ export default function HeadToHead({ series }: { series: Series[] }) {
     <div className="hth-card">
       <div className="hth-lead">
         {leads.size === 0
-          ? 'No meaningful differences: every diagnostic is within sampling noise.'
+          ? 'No meaningful differences: every metric is within sampling noise.'
           : [...leads].map(([name, titles], index) => (
               <Fragment key={name}>
                 {index > 0 && '; '}
@@ -64,15 +60,20 @@ export default function HeadToHead({ series }: { series: Series[] }) {
                 <td className="hth-t">{row.metric.title}</td>
                 {row.distances.map((x) => {
                   const won = row.win === x.entry
-                  const val = row.metric.raw ? fmt(x.value, row.metric.key) : `${Math.round(displayValue(row.metric, x.value, x.entry.avg, x.entry.base))}%`
                   return (
                     <td key={x.entry.id} className={won ? 'hth-win' : ''} style={won ? { color: x.entry.color } : undefined}>
-                      {val}
+                      {fmtLevel(x.value)}
                     </td>
                   )
                 })}
               </tr>
             ))}
+            <tr>
+              <td className="hth-t">Total</td>
+              {series.map((entry) => (
+                <td key={entry.id}>{fmtLevel(entry.total)}</td>
+              ))}
+            </tr>
           </tbody>
         </table>
       </div>

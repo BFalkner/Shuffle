@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import RichText from '../../components/RichText'
-import { METRICS, metricByKey, type MetricKey } from '../../engine/metrics'
-import { compositeScore, displayValue, fmt, fmtDisplay, metricProgress, passWith, worstMetric } from '../../engine/scoring'
+import { metricByKey, type MetricKey } from '../../engine/metrics'
+import { categoryReadings, fmtLevel, level, noiseLevel, totalLevel } from '../../engine/scoring'
 import { useElementWidth } from '../../hooks/useElementWidth'
 import MetricChart from './MetricChart'
 import { METRIC_TEXT } from './metricText'
@@ -14,7 +14,7 @@ interface Props {
   onClearComparison: () => void
 }
 
-/** The sticky panel above the charts: an overall verdict, or the selected diagnostic drawn large. */
+/** The sticky panel above the charts: how far from random each category ends, or the selected metric drawn large. */
 export default function SummaryPanel({ series, selected, step, onClearComparison }: Props) {
   const [ref, width] = useElementWidth<HTMLDivElement>(260)
 
@@ -45,22 +45,20 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
   )
 
   if (!selected) {
-    const passes = METRICS.filter((metric) => passWith(metric, avg[metric.key][moveCount], base)).length
-    const score = Math.round(compositeScore(avg, base) * 100)
-    const worst = worstMetric(avg, base)
-    const fails = METRICS.filter((metric) => !passWith(metric, avg[metric.key][moveCount], base)).map((metric) => metric.title)
-    const verdict = fails.length
-      ? `Still short on: ${fails.join(', ')}.`
-      : 'This sequence randomizes the deck: every diagnostic reaches random.'
+    const readings = categoryReadings(avg, base, moveCount)
+    const allClear = readings.every((reading) => reading.clear)
+    const furthest = readings.reduce((worst, reading) => (reading.level > worst.level ? reading : worst))
     return (
       <div className="bigchart">
         <div className="bctitle">
-          <span>How random is the deck?</span>
+          <span>How far from random is the deck?</span>
         </div>
-        <div className={`bcval ${passes === METRICS.length ? 'pass' : 'fail'}`}>{score}% randomized</div>
+        <div className={`bcval ${allClear ? 'pass' : 'fail'}`}>{fmtLevel(totalLevel(readings))} in total</div>
         <div className="bcsub">
-          {passes} / {METRICS.length} diagnostics cleared · limited by {worst.metric.title} ({Math.round(worst.progress * 100)}%). {verdict}
-          {' '}Click any diagnostic below for detail, or compare methods further down.
+          {readings.map((reading) => `${reading.title} ${fmtLevel(reading.level)}`).join(' · ')}.{' '}
+          {allClear ? 'Every category is within the noise of a random deck.' : `Furthest from random: ${furthest.title}.`} In each category, 0 is a
+          random deck and 1 is a sorted deck that was never shuffled. The total adds up the four. Click any chart below for detail, or compare
+          methods further down.
         </div>
         {legend}
       </div>
@@ -69,30 +67,20 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
 
   const metric = metricByKey(selected)
   const text = METRIC_TEXT[metric.key]
-  const baseline = base[metric.key]
-  const fin = avg[metric.key][moveCount]
-  const pct = !metric.raw
-  const rnd = pct ? '100%' : fmt(baseline.mean, metric.key)
-  const thr = pct ? `${Math.round(displayValue(metric, baseline.threshold, avg, base))}%` : fmt(baseline.threshold, metric.key)
-  const rule =
-    metric.side === 'band'
-      ? `pass ${fmt(baseline.low!, metric.key)} – ${fmt(baseline.high!, metric.key)} (random ${fmt(baseline.mean, metric.key)})`
-      : metric.side === 'two'
-        ? `pass within ±${fmt(baseline.threshold, metric.key)} of random (${fmt(baseline.mean, metric.key)})`
-        : `pass ${metric.side === 'high' ? '≥' : '≤'} ${thr}`
+  const fin = level(metric, avg[metric.key][moveCount], base)
 
   return (
     <div className="bigchart">
       <div className="bctitle">
         <span>{metric.title}</span>
-        <span className="bcval">{Math.round(metricProgress(metric, avg, base) * 100)}% randomized</span>
+        <span className="bcval">{fmtLevel(fin)}</span>
       </div>
       <div ref={ref} className="chart-plot">
         <MetricChart metric={metric} series={series} width={width} big step={step} />
       </div>
       <div className="bcsub">
-        <RichText text={text.desc} /> <Link to={text.writeup.to}>{text.writeup.label}</Link>. {pct ? 'Shown as % of the way to random' : `Unit: ${metric.unit}`}; random ≈ {rnd}; {rule}. Average at the end:{' '}
-        {fmtDisplay(metric, displayValue(metric, fin, avg, base))}.
+        <RichText text={text.desc} /> <Link to={text.writeup.to}>{text.writeup.label}</Link>. A random deck reads 0, give or take{' '}
+        {fmtLevel(noiseLevel(metric, base))}, and a sorted deck that was never shuffled reads 1. At the end: {fmtLevel(fin)}.
       </div>
       {legend}
     </div>

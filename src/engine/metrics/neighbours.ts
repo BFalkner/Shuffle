@@ -1,6 +1,6 @@
 import { posOf } from '../decks.ts'
 import type { Deck } from '../moves.ts'
-import { PER_DECK_TRIALS, type Metric } from './types.ts'
+import { RUN_DECKS, mismatch, type Metric } from './types.ts'
 
 export interface GapBins {
   /** bin index for each distance 1 to deckSize - 1 */
@@ -40,35 +40,19 @@ export function addGaps(counts: Int32Array, deck: Deck): void {
   for (let card = 0; card < deck.length - 1; card++) counts[binOf[Math.abs(positions[card] - positions[card + 1])]]++
 }
 
-/** Chi-square of a batch's pooled gap counts against a random deck's spread. */
-export function gapChiSquare(counts: Int32Array, deckCount: number, deckSize: number): number {
-  const { expected } = gapBins(deckSize)
-  const pairs = deckCount * (deckSize - 1)
-  let chi = 0
-  for (let bin = 0; bin < expected.length; bin++) {
-    const expectedCount = expected[bin] * pairs
-    chi += (counts[bin] - expectedCount) ** 2 / expectedCount
-  }
-  return chi
-}
-
-export const neighbourGaps: Metric = {
-  key: 'gaps', group: 'order', core: false, raw: true, unit: 'χ²', side: 'low', title: 'Neighbour gaps', measure: null,
-  trials: PER_DECK_TRIALS,
+/**
+ * Neighbours: how far apart old neighbours (card c and card c + 1) now sit, compared with how far apart a random deck
+ * puts them. It reads the share of pairs at distances a random deck wouldn't produce. That catches neighbours left too
+ * close, as the overhand leaves them, and neighbours spread too evenly, as a pile deal or an early mash spreads them.
+ */
+export const neighbours: Metric = {
+  key: 'neighbours',
+  category: 'neighbours',
+  title: 'Neighbours',
+  trials: RUN_DECKS,
   batch: (deckSize) => {
     const counts = new Int32Array(gapBins(deckSize).expected.length)
-    return { add: (deck) => addGaps(counts, deck), value: () => gapChiSquare(counts, PER_DECK_TRIALS, deckSize) }
+    return { add: (deck) => addGaps(counts, deck), value: () => mismatch(counts, gapBins(deckSize).expected) }
   },
-  calibration: {
-    kind: 'batches',
-    size: PER_DECK_TRIALS,
-    // The batch chi-square's own spread. With fewer than two batches, fall back to the chi-square distribution's mean
-    // and spread for the bin count.
-    finish: (chis, deckSize) => {
-      const freedom = gapBins(deckSize).expected.length - 1
-      const mean = chis.length >= 2 ? chis.reduce((a, b) => a + b, 0) / chis.length : freedom
-      const spread = chis.length >= 2 ? Math.sqrt(chis.reduce((a, x) => a + (x - mean) ** 2, 0) / (chis.length - 1)) : Math.sqrt(2 * freedom)
-      return { mean, standardDeviation: spread, threshold: mean + 3 * spread }
-    },
-  },
+  calibration: { kind: 'batches' },
 }

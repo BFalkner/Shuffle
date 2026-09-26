@@ -1,11 +1,11 @@
-// Measurement: run a routine many times and read every test at every step. Dealing the decks lives in runs.ts.
+// Measurement: run a routine many times and read every metric at every step. Dealing the decks lives in runs.ts.
 import { getBase, type Base } from './calibrate.ts'
 import type { DeckKind } from './decks.ts'
 import { METRICS } from './metrics.ts'
 import type { Batch } from './metrics/types.ts'
 import type { OpKey } from './moves.ts'
 import { applyMove, dealRuns, type Apply } from './runs.ts'
-import { compositeScore, passWith, type Averages } from './scoring.ts'
+import { categoryReadings, totalLevel, type Averages, type CategoryReading } from './scoring.ts'
 
 /** Decks per run: as many as the metric that reads the most. Each metric reads the first `trials` of them. */
 const T_TOTAL = Math.max(...METRICS.map((metric) => metric.trials))
@@ -21,7 +21,7 @@ export interface MethodResult {
 }
 
 /**
- * Run a routine T_TOTAL times and average every diagnostic at every step. With steps = 'ends', only the start and the
+ * Run a routine T_TOTAL times and read every metric at every step. With steps = 'ends', only the start and the
  * last step are measured (the others read NaN): enough to score a routine, and much faster for searches. `apply` performs
  * each move; the search replaces it with a perfect shuffle to measure a truly random deck for reference.
  */
@@ -45,9 +45,9 @@ export function computeResult(
     deckSize,
     seq,
     T_TOTAL,
-    (trial, step, deck, types) => {
+    (trial, step, deck, types, start) => {
       METRICS.forEach((metric, index) => {
-        if (trial < metric.trials) batches[index][step]!.add(deck, types)
+        if (trial < metric.trials) batches[index][step]!.add(deck, types, start)
       })
     },
     measured,
@@ -65,19 +65,15 @@ export function computeResult(
 }
 
 export interface Scored {
-  /** diagnostics passed at the final step */
-  passCount: number
-  /** composite score 0–1 */
-  score: number
-  /** names of diagnostics still failing */
-  fails: string[]
+  /** each category's reading at the final step */
+  categories: CategoryReading[]
+  /** the sum of the categories' levels: 0 is random, and an unshuffled sorted deck reads about 4 */
+  total: number
+  /** categories within the noise of random */
+  clearCount: number
 }
 
 export function scoreResult(result: MethodResult): Scored {
-  const failing = METRICS.filter((metric) => !passWith(metric, result.avg[metric.key][result.moveCount], result.base))
-  return {
-    passCount: METRICS.length - failing.length,
-    score: compositeScore(result.avg, result.base),
-    fails: failing.map((metric) => metric.title),
-  }
+  const categories = categoryReadings(result.avg, result.base, result.moveCount)
+  return { categories, total: totalLevel(categories), clearCount: categories.filter((reading) => reading.clear).length }
 }

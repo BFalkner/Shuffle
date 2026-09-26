@@ -9,25 +9,25 @@ export const applyMove: Apply = (deck, op) => OPS[op](deck)
 
 /**
  * Deal `trials` starting decks of `kind`, put each through `seq`, and call `visit` with the deck at every step that
- * `measured` accepts (step 0 is the starting deck). Decks go through in trial order, and each finishes its routine
- * before the next is dealt, so the random numbers are drawn in the same order every time.
+ * `measured` accepts (step 0 is the starting deck), along with the starting deck. Decks go through in trial order, and
+ * each finishes its routine before the next is dealt, so the random numbers are drawn in the same order every time.
  */
 export function dealRuns(
   kind: DeckKind,
   deckSize: number,
   seq: OpKey[],
   trials: number,
-  visit: (trial: number, step: number, deck: Deck, types: CardTypes) => void,
+  visit: (trial: number, step: number, deck: Deck, types: CardTypes, start: Deck) => void,
   measured: (step: number) => boolean = () => true,
   apply: Apply = applyMove,
 ): void {
   for (let trial = 0; trial < trials; trial++) {
     const start = startDeck(kind, deckSize)
     let deck = start.deck
-    visit(trial, 0, deck, start.types)
+    visit(trial, 0, deck, start.types, start.deck)
     for (let step = 0; step < seq.length; step++) {
       deck = apply(deck, seq[step])
-      if (measured(step + 1)) visit(trial, step + 1, deck, start.types)
+      if (measured(step + 1)) visit(trial, step + 1, deck, start.types, start.deck)
     }
   }
 }

@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState, type ReactNode } from 'react'
 import type { Experiment } from './experiments'
-import { METRICS } from '../../engine/metrics'
+import { CATEGORIES } from '../../engine/metrics'
+import { fmtLevel } from '../../engine/scoring'
 import { PencilIcon, PulseIcon } from './icons'
 import type { ScoredResult } from './types'
 
@@ -19,7 +20,7 @@ interface Props {
   panel: ReactNode
 }
 
-/** Every saved method, ranked by score under the current deck. */
+/** Every saved method, ranked by its total under the current deck: closest to random first. */
 export default function MethodList({ experiments, results, pending, colors, openId, onOpen, onToggleOverlay, onEdit, onReset, panel }: Props) {
   if (pending > 0) {
     const done = experiments.length - pending
@@ -34,7 +35,7 @@ export default function MethodList({ experiments, results, pending, colors, open
 
   const ranked = experiments
     .map((experiment) => ({ experiment, result: results.get(experiment.id)! }))
-    .sort((left, right) => right.result.score - left.result.score)
+    .sort((left, right) => left.result.total - right.result.total)
 
   return (
     <div className="cmplist">
@@ -50,7 +51,7 @@ export default function MethodList({ experiments, results, pending, colors, open
                 {experiment.title}
               </span>
               <span className="cmpscore">
-                <b>{Math.round(result.score * 100)}%</b> · {result.passCount}/{METRICS.length}
+                <b>{fmtLevel(result.total)}</b> · {result.clearCount}/{CATEGORIES.length} clear
               </span>
               <span
                 className={`expov${color ? ' on' : ''}`}
