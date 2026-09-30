@@ -84,7 +84,7 @@
 <h1>How the simulator works</h1>
 <p class="lead">This page follows one routine from the moment you pick it in the simulator to the scores on the screen. Each section has its own diagram. Click a diagram to see it full size, and press Escape or click again to close it.</p>
 
-<p>The code has no classes. It has two kinds of things. The first is plain data: a deck is a list of card numbers, top card first, and a routine is a list of move names such as <code>["mash", "mash", "pile"]</code>. The second is functions that take data and return new data. <code>mash(deck)</code> returns a new, shuffled deck and leaves the old one alone. Each file holds the functions for one step, so the files read like chapters. If you think in classes, treat a file such as <code>moves.ts</code> as a class with only static methods. The four metrics are the nearest thing to objects: each is a small object with the same fields, like four classes that implement one interface.</p>
+<p>The code has no classes. It has two kinds of things. The first is plain data: a deck is a list of card numbers, top card first, and a routine is a list of move names such as <code>["mash", "mash", "pile"]</code>. The second is functions that take data and return new data. <code>mash(deck)</code> returns a new, shuffled deck and leaves the old one alone. Each file holds the functions for one step, so the files read like chapters. If you think in classes, treat a file such as <code>moves.ts</code> as a class with only static methods. The five metrics are the nearest thing to objects: each is a small object with the same fields, like five classes that implement one interface.</p>
 
 <p>All engine files are in <code>src/engine/</code> and all simulator page files are in <code>src/pages/Simulator/</code>. The diagrams give paths from <code>src/</code>.</p>
 
@@ -174,7 +174,8 @@
 <div class="table-wrap">
 <table>
   <tr><th>Metric</th><th>Category</th><th>Each deck adds</th><th>The batch's value</th></tr>
-  <tr><td>Sequence</td><td>sequence</td><td>For each pair of old neighbours, whether it is still in its old order</td><td>Each pair's balance over the batch, from −1 (always reversed) to +1 (always kept), without its sign, so kept order and reversed order both read high. The pairs are combined with <code>powerMean</code>. Reading each pair on its own stops pairs that a routine keeps from cancelling out pairs it reverses.</td></tr>
+  <tr><td>Neighbour order</td><td>order</td><td>For each pair of old neighbours, whether it is still in its old order</td><td>Each pair's balance over the batch, from −1 (always reversed) to +1 (always kept), without its sign, so kept order and reversed order both read high. The pairs are combined with <code>powerMean</code>. Reading each pair on its own stops pairs that a routine keeps from cancelling out pairs it reverses.</td></tr>
+  <tr><td>Pair order</td><td>order</td><td>Kendall's tau: of every pair of cards, at every spacing, the share still in their old order minus the share reversed, from −1 to +1</td><td>The average, without its sign. It catches a faint order spread across the whole deck that neighbour order, which reads only old neighbours, misses.</td></tr>
   <tr><td>Proximity</td><td>proximity</td><td>How far apart each pair of old neighbours now sits, counted into bins: one bin per distance up to 40% of the deck, then 3 bins for longer distances</td><td><code>mismatch</code> against the distances in a random deck</td></tr>
   <tr><td>Position</td><td>position</td><td>For each card, which tenth of the deck it ends in, counted separately for each starting place</td><td><code>mismatch</code> against an even 10% per tenth for each starting place. The places are combined with <code>powerMean</code>, so a few cards that stay put, such as the mash's top and bottom cards, still count.</td></tr>
   <tr><td>Distinguishability</td><td>none</td><td>Five numbers describing the deck: the average and spread of the jumps between neighbouring card numbers, the share of small jumps, the share of jumps of 1, and how closely each card number tracks the next. Only the first 1,000 decks are used.</td><td>A small classifier learns to tell these decks from 1,000 random ones. The value is its accuracy on decks it didn't train on. 50% means it can't tell them apart.</td></tr>
@@ -185,7 +186,7 @@
 <!-- ============================================================ -->
 <h2 id="s7"><span class="num">7</span>Scoring turns numbers into levels</h2>
 <p>The raw values use different scales, so <code>scoring.ts</code> puts each one on the same scale, called a <em>level</em>. Level 0 is what random decks read on average, and level 1 is what a sorted deck that was never shuffled reads.</p>
-<p>Random decks don't read exactly 0 every time. A metric counts as within noise when its level is under three standard deviations of the random readings. Each category holds one metric, so a category's level is its metric's level. The total adds up the three categories, so a sorted deck totals about 3. Distinguishability appears next to them but isn't part of the total.</p>
+<p>Random decks don't read exactly 0 every time. A metric counts as within noise when its level is under three standard deviations of the random readings. Order holds two metrics, neighbour order and pair order, and reads the worse of the two. Proximity and position hold one each. A category is clear only when every metric in it is within noise. The total adds up the three categories, so a sorted deck totals about 3. Distinguishability appears next to them but isn't part of the total.</p>
 <p>The summary uses the last step. The charts use the same <code>level</code> function at every step.</p>
 <figure class="diagram" data-diagram="s7"></figure>
 <p class="files">File: <code>engine/scoring.ts</code>. <code>scoreResult</code> is in <code>engine/simulate.ts</code>.</p>
@@ -342,8 +343,8 @@ s7: `flowchart TD
   input["MethodResult: avg and base"]
   level["level = (value − mean) ÷ (sorted − mean)<br/>0 = random on average<br/>1 = sorted and never shuffled"]
   noise["within noise if<br/>level ≤ 3 × standardDeviation ÷ #124;sorted − mean#124;"]
-  cat["For each category:<br/>sequence = Sequence<br/>proximity = Proximity<br/>position = Position"]
-  worst["Category level = its metric's level<br/>clear = the metric is within noise"]
+  cat["For each category:<br/>order = Neighbour order, Pair order<br/>proximity = Proximity<br/>position = Position"]
+  worst["Category level = its worst metric's level<br/>clear = every metric is within noise"]
   total["total = sum of the 3 category levels<br/>clearCount = how many are clear"]
   out["Scored<br/>categories, total, clearCount"]
   input --> level --> noise --> cat --> worst --> total --> out`,

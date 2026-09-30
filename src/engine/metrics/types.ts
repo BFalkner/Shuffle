@@ -1,12 +1,12 @@
 import type { Deck } from '../moves.ts'
 
-export type MetricKey = 'sequence' | 'proximity' | 'position' | 'classifier'
+export type MetricKey = 'neighbourOrder' | 'pairOrder' | 'proximity' | 'position' | 'classifier'
 
 /**
  * The three kinds of leftover order a shuffle can leave behind. Each metric belongs to one, except distinguishability,
  * the catch-all, which is reported alongside them.
  */
-export type Category = 'sequence' | 'proximity' | 'position'
+export type Category = 'order' | 'proximity' | 'position'
 
 /** A metric's reading of random decks, which is its level 0, and of an unshuffled sorted deck, which is its level 1. */
 export interface Baseline {

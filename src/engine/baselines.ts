@@ -6,9 +6,14 @@ export const CALIBRATION_BATCHES = 1000
 
 export const BASELINES: Record<number, Base> = {
   "52": {
-    "sequence": {
+    "neighbourOrder": {
       "mean": 0.037152957253662834,
       "standardDeviation": 0.004611521993475788,
+      "sorted": 1
+    },
+    "pairOrder": {
+      "mean": 0.0022155065359477076,
+      "standardDeviation": 0.001692899848831732,
       "sorted": 1
     },
     "proximity": {
@@ -28,9 +33,14 @@ export const BASELINES: Record<number, Base> = {
     }
   },
   "60": {
-    "sequence": {
+    "neighbourOrder": {
       "mean": 0.03743479643413356,
       "standardDeviation": 0.0042217906274403475,
+      "sorted": 1
+    },
+    "pairOrder": {
+      "mean": 0.002009551789077213,
+      "standardDeviation": 0.0015340387063572992,
       "sorted": 1
     },
     "proximity": {
@@ -50,9 +60,14 @@ export const BASELINES: Record<number, Base> = {
     }
   },
   "99": {
-    "sequence": {
+    "neighbourOrder": {
       "mean": 0.03770931314233977,
       "standardDeviation": 0.0032080653612105076,
+      "sorted": 1
+    },
+    "pairOrder": {
+      "mean": 0.0015645427059712762,
+      "standardDeviation": 0.0012146935949025064,
       "sorted": 1
     },
     "proximity": {

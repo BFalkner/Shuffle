@@ -4,6 +4,7 @@ import { describe, expect, test } from 'vitest'
 import { getBase } from './calibrate.ts'
 import { posOf, sortedDeck } from './decks.ts'
 import { METRICS } from './metrics.ts'
+import { kendallTau } from './metrics/pairOrder.ts'
 import { orderBalance } from './metrics/neighbourOrder.ts'
 import { OPS, type OpKey } from './moves.ts'
 import { OP_COST } from './routines.ts'
@@ -76,6 +77,15 @@ describe('riffle model anchors', () => {
 
   const mixedDecks = (count: number) =>
     Array.from({ length: count }, () => runSeq(Array(8).fill('mash'), 99))
+
+  test("Kendall's tau matches a direct count of pairs in their old order", () => {
+    const decks = [sortedDeck(9), sortedDeck(9).toReversed(), [3, 5, 2, 1, 7, 4, 0, 8, 6], ...mixedDecks(5)]
+    const direct = (deck: number[]) => {
+      const pairs = deck.flatMap((card, place) => deck.slice(place + 1).map((later) => (later > card ? 1 : -1)))
+      return pairs.reduce((total: number, sign) => total + sign, 0) / pairs.length
+    }
+    decks.forEach((deck) => expect(kendallTau(deck)).toBeCloseTo(direct(deck), 12))
+  })
 
   test('eight mashes leave old neighbours in order about half the time, as a random deck does', () => {
     const balances = mixedDecks(800).map(orderBalance)

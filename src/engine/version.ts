@@ -22,6 +22,9 @@
  * 10 sequence and position read each part on its own (each pair of old neighbours, each starting place) and combine
  *    the parts with a power mean (p = 4), not one balance over all pairs or the worst starting place. Changes both
  *    metrics' readings and baselines. Proximity and distinguishability don't change
+ * 11 the sequence category gains a second metric, pair order (Kendall's tau over every pair of cards), and reads the
+ *    worse of the two. The category is renamed order, and its first metric neighbour order. The other metrics'
+ *    readings and baselines don't change, but the category's levels, totals and clean runs can
  */
-export const ENGINE_VERSION = 10
-export const ENGINE_FINGERPRINT = 'b0186188'
+export const ENGINE_VERSION = 11
+export const ENGINE_FINGERPRINT = 'eead305b'

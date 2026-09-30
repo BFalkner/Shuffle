@@ -207,7 +207,7 @@
 
 .sim .charts {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.6rem;
 }
 
@@ -261,7 +261,7 @@
 .sim .chart svg {
   display: block;
   width: 100%;
-  height: 46px;
+  height: 60px;
   margin-top: 0.2rem;
   overflow: visible;
 }

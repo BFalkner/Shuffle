@@ -13,8 +13,12 @@ export interface MetricText {
 const FULL = 'Full write-up'
 
 export const METRIC_TEXT: Record<MetricKey, MetricText> = {
-  sequence: {
+  neighbourOrder: {
     desc: 'Whether cards that started next to each other still come in the same order. A random deck keeps half of them in order. The mash keeps most of them. The overhand reverses most of them, which counts too.',
+    writeup: { to: '/order-tests', label: FULL },
+  },
+  pairOrder: {
+    desc: 'Of every pair of cards, not just neighbours, how many are still in their old order. A random deck keeps half. It catches a faint order spread across the whole deck, which slower routines leave behind after the neighbours look random.',
     writeup: { to: '/order-tests', label: FULL },
   },
   proximity: {
