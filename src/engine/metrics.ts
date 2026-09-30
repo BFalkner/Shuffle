@@ -1,7 +1,7 @@
 // The metrics, in display order, and the categories they belong to. Each metric lives in its own file in metrics/, which
 // says what it measures, how many decks it reads and how it reads them.
 import type { Category, Metric, MetricKey } from './metrics/types.ts'
-import { sequence } from './metrics/sequence.ts'
+import { sequence } from './metrics/neighbourOrder.ts'
 import { proximity } from './metrics/proximity.ts'
 import { position } from './metrics/position.ts'
 import { distinguishability } from './metrics/distinguishability.ts'
