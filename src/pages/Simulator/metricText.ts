@@ -14,23 +14,23 @@ const FULL = 'Full write-up'
 
 export const METRIC_TEXT: Record<MetricKey, MetricText> = {
   neighbourOrder: {
-    desc: 'Whether cards that started next to each other still come in the same order. A random deck keeps half of them in order. The mash keeps most of them. The overhand reverses most of them, which counts too.',
+    desc: 'For each card, whether the card that followed it in the old order still comes after it, across the shuffled decks. The more consistently a pair lands one way, kept or reversed, the more it counts. It shows whether old neighbours land predictably.',
     writeup: { to: '/order-tests', label: FULL },
   },
   pairOrder: {
-    desc: 'Of every pair of cards, not just neighbours, how many are still in their old order. A random deck keeps half. It catches a faint order spread across the whole deck, which slower routines leave behind after the neighbours look random.',
+    desc: 'It looks at every pair of cards, not just neighbours, and compares how many are still in their old order with how many are reversed. It catches a faint lean toward the old order across the whole deck, such as played cards spread through it.',
     writeup: { to: '/order-tests', label: FULL },
   },
   proximity: {
-    desc: 'How far apart cards that started next to each other end up, compared with a random deck. The overhand leaves them too close. A pile deal or an early mash spreads them <i>too</i> evenly. Both count.',
+    desc: 'How many places apart old neighbours end up, and how many land at distances a random deck wouldn’t produce. It shows whether cards that sat together stay close, as after an overhand, or spread <i>too</i> evenly, as after a pile.',
     writeup: { to: '/order-tests', label: FULL },
   },
   position: {
-    desc: 'Whether a card’s starting place tells you where it ends up. It weights the worst starting places heavily, so a few cards that stay put still count, like the mash’s top and bottom cards. A pile deal fails it completely.',
+    desc: 'For each starting place, which tenth of the deck its card ends in, compared with an even spread. A few bad places count heavily. It shows whether knowing where a card started tells you where it is now, like the mash’s top and bottom cards.',
     writeup: { to: '/global-tests', label: FULL },
   },
   classifier: {
-    desc: 'A classifier learns to tell these decks from random ones. It catches patterns the three categories don’t look for. It isn’t part of the total, and its readings are noisier than the others.',
+    desc: 'A simple classifier learns to tell these decks from random ones, then guesses on decks it hasn’t seen. The value is how often it’s right, where 50% is a coin flip. It catches patterns the other tests miss, and isn’t part of the total.',
     writeup: { to: '/global-tests', label: FULL },
   },
 }

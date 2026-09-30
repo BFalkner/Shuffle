@@ -1,5 +1,5 @@
 import type { Metric } from '../../engine/metrics'
-import { fmtLevel, level } from '../../engine/scoring'
+import { level } from '../../engine/scoring'
 import type { Series } from './types'
 
 interface Props {
@@ -50,10 +50,10 @@ export default function MetricChart({ metric, series, width, big = false, step }
           <line x1={padLeft} y1={padTop} x2={padLeft} y2={baseY} stroke="#cdc3b2" />
           <line x1={padLeft} y1={baseY} x2={plotR} y2={baseY} stroke="#cdc3b2" />
           <text className="bcaxis" x={padLeft - 3} y={padTop + 3} textAnchor="end">
-            {fmtLevel(high)}
+            {high.toFixed(2)}
           </text>
           <text className="bcaxis" x={padLeft - 3} y={baseY} textAnchor="end">
-            {fmtLevel(low)}
+            {low.toFixed(2)}
           </text>
           <text className="bcaxis" x={padLeft} y={baseY + 12}>
             start

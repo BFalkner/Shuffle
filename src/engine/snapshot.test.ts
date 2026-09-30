@@ -85,8 +85,8 @@ const EXPECTED: Record<string, string> = {
   'M×3·OHt·M from played': '41f294cd',
   'OH×2·OHb·M×2 from sorted': '2bcbceae',
   'OH×2·OHb·M×2 from played': '7075b32c',
-  'metric metadata': 'f2914571',
-  'levels, noise and formatting': '2a20cb40',
+  'metric metadata': 'ae5608a6',
+  'levels, noise and formatting': '159c2058',
   'M×3·OHt·M from played, every step': '9e904f71',
 }
 

@@ -79,8 +79,7 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
         <MetricChart metric={metric} series={series} width={width} big step={step} />
       </div>
       <div className="bcsub">
-        <RichText text={text.desc} /> <Link to={text.writeup.to}>{text.writeup.label}</Link>. A random deck reads 0, give or take{' '}
-        {fmtLevel(noiseLevel(metric, base))}, and a sorted deck that was never shuffled reads 1. At the end: {fmtLevel(fin)}.
+        <RichText text={text.desc} /> <Link to={text.writeup.to}>{text.writeup.label}</Link>. A random deck reads up to {fmtLevel(noiseLevel(metric, base))}, and a sorted deck that was never shuffled reads 1.
       </div>
       {legend}
     </div>

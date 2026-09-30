@@ -5,6 +5,8 @@
   --bg: #f7f3ed;
   --ink: #18140f;
   --dim: #8a7f72;
+  /* running text in grey: darker than --dim so small paragraphs stay readable on --bg */
+  --soft: #5c5348;
   --rule: #ddd5c8;
   --surface: #fff;
   --accent: #1a6b3a;
@@ -12,8 +14,8 @@
   --shadow: rgba(60, 45, 20, 0.12);
 
   --font-serif: 'Playfair Display', serif;
-  --font-mono: 'DM Mono', monospace;
-  --font-sans: 'DM Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   /* card-slide duration; scaled by the animation speed setting */
   --dur: 0.95s;

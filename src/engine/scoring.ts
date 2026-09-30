@@ -58,7 +58,12 @@ export function totalLevel(readings: CategoryReading[]): number {
   return readings.reduce((total, reading) => total + reading.level, 0)
 }
 
-/** A level to two decimal places, without a minus sign on values that round to 0. */
+/**
+ * A level to two decimal places, or three below 0.01 so readings near the noise line don't all show as 0.00, without a
+ * minus sign on values that round to 0.
+ */
 export function fmtLevel(value: number): string {
-  return Math.abs(value) < 0.005 ? '0.00' : value.toFixed(2)
+  const decimals = Math.abs(value) < 0.01 ? 3 : 2
+  const text = value.toFixed(decimals)
+  return Number(text) === 0 ? (0).toFixed(decimals) : text
 }
