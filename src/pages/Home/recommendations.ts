@@ -11,9 +11,9 @@ export interface Recommendation {
 
 export const RECOMMENDATIONS: Recommendation[] = [
   {
-    name: '3 mashes, half overhand, 1 mash',
+    name: '3 mashes, half overhand, 2 mashes',
     crown: 'Between games',
-    blurb: 'After a game, the cards you played go back on top in a clump. Three mashes spread that clump through the deck. Then cut, overhand the top half, and mash once more. The overhand stacks its packets in reverse order, so any run longer than a packet is cut apart, however the mashes fell. It takes five moves. Our finer tests still find traces of the old order, and the footnote has the numbers.',
+    blurb: 'After a game, the cards you played go back on top in a clump. Three mashes spread that clump through the deck. Then cut, overhand the top half, and mash twice more. The overhand stacks its packets in reverse order, so any run longer than a packet is cut apart, however the mashes fell. It takes six moves. Our tests still find traces of the old order, and the footnote has the numbers.',
   },
   {
     name: '5 mashes, pile, 5 mashes',

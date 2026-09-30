@@ -271,10 +271,8 @@ export default function Home() {
         each, a full overhand costs 2, and a pile costs 4. The pile&rsquo;s cost is a guess until we time it. We ran each routine 200 times from each of the
         four starting decks. A run counts as a pass only when it clears every test. From a sorted deck, 5 mashes, a pile and 5 mashes passed 198 of 200,
         as often as a perfectly random deck, and it passed at least 196 from each of the other decks. Eight plain mashes passed 184 from a sorted deck.
-        Between games, plain mashing passes more often. From a played deck, 3 mashes, a half overhand and a mash passed none of 200 runs. Every run
-        failed neighbour gaps, which finds old neighbours at slightly the wrong distances, and 36 also failed clump rate. Seven plain mashes passed 197.
-        Over 20,000 single shuffles, the shorter routine left no longer runs of spells, and no more spells side by side, than a random deck, even in
-        the worst game in 100. A test passes when the deck is within three standard deviations of a random deck. For a
+        From a played deck, 3 mashes, a half overhand and 2 mashes passed none of 200 runs. Most of what the tests found was position: where a card
+        started still hints at where it ends up. Seven plain mashes, one move more, passed 3. A test passes when the deck is within three standard deviations of a random deck. For a
         99-card deck, that means about 41.3 to 58.7 runs for ordering and about 5.4 to 12.9 close pairs for proximity. Random decks average {DATA.randomDeck.seq} runs and{' '}
         {DATA.randomDeck.cp} close pairs. Figures in the steps above come from 1,200 simulated decks per routine.
       </p>
