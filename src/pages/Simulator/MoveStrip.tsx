@@ -1,8 +1,8 @@
-import { useEffect, useRef, type FocusEvent } from 'react'
+import { useEffect, useRef, type FocusEvent, type MouseEvent } from 'react'
 import { Button, GridList, GridListItem, useDrag, useDragAndDrop, type DropItem } from 'react-aria-components'
 import { isOpKey, type OpKey } from '../../engine/moves'
 import { OP_NAME, OP_TOKEN } from '../../engine/routines'
-import { MOVE_TYPE, TOKEN_TYPE, holdMove, stripDropTarget } from './stripDrag'
+import { MOVE_TYPE, TOKEN_TYPE, gapAt, holdMove, stripDropTarget } from './stripDrag'
 import type { RoutineEditor } from './useRoutineEditor'
 
 /** The move a move button's drag carries, if the drop has one. */
@@ -13,8 +13,8 @@ async function droppedMove(items: DropItem[]): Promise<OpKey | null> {
 }
 
 /**
- * The moves as tokens, with a caret between two of them. Click a token to put the caret after it, or Start to put it
- * before the first move; with a token focused, the arrow keys move between tokens and the caret follows. Drag a token to
+ * The moves as tokens, with a caret between two of them. Click a token to put the caret after it, Start to put it before
+ * the first move, or the space between moves to put it in the nearest gap; with a token focused, the arrow keys move between tokens and the caret follows. Drag a token to
  * move it, or drop it anywhere outside the strip to take it out. Drop a move button's move between two tokens to add it
  * there.
  */
@@ -60,8 +60,21 @@ export default function MoveStrip({ seq, editor }: { seq: OpKey[]; editor: Routi
     if (key != null) editor.setCaret(Number(key) + 1)
   }
 
+  // A click on the strip's background (between moves, after them, or in the margin around the strip) puts the caret in the
+  // nearest gap, and focus on the move before it, so the keys act there next.
+  const placeCaret = (event: MouseEvent<HTMLDivElement>) => {
+    const strip = stripRef.current
+    const list = strip?.querySelector('.strip-list')
+    if (!strip || !list || (event.target as HTMLElement).closest('[data-key], .strip-start')) return
+    const gap = gapAt(list, event.clientX, event.clientY)
+    const next = gap ? gap.index + (gap.position === 'after' ? 1 : 0) : 0
+    editor.setCaret(next)
+    const target = next === 0 ? strip.querySelector('.strip-start') : strip.querySelector(`[data-key="${next - 1}"]`)
+    if (target instanceof HTMLElement) target.focus()
+  }
+
   return (
-    <div ref={stripRef} className="strip" onFocus={followFocus}>
+    <div ref={stripRef} className="strip" onFocus={followFocus} onClick={placeCaret}>
       <Button className={`strip-start${caret === 0 ? ' at' : ''}`} aria-label="Start: put the caret before the first move" onPress={() => editor.setCaret(0)}>
         Start
       </Button>

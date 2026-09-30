@@ -456,6 +456,8 @@
   background: var(--panel);
   border: 1px solid var(--rule);
   border-radius: 9px;
+  /* Between moves reads like text: click to put the caret there. The moves and Start keep the pointer. */
+  cursor: text;
 }
 
 /* The list is the drop target for moves, and it reaches --strip-reach past the strip's border on the top, right and

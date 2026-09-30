@@ -43,30 +43,35 @@ export function heldMoveCentre(zoneSelector: string, x: number, y: number): { x:
 }
 
 /**
- * Where a move dropped on the strip lands. The strip's drop area reaches a little past its border, and React Aria's own
- * delegate only reads a point inside the rows of moves: below the last row it lands before the last move. This one moves
- * the pointer into the nearest row first, then picks the gap by how far across that row it is: before the first move
- * whose middle is to its right, or after the row's last move.
+ * The gap in the strip nearest a point on the screen, as the move beside it: before the first move in the nearest row
+ * whose middle is to the point's right, or after that row's last move. The point may be outside the rows of moves (in the
+ * margin around the strip, say); it is read against the nearest row. Undefined when the strip has no moves.
+ */
+export function gapAt(list: Element, pointX: number, pointY: number): { index: number; position: 'before' | 'after' } | undefined {
+  const rects = [...list.querySelectorAll('[data-key]')].map((move) => move.getBoundingClientRect())
+  if (!rects.length) return undefined
+  // The row nearest the point: the move whose top-to-bottom span is closest to it, and every move level with it.
+  const gapTo = (rect: DOMRect) => Math.max(rect.top - pointY, pointY - rect.bottom, 0)
+  const nearest = rects.reduce((best, rect, index) => (gapTo(rect) < gapTo(rects[best]) ? index : best), 0)
+  const row = rects.flatMap((rect, index) => (Math.abs(rect.top - rects[nearest].top) < 2 ? [index] : []))
+  const before = row.find((index) => pointX < rects[index].left + rects[index].width / 2)
+  return before !== undefined ? { index: before, position: 'before' } : { index: row[row.length - 1], position: 'after' }
+}
+
+/**
+ * Where a move dropped on the strip lands: the gap nearest the pointer (see gapAt). The strip's drop area reaches a
+ * little past its border, and React Aria's own delegate only reads a point inside the rows of moves, so below the last
+ * row it put the drop before the last move.
  */
 export function stripDropTarget(listSelector: string): DropTargetDelegate {
   return {
     // x and y are relative to the top left of the list.
     getDropTargetFromPoint(x, y) {
-      const list = document.querySelector<HTMLElement>(listSelector)
-      const moves = list ? [...list.querySelectorAll<HTMLElement>('[data-key]')] : []
-      if (!list || !moves.length) return { type: 'root' }
-      const origin = list.getBoundingClientRect()
-      const pointX = origin.left + x
-      const pointY = origin.top + y
-      const rects = moves.map((move) => move.getBoundingClientRect())
-      // The row nearest the pointer: the move whose top-to-bottom span is closest to it, and every move level with it.
-      const gapTo = (rect: DOMRect) => Math.max(rect.top - pointY, pointY - rect.bottom, 0)
-      const nearest = rects.reduce((best, rect, index) => (gapTo(rect) < gapTo(rects[best]) ? index : best), 0)
-      const row = rects.flatMap((rect, index) => (Math.abs(rect.top - rects[nearest].top) < 2 ? [index] : []))
-      const before = row.find((index) => pointX < rects[index].left + rects[index].width / 2)
-      return before !== undefined
-        ? { type: 'item', key: moves[before].dataset.key!, dropPosition: 'before' }
-        : { type: 'item', key: moves[row[row.length - 1]].dataset.key!, dropPosition: 'after' }
+      const list = document.querySelector(listSelector)
+      const origin = list?.getBoundingClientRect()
+      const gap = list && origin ? gapAt(list, origin.left + x, origin.top + y) : undefined
+      if (!gap) return { type: 'root' }
+      return { type: 'item', key: String(gap.index), dropPosition: gap.position }
     },
   }
 }
