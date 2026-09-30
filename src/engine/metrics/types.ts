@@ -1,6 +1,6 @@
 import type { Deck } from '../moves.ts'
 
-export type MetricKey = 'sequence' | 'proximity' | 'spread' | 'ends' | 'classifier'
+export type MetricKey = 'sequence' | 'proximity' | 'position' | 'classifier'
 
 /**
  * The three kinds of leftover order a shuffle can leave behind. Each metric belongs to one, except distinguishability,

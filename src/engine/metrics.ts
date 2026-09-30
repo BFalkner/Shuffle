@@ -3,13 +3,12 @@
 import type { Category, Metric, MetricKey } from './metrics/types.ts'
 import { sequence } from './metrics/sequence.ts'
 import { proximity } from './metrics/proximity.ts'
-import { spread } from './metrics/spread.ts'
-import { ends } from './metrics/ends.ts'
+import { position } from './metrics/position.ts'
 import { distinguishability } from './metrics/distinguishability.ts'
 
 export type { Category, Metric, MetricKey } from './metrics/types.ts'
 
-export const METRICS: Metric[] = [sequence, proximity, spread, ends, distinguishability]
+export const METRICS: Metric[] = [sequence, proximity, position, distinguishability]
 
 export const CATEGORIES: { key: Category; title: string }[] = [
   { key: 'sequence', title: 'Sequence' },

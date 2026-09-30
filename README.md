@@ -102,13 +102,13 @@ src/
 ### How the engine judges a deck
 
 Each shuffle leaves a different kind of leftover order, so the engine
-groups its metrics into three categories:
+reads one metric for each kind:
 
-| Category   | Metrics        | What it looks for                                            |
-| ---------- | -------------- | ------------------------------------------------------------ |
-| Sequence   | Sequence       | Old neighbours still in their old order, or reliably reversed |
-| Proximity  | Proximity      | Old neighbours too close together, or spread too evenly      |
-| Position   | Spread, Ends   | A card's starting place predicting where it ends up          |
+| Metric     | What it looks for                                                         |
+| ---------- | ------------------------------------------------------------------------- |
+| Sequence   | Old neighbours still in their old order, or reliably reversed             |
+| Proximity  | Old neighbours too close together, or spread too evenly                   |
+| Position   | A card's starting place predicting where it ends up, at the worst place   |
 
 Each metric reads a run of 1,200 decks and gives a level: how far the
 run is from random. A level of 0 is what random decks read on average,
@@ -117,10 +117,12 @@ vary a little either side of 0.
 Each metric's baseline (its random reading, how much that varies, and
 its sorted reading) is stored in `src/engine/baselines.ts`.
 
-A category reads its worst metric. A routine's total is the sum of its
-three categories, so a sorted deck totals 3. A category is "clear" when
-all its metrics are within three standard deviations of random. The
-clear count is shown, but routines are ranked by the total.
+A routine's total is the sum of the three levels, so a sorted deck
+totals 3. A metric is "clear" when it is within three standard
+deviations of random. The clear count is shown, but routines are ranked
+by the total. In the code each metric is its own category
+(`CATEGORIES` in `src/engine/metrics.ts`), and a category reads its
+worst metric, so a category's level is its metric's level.
 
 Distinguishability, a classifier trained to tell the decks from random
 ones, is the catch-all. It is reported next to the categories but is
@@ -140,8 +142,8 @@ deck. For each finalist and starting deck, the search prints the total as
 a mean and standard deviation, each category's average level, and the
 number of runs with every category clear, with a 95% interval. A
 reference row measures perfectly shuffled decks the same way. Its total
-is a little above 0, and that is the floor to compare the finalists
-against.
+averages 0 and varies a little either side, which shows how close to 0 a
+finalist can be expected to get.
 To change the limits, pass options after `--`, for example
 `npm run search -- --max-cost 6 --from sorted`. Add `--json results.json`
 to save the full statistics for every category. To test specific routines

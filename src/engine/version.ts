@@ -16,6 +16,9 @@
  *    The order and neighbours metrics and categories become sequence and proximity; their values don't change
  * 8  the woven and clumped decks, card types and the lands metric are removed, leaving three categories. A sorted deck
  *    totals about 3, not 4. Every other metric reads the same values from the sorted and played decks
+ * 9  ends is removed and spread is renamed position, so each category holds one metric. Position reads what spread did,
+ *    and sequence, proximity and distinguishability don't change. Totals drop by the old ends level wherever ends was
+ *    the worse of the two
  */
-export const ENGINE_VERSION = 8
-export const ENGINE_FINGERPRINT = 'f055dac7'
+export const ENGINE_VERSION = 9
+export const ENGINE_FINGERPRINT = 'a7e529d2'

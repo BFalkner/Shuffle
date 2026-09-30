@@ -1,4 +1,4 @@
-import { CATEGORIES, METRICS, metricsIn, type Metric, type MetricKey } from '../../engine/metrics'
+import { METRICS, type Metric, type MetricKey } from '../../engine/metrics'
 import { fmtLevel, level, withinNoise } from '../../engine/scoring'
 import { useElementWidth } from '../../hooks/useElementWidth'
 import MetricChart from './MetricChart'
@@ -11,22 +11,13 @@ interface Props {
   step: number | null
 }
 
-/** The small charts, grouped by category, with the catch-all last; click one to see it large. */
+/** The small charts, one per metric in display order; click one to see it large. */
 export default function DiagnosticGrid({ series, selected, onSelect, step }: Props) {
-  const groups: [string, Metric[]][] = [
-    ...CATEGORIES.map(({ key, title }): [string, Metric[]] => [title, metricsIn(key)]),
-    ['Catch-all', METRICS.filter((metric) => metric.category === null)],
-  ]
   return (
     <div className="charts">
-      {groups.map(([title, metrics]) => [
-        <div key={title} className="cgrouph">
-          {title}
-        </div>,
-        ...metrics.map((metric) => (
-          <ChartTile key={metric.key} metric={metric} series={series} step={step} selected={selected === metric.key} onClick={() => onSelect(selected === metric.key ? null : metric.key)} />
-        )),
-      ])}
+      {METRICS.map((metric) => (
+        <ChartTile key={metric.key} metric={metric} series={series} step={step} selected={selected === metric.key} onClick={() => onSelect(selected === metric.key ? null : metric.key)} />
+      ))}
     </div>
   )
 }

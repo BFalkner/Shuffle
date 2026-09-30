@@ -175,8 +175,8 @@ const stage3 = finalists.map((seq, index) => {
   return routineStats(seq, finalRuns)
 })
 stage3.sort(byWeakestDeck)
-// Reference: one perfect shuffle, measured the same way. A random deck's total averages a little above 0, because the
-// position category reads the larger of two noisy readings, so this shows the floor the finalists are compared against.
+// Reference: one perfect shuffle, measured the same way. A random deck's total averages 0 and varies a little either
+// side, so this shows how close to 0 a finalist can be expected to get.
 const reference = routineStats(['mash'], finalRuns, (deck) => fisher(deck.length))
 clearProgress()
 console.log(`  Each category's level is how far it sits from random: 0 is a random deck, and 1 is a sorted deck that was never`)
