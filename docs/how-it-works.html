@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How the simulator works</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f3ed;
+    --ink: #18140f;
+    --dim: #6f655a;
+    --rule: #ddd5c8;
+    --surface: #fff;
+    --accent: #1a6b3a;
+    --code-bg: #efe8dc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.6 'DM Sans', sans-serif;
+  }
+  main { max-width: 60rem; margin: 0 auto; padding: 2.5rem 1rem 5rem; }
+  h1, h2 { font-family: 'Playfair Display', serif; font-weight: 600; line-height: 1.25; }
+  h1 { font-size: 2.2rem; margin: 0 0 0.5rem; }
+  h2 { font-size: 1.5rem; margin: 3.5rem 0 0.75rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); }
+  h2 .num { color: var(--accent); margin-right: 0.5rem; font-family: 'DM Sans', sans-serif; font-weight: 700; }
+  h3 { font-size: 1.05rem; margin: 1.75rem 0 0.5rem; }
+  p, li { max-width: 44rem; }
+  a { color: var(--accent); }
+  code {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.86em;
+    background: var(--code-bg);
+    padding: 0.08em 0.3em;
+    border-radius: 3px;
+  }
+  .lead { font-size: 1.1rem; color: var(--dim); }
+  .files { font-size: 0.9rem; color: var(--dim); }
+  .toc { columns: 2 16rem; padding-left: 1.2rem; }
+  .toc li { break-inside: avoid; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.92rem; background: var(--surface); }
+  th, td { text-align: left; vertical-align: top; padding: 0.5rem 0.7rem; border: 1px solid var(--rule); }
+  th { background: var(--code-bg); font-weight: 500; }
+  .table-wrap { overflow-x: auto; }
+
+  figure.diagram {
+    margin: 1.25rem 0;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1rem;
+    overflow-x: auto;
+    cursor: zoom-in;
+    position: relative;
+  }
+  figure.diagram svg { display: block; margin: 0 auto; height: auto; }
+  figure.diagram figcaption {
+    font-size: 0.8rem;
+    color: var(--dim);
+    text-align: right;
+    margin-top: 0.5rem;
+  }
+  figure.diagram.zoomed {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    margin: 0;
+    border-radius: 0;
+    overflow: auto;
+    cursor: zoom-out;
+    padding: 2rem;
+  }
+  figure.diagram.zoomed svg { margin: 0; }
+  .error { color: #c0392b; font-family: 'DM Mono', monospace; white-space: pre-wrap; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>How the simulator works</h1>
+<p class="lead">This page follows one routine from the moment you pick it in the simulator to the scores on the screen. Each section has its own diagram. Click a diagram to see it full size, and press Escape or click again to close it.</p>
+
+<p>The code has no classes. It has two kinds of things. The first is plain data: a deck is a list of card numbers, top card first, and a routine is a list of move names such as <code>["mash", "mash", "pile"]</code>. The second is functions that take data and return new data. <code>mash(deck)</code> returns a new, shuffled deck and leaves the old one alone. Each file holds the functions for one step, so the files read like chapters. If you think in classes, treat a file such as <code>moves.ts</code> as a class with only static methods. The four metrics are the nearest thing to objects: each is a small object with the same fields, like four classes that implement one interface.</p>
+
+<p>All engine files are in <code>src/engine/</code> and all simulator page files are in <code>src/pages/Simulator/</code>. The diagrams give paths from <code>src/</code>.</p>
+
+<h2 id="overview">The whole path at a glance</h2>
+<p>Click a box to jump to its section.</p>
+<figure class="diagram" data-diagram="overview"></figure>
+
+<ol class="toc">
+  <li><a href="#s1">The page keeps your routines</a></li>
+  <li><a href="#s2">The page computes results in the background</a></li>
+  <li><a href="#s3"><code>computeResult</code> opens one tally per metric per step</a></li>
+  <li><a href="#s4"><code>dealRuns</code> puts 1,200 decks through the routine</a></li>
+  <li><a href="#s5">Each move returns a new deck</a></li>
+  <li><a href="#s6">Every metric reads every deck</a></li>
+  <li><a href="#s7">Scoring turns numbers into levels</a></li>
+  <li><a href="#s8">The page draws the results</a></li>
+  <li><a href="#s9">Two scripts run outside the browser</a></li>
+</ol>
+
+<!-- ============================================================ -->
+<h2 id="s1"><span class="num">1</span>The page keeps your routines</h2>
+<p>The simulator calls a saved routine an <em>experiment</em>. An experiment has an <code>id</code>, a <code>title</code>, and a <code>seq</code>, the list of moves. The page loads the list from your browser's <code>localStorage</code> when it opens and writes it back after every change. If nothing is saved, it starts from the defaults in <code>experiments.ts</code>.</p>
+<p>The page also holds the deck you chose (its kind and size) and which experiments are shown on the charts. It deals one starting deck for the card animations. That deck is only for the animations. The measurements deal their own decks in section 4.</p>
+<figure class="diagram" data-diagram="s1"></figure>
+<p class="files">Files: <code>pages/Simulator/Simulator.tsx</code>, <code>pages/Simulator/experiments.ts</code></p>
+
+<!-- ============================================================ -->
+<h2 id="s2"><span class="num">2</span>The page computes results in the background</h2>
+<p>One experiment takes 1,200 decks through every step of its routine, so the whole list takes a while. The hook <code>useMethodResults</code> spreads that work out so the page doesn't freeze. It works for up to 120 ms, hands control back to the browser, and continues on the next tick. Experiments shown on the charts go first.</p>
+<p>Finished results go into a cache that lasts until you reload the page. The cache key is the deck kind, the deck size, and the moves. Two experiments with the same moves share a result, and switching the deck back to an earlier choice costs nothing.</p>
+<figure class="diagram" data-diagram="s2"></figure>
+<p class="files">File: <code>pages/Simulator/useMethodResults.ts</code></p>
+
+<!-- ============================================================ -->
+<h2 id="s3"><span class="num">3</span><code>computeResult</code> opens one tally per metric per step</h2>
+<p><code>computeResult</code> is the engine's entry point. It first gets the baselines for the deck size. A baseline records what a metric reads for random decks and for a sorted deck, and section 7 uses it to turn readings into levels. The sizes the site offers (99, 60, and 52) have stored baselines. Any other size is calibrated on the spot from 40 batches and kept for the rest of the visit.</p>
+<p>It then opens a <em>batch</em> for every metric at every step. A batch is a running tally: you add decks to it one at a time and ask it for one number at the end. A routine of 11 moves has 12 steps (the starting deck plus one after each move), so it opens 4 × 12 = 48 batches.</p>
+<figure class="diagram" data-diagram="s3"></figure>
+<p class="files">Files: <code>engine/simulate.ts</code>, <code>engine/calibrate.ts</code>, <code>engine/baselines.ts</code></p>
+
+<!-- ============================================================ -->
+<h2 id="s4"><span class="num">4</span><code>dealRuns</code> puts 1,200 decks through the routine</h2>
+<p><code>dealRuns</code> deals a fresh starting deck, shows it to the metrics, and then does each move in turn, showing the deck to the metrics after every move. It repeats that for 1,200 decks. Each deck finishes its routine before the next one is dealt, so the random numbers come out in the same order every time. The seeded tests rely on that order.</p>
+<p><code>dealRuns</code> doesn't measure anything itself. It calls a <code>visit</code> function with each deck, and <code>computeResult</code> supplies that function. Section 6 shows what <code>visit</code> does.</p>
+<figure class="diagram" data-diagram="s4"></figure>
+
+<h3>The two starting decks</h3>
+<p>A card is just a number. <code>startDeck</code> returns one of two decks:</p>
+<div class="table-wrap">
+<table>
+  <tr><th>Kind</th><th>Card order</th></tr>
+  <tr><td><code>sorted</code></td><td>0, 1, 2, and so on to the last card, like a freshly built deck</td></tr>
+  <tr><td><code>played</code></td><td>The sorted deck mashed 7 times, then the top 30 cards put back in number order, like cards gathered after a game</td></tr>
+</table>
+</div>
+<p class="files">Files: <code>engine/runs.ts</code>, <code>engine/decks.ts</code></p>
+
+<!-- ============================================================ -->
+<h2 id="s5"><span class="num">5</span>Each move returns a new deck</h2>
+<p>Every move takes a deck and returns a new one. <code>OPS</code> maps each move name to its function.</p>
+<div class="table-wrap">
+<table>
+  <tr><th>Name in <code>seq</code></th><th>Token</th><th>Function</th><th>What it does</th></tr>
+  <tr><td><code>mash</code></td><td>M</td><td><code>mash</code></td><td>Cut the deck, then interleave the halves with <code>riffle</code> (diagram below).</td></tr>
+  <tr><td><code>overhand</code></td><td>OH</td><td><code>overhand</code></td><td>Take packets off the top and drop each one on the last. Packet sizes are random with an average of 3 and a limit of 8. The packets end up in reverse order.</td></tr>
+  <tr><td><code>pile</code></td><td>P</td><td><code>pile</code></td><td>Deal into 6 piles in turn, each card on top of its pile, then stack the piles. It uses no random numbers, so a given deck always gives the same result.</td></tr>
+  <tr><td><code>ohr</code></td><td>OHt</td><td><code>ohTop</code></td><td>Cut the deck and overhand only the top half.</td></tr>
+  <tr><td><code>ohb</code></td><td>OHb</td><td><code>ohBottom</code></td><td>Cut the deck and overhand only the bottom half.</td></tr>
+</table>
+</div>
+<p>Every cut uses <code>cut</code>. It picks a place from a bell curve centred on the middle of the deck, with a standard deviation of 7% of the deck, and keeps the cut inside the middle third.</p>
+
+<h3>How <code>riffle</code> interleaves two halves</h3>
+<p>The riffle is the core of the mash model. The packet sizes come from a mash the project's author measured by hand. A packet is scaled by how many cards its half still holds, so the thicker half drops faster and both halves run out at about the same time.</p>
+<figure class="diagram" data-diagram="s5"></figure>
+<p class="files">File: <code>engine/moves.ts</code>. Costs and short names are in <code>engine/routines.ts</code>.</p>
+
+<!-- ============================================================ -->
+<h2 id="s6"><span class="num">6</span>Every metric reads every deck</h2>
+<p>A metric is an object with a <code>key</code>, a <code>category</code>, a <code>title</code>, a <code>trials</code> count, a <code>calibration</code>, and a <code>batch</code> function that opens a new tally. Each time <code>visit</code> runs, it adds the deck to every metric's batch for that step. When all 1,200 decks are done, <code>computeResult</code> asks every batch for its value. The values form <code>avg[metric][step]</code>, and that table is most of the <code>MethodResult</code>.</p>
+<figure class="diagram" data-diagram="s6"></figure>
+
+<h3>What each metric counts</h3>
+<p>Two of the metrics finish with <code>mismatch</code>, found in <code>metrics/types.ts</code>. It compares the shares a run put in each bin with the shares a random deck would put there. The result is 0 when they match and 1 when every observation lands where a random deck never puts one. Statisticians call it the total variation distance.</p>
+<p>"Old neighbours" are cards that started next to each other: card <em>c</em> and card <em>c</em> + 1.</p>
+<div class="table-wrap">
+<table>
+  <tr><th>Metric</th><th>Category</th><th>Each deck adds</th><th>The batch's value</th></tr>
+  <tr><td>Sequence</td><td>sequence</td><td>The share of old neighbours still in their old order, as a number from −1 (all reversed) to +1 (all kept)</td><td>The average, without its sign. Kept order and reversed order both read high.</td></tr>
+  <tr><td>Proximity</td><td>proximity</td><td>How far apart each pair of old neighbours now sits, counted into bins: one bin per distance up to 40% of the deck, then 3 bins for longer distances</td><td><code>mismatch</code> against the distances in a random deck</td></tr>
+  <tr><td>Position</td><td>position</td><td>For each card, which tenth of the deck it ends in, counted separately for each starting place</td><td><code>mismatch</code> against an even 10% per tenth for each starting place. The value is the worst place, so a few cards that stay put, such as the mash's top and bottom cards, count in full.</td></tr>
+  <tr><td>Distinguishability</td><td>none</td><td>Five numbers describing the deck: the average and spread of the jumps between neighbouring card numbers, the share of small jumps, the share of jumps of 1, and how closely each card number tracks the next. Only the first 1,000 decks are used.</td><td>A small classifier learns to tell these decks from 1,000 random ones. The value is its accuracy on decks it didn't train on. 50% means it can't tell them apart.</td></tr>
+</table>
+</div>
+<p class="files">Files: <code>engine/metrics.ts</code>, <code>engine/metrics/*.ts</code>, <code>engine/classifier.ts</code></p>
+
+<!-- ============================================================ -->
+<h2 id="s7"><span class="num">7</span>Scoring turns numbers into levels</h2>
+<p>The raw values use different scales, so <code>scoring.ts</code> puts each one on the same scale, called a <em>level</em>. Level 0 is what random decks read on average, and level 1 is what a sorted deck that was never shuffled reads.</p>
+<p>Random decks don't read exactly 0 every time. A metric counts as within noise when its level is under three standard deviations of the random readings. Each category holds one metric, so a category's level is its metric's level. The total adds up the three categories, so a sorted deck totals about 3. Distinguishability appears next to them but isn't part of the total.</p>
+<p>The summary uses the last step. The charts use the same <code>level</code> function at every step.</p>
+<figure class="diagram" data-diagram="s7"></figure>
+<p class="files">File: <code>engine/scoring.ts</code>. <code>scoreResult</code> is in <code>engine/simulate.ts</code>.</p>
+
+<!-- ============================================================ -->
+<h2 id="s8"><span class="num">8</span>The page draws the results</h2>
+<p>When results arrive, the page builds one <em>series</em> for each experiment shown on the charts: the result and its score, plus a name and a colour. The panels read those series. The first series decides the summary. The card animation in the method panel doesn't use the results at all. It runs the routine once on the page's starting deck with <code>runStates</code> and shows each step.</p>
+<figure class="diagram" data-diagram="s8"></figure>
+<p class="files">Files: <code>pages/Simulator/*.tsx</code>, <code>components/MiniDeck.tsx</code>, <code>components/tracking.ts</code></p>
+
+<!-- ============================================================ -->
+<h2 id="s9"><span class="num">9</span>Two scripts run outside the browser</h2>
+<p>You run these in a terminal with Node. They use the same engine functions as the page.</p>
+<p><code>npm run calibrate</code> produces the stored baselines. For each deck size it reads 1,000 batches of 1,200 random decks, and it seeds the random numbers so the output is the same every time. It writes the results to <code>engine/baselines.ts</code>. Distinguishability doesn't need decks for its baseline. It uses fixed values: 50% for random and 100% for sorted.</p>
+<p><code>npm run search</code> finds the routines the home page recommends. It measures only the first and last steps, which makes each run much faster. Each stage keeps fewer routines and runs each one more times.</p>
+<figure class="diagram" data-diagram="s9"></figure>
+<p class="files">Files: <code>scripts/calibrate.ts</code>, <code>scripts/search.ts</code>. The options for the search are listed at the top of its file.</p>
+
+</main>
+
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@12.0.0/dist/mermaid.esm.min.mjs'
+
+// Diagram sources. Mermaid reads "#lt;" as "<" and "#124;" as "|".
+const DIAGRAMS = {
+overview: `flowchart TD
+  s1["1. Simulator page<br/>keeps your routines"]
+  s2["2. useMethodResults<br/>computes in 120 ms bursts"]
+  s3["3. computeResult<br/>opens the tallies"]
+  s4["4. dealRuns<br/>1,200 decks through the routine"]
+  s5["5. Moves<br/>mash, overhand, pile"]
+  s6["6. Metrics<br/>read every deck"]
+  s7["7. Scoring<br/>levels and categories"]
+  s8["8. Page<br/>draws the results"]
+  s9["9. Scripts<br/>calibrate and search"]
+  s1 -- "experiments, deck kind and size" --> s2
+  s2 -- "one experiment" --> s3
+  s3 --> s4
+  s4 -- "deck and move" --> s5
+  s5 -- "new deck" --> s4
+  s4 -- "each deck at each step" --> s6
+  s6 -- "MethodResult" --> s7
+  s7 -- "Scored" --> s2
+  s2 -- "ScoredResult" --> s8
+  s9 -. "stored baselines" .-> s3
+  click s1 href "#s1"
+  click s2 href "#s2"
+  click s3 href "#s3"
+  click s4 href "#s4"
+  click s5 href "#s5"
+  click s6 href "#s6"
+  click s7 href "#s7"
+  click s8 href "#s8"
+  click s9 href "#s9"`,
+
+s1: `flowchart TD
+  load["loadExperiments()<br/>reads localStorage key 'shuffleExperiments'"]
+  saved{"Anything saved?"}
+  defaults["defaultExperiments()<br/>SEED + EXAMPLES with new ids"]
+  fix["Unknown move names become 'overhand'.<br/>Missing EXAMPLES are added once<br/>(flag 'shuffleExamplesV2')."]
+  state["State in Simulator.tsx<br/>kind = 'sorted', deckSize = 99<br/>experiments<br/>overlaid = ids shown on the charts"]
+  save["saveExperiments()<br/>runs after every change"]
+  starting["startDeck(kind, deckSize)<br/>one deck for the animations only"]
+  hook["useMethodResults(experiments, kind, deckSize, overlaid)<br/>section 2"]
+  builder["MethodBuilder<br/>saves a new or edited routine"]
+  load --> saved
+  saved -- no --> defaults --> state
+  saved -- yes --> fix --> state
+  state --> save
+  state --> starting
+  state --> hook
+  builder --> state`,
+
+s2: `flowchart TD
+  lookup["For each experiment, look in CACHE<br/>key = kind #124; deckSize #124; moves"]
+  tick["Next tick: setTimeout(tick, 0)"]
+  todo{"Any experiment<br/>not cached yet?"}
+  prio["Put experiments shown<br/>on the charts first"]
+  compute["computeResult(kind, deckSize, seq)<br/>then scoreResult(result)<br/>sections 3 to 7"]
+  store["Store result and score in CACHE"]
+  slice{"More than 120 ms<br/>since this tick began?"}
+  rerender["Re-render the page.<br/>It reads the new cache entries."]
+  idle(["Stop: every experiment is cached"])
+  lookup --> tick --> todo
+  todo -- no --> idle
+  todo -- yes --> prio --> compute --> store --> slice
+  slice -- "no: next experiment" --> compute
+  slice -- yes --> rerender --> tick`,
+
+s3: `flowchart TD
+  total["T_TOTAL = the most decks any metric reads = 1,200"]
+  getbase{"getBase(deckSize):<br/>stored baseline for this size?"}
+  stored[("BASELINES for 99, 60, and 52 cards<br/>mean, standardDeviation, sorted<br/>for each metric")]
+  cached{"Already calibrated<br/>this visit?"}
+  live["calibrate(deckSize, 40)<br/>and keep it in BASE_CACHE"]
+  batches["For each of the 4 metrics and each step:<br/>batches[metric][step] = metric.batch(deckSize)"]
+  deal["dealRuns(...)<br/>section 4"]
+  total --> getbase
+  getbase -- yes --> stored --> batches
+  getbase -- no --> cached
+  cached -- yes --> batches
+  cached -- no --> live --> batches
+  batches --> deal`,
+
+s4: `flowchart TD
+  first["trial = 0"]
+  start["startDeck(kind, deckSize)<br/>returns the starting deck"]
+  v0["visit(trial, step 0, deck, start)"]
+  more{"More moves<br/>in seq?"}
+  move["deck = OPS[move](deck)<br/>section 5"]
+  measured{"Measure this step?<br/>(always, except in the search)"}
+  vn["visit(trial, step, deck, start)<br/>section 6"]
+  next{"trial + 1 #lt; 1,200?"}
+  done(["Back to computeResult"])
+  first --> start --> v0 --> more
+  more -- yes --> move --> measured
+  measured -- yes --> vn --> more
+  measured -- no --> more
+  more -- no --> next
+  next -- "yes: next trial" --> start
+  next -- no --> done`,
+
+s5: `flowchart TD
+  cut["cut(deck size) picks where to split"]
+  halves["top half, bottom half"]
+  side["Pick a random half to start"]
+  both{"Do both halves<br/>still hold cards?"}
+  packet["Draw a packet size:<br/>1, 2, 3, or 4 cards<br/>with weights 80, 15, 4, 1"]
+  scale["Multiply by this half's share:<br/>cards it holds ÷ average cards held"]
+  round["Round up or down at random, in proportion.<br/>Keep between 1 and the cards it holds."]
+  drop["Move that many cards from the top of this half<br/>to the bottom of the new deck"]
+  switch["Switch to the other half"]
+  rest["Add the rest of the half<br/>that still has cards"]
+  out(["New deck"])
+  cut --> halves --> side --> both
+  both -- yes --> packet --> scale --> round --> drop --> switch --> both
+  both -- no --> rest --> out`,
+
+s6: `flowchart TD
+  open["metric.batch(deckSize)<br/>opens an empty tally<br/>(section 3)"]
+  visit["visit(trial, step, deck, start)"]
+  check{"trial #lt; metric.trials?<br/>(1,200 for all but<br/>distinguishability: 1,000)"}
+  add["batch.add(deck, start)"]
+  skip["Skip this metric"]
+  value["After all decks:<br/>avg[metric.key][step] = batch.value()<br/>Unmeasured steps are NaN."]
+  result["MethodResult<br/>deckSize, kind, seq, moveCount,<br/>base, avg"]
+  open --> visit --> check
+  check -- yes --> add
+  check -- no --> skip
+  add -. "1,200 decks later" .-> value
+  value --> result`,
+
+s7: `flowchart TD
+  input["MethodResult: avg and base"]
+  level["level = (value − mean) ÷ (sorted − mean)<br/>0 = random on average<br/>1 = sorted and never shuffled"]
+  noise["within noise if<br/>level ≤ 3 × standardDeviation ÷ #124;sorted − mean#124;"]
+  cat["For each category:<br/>sequence = Sequence<br/>proximity = Proximity<br/>position = Position"]
+  worst["Category level = its metric's level<br/>clear = the metric is within noise"]
+  total["total = sum of the 3 category levels<br/>clearCount = how many are clear"]
+  out["Scored<br/>categories, total, clearCount"]
+  input --> level --> noise --> cat --> worst --> total --> out`,
+
+s8: `flowchart TD
+  results["results from useMethodResults<br/>one ScoredResult<br/>per experiment"]
+  series["Series[]<br/>experiments on the charts:<br/>result + name, colour"]
+  summary["SummaryPanel<br/>first series:<br/>categories, total"]
+  grid["DiagnosticGrid<br/>a chart per metric,<br/>level at every step"]
+  h2h["HeadToHead<br/>closest to random,<br/>metric by metric"]
+  list["MethodList<br/>every experiment<br/>with its total"]
+  panel["MethodPanel<br/>runStates() animates<br/>one deck in MiniDeck"]
+  builder["MethodBuilder<br/>edit the moves<br/>and save"]
+  results --> series
+  results --> list
+  series --> summary
+  series --> grid
+  series --> h2h
+  list -- open --> panel
+  list -- edit --> builder`,
+
+s9: `flowchart TD
+  subgraph cal ["npm run calibrate"]
+    direction TB
+    c1["For 99, 60, and 52 cards:<br/>seed the random numbers"]
+    c2["Read 1,000 batches of 1,200 random decks.<br/>Each batch gives one value per metric."]
+    c3["mean and standardDeviation of those values.<br/>sorted = one batch of sorted decks."]
+    c4[("Write engine/baselines.ts")]
+    c1 --> c2 --> c3 --> c4
+  end
+  subgraph search ["npm run search"]
+    direction TB
+    s1["Stage 1: every routine costing up to 7<br/>(mash 1, half overhand 1, overhand 2, pile 4)<br/>one run each from the played deck"]
+    s2["Stage 2: the best 32, 5 runs from each<br/>starting deck, ranked by the weakest deck"]
+    s3["Stage 3: the best 6, 200 runs from each deck.<br/>Mean total, and clear runs with a 95% interval"]
+    s4["Reference row: the same measurements<br/>with a perfect shuffle as the move"]
+    s1 --> s2 --> s3 --> s4
+  end`,
+}
+
+mermaid.initialize({
+  startOnLoad: false,
+  securityLevel: 'loose',
+  theme: 'base',
+  themeVariables: {
+    fontFamily: 'DM Sans, sans-serif',
+    fontSize: '15px',
+    primaryColor: '#f7f3ed',
+    primaryBorderColor: '#8a7f72',
+    primaryTextColor: '#18140f',
+    lineColor: '#6f655a',
+    clusterBkg: '#fbf8f3',
+    clusterBorder: '#ddd5c8',
+    edgeLabelBackground: '#ffffff',
+  },
+  // Draw every diagram at its natural size. A diagram wider than the column scrolls instead of shrinking its text.
+  flowchart: { useMaxWidth: false, htmlLabels: true, nodeSpacing: 30, rankSpacing: 40, wrappingWidth: 320 },
+})
+
+// Mermaid sizes each box from the text it measures, so the font must be loaded first or the text overflows its box.
+await Promise.all([document.fonts.load('15px "DM Sans"'), document.fonts.load('500 15px "DM Sans"')])
+await document.fonts.ready
+
+for (const figure of document.querySelectorAll('figure.diagram')) {
+  const name = figure.dataset.diagram
+  try {
+    const { svg, bindFunctions } = await mermaid.render('diagram-' + name, DIAGRAMS[name])
+    figure.innerHTML = svg + '<figcaption>Click to enlarge</figcaption>'
+    bindFunctions?.(figure)
+  } catch (error) {
+    figure.innerHTML = '<p class="error">Diagram "' + name + '" failed to draw: ' + error.message + '</p>'
+  }
+}
+
+// Enlarge a diagram to its natural size. Clicks on links inside it still navigate.
+const close = (figure) => {
+  figure.classList.remove('zoomed')
+  const svg = figure.querySelector('svg')
+  if (svg) {
+    svg.style.width = ''
+    svg.style.maxWidth = svg.dataset.maxWidth ?? ''
+  }
+  figure.querySelector('figcaption').textContent = 'Click to enlarge'
+}
+document.addEventListener('click', (event) => {
+  if (event.target.closest('a')) {
+    const open = document.querySelector('figure.diagram.zoomed')
+    if (open) close(open)
+    return
+  }
+  const figure = event.target.closest('figure.diagram')
+  if (!figure) return
+  const svg = figure.querySelector('svg')
+  if (!svg) return
+  if (figure.classList.contains('zoomed')) return close(figure)
+  svg.dataset.maxWidth = svg.style.maxWidth
+  const natural = svg.viewBox.baseVal.width
+  svg.style.maxWidth = 'none'
+  svg.style.width = natural * 1.5 + 'px'
+  figure.classList.add('zoomed')
+  figure.querySelector('figcaption').textContent = 'Click or press Escape to close'
+})
+document.addEventListener('keydown', (event) => {
+  const open = document.querySelector('figure.diagram.zoomed')
+  if (event.key === 'Escape' && open) close(open)
+})
+</script>
+</body>
+</html>
