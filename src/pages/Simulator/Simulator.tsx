@@ -9,7 +9,7 @@ import { ANIMATION_SETTINGS, useAnimationSetting } from '../../hooks/useAnimatio
 import { useTitle } from '../../hooks/useTitle'
 import DeckView from './DeckView'
 import DiagnosticGrid from './DiagnosticGrid'
-import { defaultExperiments, loadExperiments, methodName, saveExperiments, uid, type Experiment } from './experiments'
+import { defaultExperiments, loadExperiments, methodName, saveExperiments, startsShown, uid, type Experiment } from './experiments'
 import HeadToHead from './HeadToHead'
 import MethodList, { type MethodRow } from './MethodList'
 import MetricDetail from './MetricDetail'
@@ -42,7 +42,7 @@ export default function Simulator() {
   const [activeId, setActiveId] = useState<string | undefined>(() => experiments[0]?.id)
   const active = experiments.find((experiment) => experiment.id === activeId) ?? experiments[0]
   // Methods drawn on the charts beside the active one, which is always drawn.
-  const [shownIds, setShownIds] = useState<string[]>(() => experiments.map((experiment) => experiment.id))
+  const [shownIds, setShownIds] = useState<string[]>(() => experiments.filter(startsShown).map((experiment) => experiment.id))
   const [metric, setMetric] = useState<MetricKey | null>(null)
   // A move from the strip is being held far enough outside it that letting go would take it out.
   const [removing, setRemoving] = useState(false)
@@ -107,7 +107,7 @@ export default function Simulator() {
   const reset = () => {
     const fresh = defaultExperiments()
     setExperiments(fresh)
-    setShownIds(fresh.map((experiment) => experiment.id))
+    setShownIds(fresh.filter(startsShown).map((experiment) => experiment.id))
     setActiveId(fresh[0]?.id)
   }
 

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'vitest'
 import { isOpKey } from '../../engine/moves'
-import { SEED, loadExperiments, methodName } from './experiments'
+import { DEFAULTS_VERSION, SEED, loadExperiments, methodName, startsShown } from './experiments'
 
 describe('seeded methods', () => {
   const all = SEED.map((experiment) => ({ id: '', ...experiment }))
@@ -16,6 +16,10 @@ describe('seeded methods', () => {
     const names = all.map(methodName)
     expect(new Set(names).size).toBe(names.length)
   })
+
+  test('the recommendations start on the charts, and plain mashing starts off them', () => {
+    expect(all.filter(startsShown).map((experiment) => experiment.name)).toEqual(['Between games', 'New or sorted deck'])
+  })
 })
 
 describe('loading saved methods', () => {
@@ -29,7 +33,7 @@ describe('loading saved methods', () => {
   afterEach(() => storage.clear())
 
   test('an old title that only repeated the moves is dropped, so the name follows edits', () => {
-    save([{ id: 'a', title: 'M×2·P', seq: ['mash', 'mash', 'pile'] }], 3)
+    save([{ id: 'a', title: 'M×2·P', seq: ['mash', 'mash', 'pile'] }], DEFAULTS_VERSION)
     expect(loadExperiments()).toEqual([{ id: 'a', seq: ['mash', 'mash', 'pile'] }])
   })
 
@@ -39,7 +43,7 @@ describe('loading saved methods', () => {
         { id: 'a', title: 'My routine', seq: ['mash'] },
         { id: 'b', title: 'Between games — 3× Mash, Half overhand, 2× Mash', seq: ['mash'] },
       ],
-      3,
+      DEFAULTS_VERSION,
     )
     expect(loadExperiments().map((experiment) => experiment.name)).toEqual(['My routine', 'Between games'])
   })
@@ -52,7 +56,7 @@ describe('loading saved methods', () => {
   })
 
   test('unknown moves become overhands', () => {
-    save([{ id: 'a', seq: ['mash', 'riffle'] }], 3)
+    save([{ id: 'a', seq: ['mash', 'riffle'] }], DEFAULTS_VERSION)
     expect(loadExperiments()[0].seq).toEqual(['mash', 'overhand'])
   })
 })

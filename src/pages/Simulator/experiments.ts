@@ -16,13 +16,24 @@ const DEFAULTS_VERSION_KEY = 'shuffleDefaultsVersion'
  * Bump when SEED gains a method. A saved list from an older version gets the new defaults added (matched by moves),
  * and nothing it already holds is removed.
  */
-const DEFAULTS_VERSION = 3
+export const DEFAULTS_VERSION = 4
+
+const EIGHT_MASHES: OpKey[] = ['mash', 'mash', 'mash', 'mash', 'mash', 'mash', 'mash', 'mash']
 
 /** The default list. */
 export const SEED: Omit<Experiment, 'id'>[] = [
   { name: 'Between games', seq: ['mash', 'mash', 'mash', 'ohr', 'mash', 'mash'] },
   { name: 'New or sorted deck', seq: ['mash', 'mash', 'mash', 'mash', 'mash', 'pile', 'mash', 'mash', 'mash', 'mash', 'mash'] },
+  { name: "Mash x8", seq: EIGHT_MASHES },
 ]
+
+/** Defaults listed for comparison that start off the charts, matched by moves. */
+const OFF_CHART = new Set([EIGHT_MASHES.join(',')])
+
+/** Whether a method starts ticked to show on the charts. */
+export function startsShown(experiment: Experiment): boolean {
+  return !OFF_CHART.has(experiment.seq.join(','))
+}
 
 /** Titles the defaults had before names and moves were shown separately, and the names they become. */
 const OLD_DEFAULT_TITLES: Record<string, string> = {
