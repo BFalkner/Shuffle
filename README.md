@@ -62,7 +62,7 @@ src/
     version.test.ts         the engine-version fingerprint
 
   components/               reusable UI pieces
-    MiniDeck.tsx            the animated tile grid (simulator panels and builder)
+    MiniDeck.tsx            the animated tile grid (the simulator's example deck)
     deckColors.ts           how decks are coloured on the page
     tracking.ts             following individual cards through a shuffle
     RichText.tsx            renders <i>…</i> in metric descriptions
@@ -92,8 +92,9 @@ src/
   `src/pages/Home/recommendations.ts`.
 - **Change the default method list** → `SEED` in
   `src/pages/Simulator/experiments.ts`. Methods people saved themselves live in their
-  browser's localStorage and aren't affected; "reset list to defaults" in
-  the simulator reloads these.
+  browser's localStorage. When you add a default, bump `DEFAULTS_VERSION` in the
+  same file: saved lists then get the new default added and keep everything else.
+  "Reset to the default methods" in the simulator replaces a saved list with these.
 - **Edit page text** → the page's `.tsx` file under `src/pages/`.
 - **Styling** → the page's `.css` file. Each page's rules are prefixed with
   that page's root class (`.sim`, `.home`, `.writeup`) so class

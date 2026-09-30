@@ -1,34 +1,35 @@
 import { useEffect, useState } from 'react'
 
-const SETTINGS = [
-  { label: 'slow', speed: 0.5, enabled: true },
-  { label: 'normal', speed: 1, enabled: true },
-  { label: 'fast', speed: 2, enabled: true },
-  { label: 'off', speed: 1, enabled: false },
+export const ANIMATION_SETTINGS = [
+  { label: 'Slow', speed: 0.5, enabled: true },
+  { label: 'Normal', speed: 1, enabled: true },
+  { label: 'Fast', speed: 2, enabled: true },
+  { label: 'Off', speed: 1, enabled: false },
 ] as const
 
+export type AnimationLabel = (typeof ANIMATION_SETTINGS)[number]['label']
+
 export interface AnimationSetting {
-  label: string
+  label: AnimationLabel
   /** multiplier: 2 = twice as fast */
   speed: number
   enabled: boolean
-  /** advance to the next setting (slow → normal → fast → off → slow) */
-  cycle: () => void
+  choose: (label: AnimationLabel) => void
 }
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)')
 
-/** Card-animation speed, starting at "off" for people who prefer reduced motion. */
+/** Card-animation speed, starting at "Off" for people who prefer reduced motion. */
 export function useAnimationSetting(): AnimationSetting {
-  const [idx, setIdx] = useState(() => (reducedMotion().matches ? 3 : 1))
+  const [label, setLabel] = useState<AnimationLabel>(() => (reducedMotion().matches ? 'Off' : 'Normal'))
 
   useEffect(() => {
     const reducedMotionQuery = reducedMotion()
-    const onChange = (event: MediaQueryListEvent) => setIdx(event.matches ? 3 : 1)
+    const onChange = (event: MediaQueryListEvent) => setLabel(event.matches ? 'Off' : 'Normal')
     reducedMotionQuery.addEventListener('change', onChange)
     return () => reducedMotionQuery.removeEventListener('change', onChange)
   }, [])
 
-  const setting = SETTINGS[idx]
-  return { ...setting, cycle: () => setIdx((current) => (current + 1) % SETTINGS.length) }
+  const setting = ANIMATION_SETTINGS.find((candidate) => candidate.label === label)!
+  return { ...setting, choose: setLabel }
 }

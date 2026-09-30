@@ -106,17 +106,18 @@
 
 <!-- ============================================================ -->
 <h2 id="s1"><span class="num">1</span>The page keeps your routines</h2>
-<p>The simulator calls a saved routine an <em>experiment</em>. An experiment has an <code>id</code>, a <code>title</code>, and a <code>seq</code>, the list of moves. The page loads the list from your browser's <code>localStorage</code> when it opens and writes it back after every change. If nothing is saved, it starts from the defaults in <code>experiments.ts</code>.</p>
-<p>The page also holds the deck you chose (its kind and size) and which experiments are shown on the charts. It deals one starting deck for the card animations. That deck is only for the animations. The measurements deal their own decks in section 4.</p>
+<p>The simulator calls a saved routine an <em>experiment</em>. An experiment has an <code>id</code>, a <code>seq</code> (the list of moves), and a <code>name</code> only if you typed one. Without a name, the page calls the experiment by its moves in notation, so the name follows every edit. The page loads the list from your browser's <code>localStorage</code> when it opens and writes it back after every change. If nothing is saved, it starts from the defaults in <code>experiments.ts</code>. A list saved before the defaults last changed gets any new default added, and keeps everything it had.</p>
+<p>One experiment is <em>active</em>: the one open in the editor. Every edit changes it at once. <code>useRoutineEditor</code> keeps an undo history for each experiment and a caret, the place between moves where the next move goes in. The page also holds the deck you chose (its kind and size) and which other experiments are drawn on the charts. It deals one starting deck for the example deck under the editor. That deck is only for the example. The measurements deal their own decks in section 4.</p>
 <figure class="diagram" data-diagram="s1"></figure>
-<p class="files">Files: <code>pages/Simulator/Simulator.tsx</code>, <code>pages/Simulator/experiments.ts</code></p>
+<p class="files">Files: <code>pages/Simulator/Simulator.tsx</code>, <code>pages/Simulator/experiments.ts</code>, <code>pages/Simulator/useRoutineEditor.ts</code></p>
 
 <!-- ============================================================ -->
-<h2 id="s2"><span class="num">2</span>The page computes results in the background</h2>
-<p>One experiment takes 1,200 decks through every step of its routine, so the whole list takes a while. The hook <code>useMethodResults</code> spreads that work out so the page doesn't freeze. It works for up to 120 ms, hands control back to the browser, and continues on the next tick. Experiments shown on the charts go first.</p>
-<p>Finished results go into a cache that lasts until you reload the page. The cache key is the deck kind, the deck size, and the moves. Two experiments with the same moves share a result, and switching the deck back to an earlier choice costs nothing.</p>
+<h2 id="s2"><span class="num">2</span>Web workers compute the results</h2>
+<p>One experiment takes 1,200 decks through every step of its routine. That runs in a pool of web workers, one per spare processor core and at most four, so the page keeps responding while you edit. On every render the page lists what it wants scored, most important first: the active experiment, then the ones on the charts, then the rest, all from the current starting deck, then the same again from the other deck. Each idle worker takes the first job that is neither scored nor already in progress.</p>
+<p>Each job seeds the random numbers from its own key, so a routine gets the same score in every worker and on every visit. Undoing an edit brings back exactly the numbers it had. Finished results go into a cache that lasts until you reload the page. The cache key is the deck kind, the deck size, and the moves. Two experiments with the same moves share a result, and switching decks back and forth costs nothing.</p>
+<p>While an edit is being scored, each experiment keeps showing the last result that arrived for it, dimmed, so the page never goes blank.</p>
 <figure class="diagram" data-diagram="s2"></figure>
-<p class="files">File: <code>pages/Simulator/useMethodResults.ts</code></p>
+<p class="files">Files: <code>pages/Simulator/scorer.ts</code>, <code>pages/Simulator/scoring.worker.ts</code></p>
 
 <!-- ============================================================ -->
 <h2 id="s3"><span class="num">3</span><code>computeResult</code> opens one tally per metric per step</h2>
@@ -193,7 +194,7 @@
 
 <!-- ============================================================ -->
 <h2 id="s8"><span class="num">8</span>The page draws the results</h2>
-<p>When results arrive, the page builds one <em>series</em> for each experiment shown on the charts: the result and its score, plus a name and a colour. The panels read those series. The first series decides the summary. The card animation in the method panel doesn't use the results at all. It runs the routine once on the page's starting deck with <code>runStates</code> and shows each step.</p>
+<p>When results arrive, the page builds one <em>series</em> for the active experiment and one for each other experiment ticked in the list: the result and its score, plus a name and a colour. The active experiment's series comes first and is drawn heaviest. The score card, the charts, and the comparison table read those series. The method list shows every experiment's total from both starting decks. The example deck doesn't use the results at all. It deals the page's starting deck through the routine once and shows the step at the caret. After an edit, it keeps the decks before the first changed move and deals only the rest again.</p>
 <figure class="diagram" data-diagram="s8"></figure>
 <p class="files">Files: <code>pages/Simulator/*.tsx</code>, <code>components/MiniDeck.tsx</code>, <code>components/tracking.ts</code></p>
 
@@ -214,7 +215,7 @@ import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@12.0.0/dist/mermaid.es
 const DIAGRAMS = {
 overview: `flowchart TD
   s1["1. Simulator page<br/>keeps your routines"]
-  s2["2. useMethodResults<br/>computes in 120 ms bursts"]
+  s2["2. Web workers<br/>score routines off the page"]
   s3["3. computeResult<br/>opens the tallies"]
   s4["4. dealRuns<br/>1,200 decks through the routine"]
   s5["5. Moves<br/>mash, overhand, pile"]
@@ -246,35 +247,31 @@ s1: `flowchart TD
   load["loadExperiments()<br/>reads localStorage key 'shuffleExperiments'"]
   saved{"Anything saved?"}
   defaults["defaultExperiments()<br/>SEED with new ids"]
-  fix["Unknown move names become 'overhand'."]
-  state["State in Simulator.tsx<br/>kind = 'sorted', deckSize = 99<br/>experiments<br/>overlaid = ids shown on the charts"]
+  fix["Unknown move names become 'overhand'.<br/>Newer defaults are added."]
+  state["State in Simulator.tsx<br/>kind = 'sorted', deckSize = 99<br/>experiments, activeId<br/>shownIds = others on the charts"]
+  editor["useRoutineEditor<br/>caret, insert, delete,<br/>undo and redo per experiment"]
   save["saveExperiments()<br/>runs after every change"]
-  starting["startDeck(kind, deckSize)<br/>one deck for the animations only"]
-  hook["useMethodResults(experiments, kind, deckSize, overlaid)<br/>section 2"]
-  builder["MethodBuilder<br/>saves a new or edited routine"]
+  starting["startDeck(kind, deckSize)<br/>one deck for the example only"]
+  hook["useScores(jobs)<br/>section 2"]
   load --> saved
   saved -- no --> defaults --> state
   saved -- yes --> fix --> state
+  editor -- "new moves" --> state
   state --> save
   state --> starting
-  state --> hook
-  builder --> state`,
+  state --> hook`,
 
 s2: `flowchart TD
-  lookup["For each experiment, look in CACHE<br/>key = kind #124; deckSize #124; moves"]
-  tick["Next tick: setTimeout(tick, 0)"]
-  todo{"Any experiment<br/>not cached yet?"}
-  prio["Put experiments shown<br/>on the charts first"]
-  compute["computeResult(kind, deckSize, seq)<br/>then scoreResult(result)<br/>sections 3 to 7"]
-  store["Store result and score in CACHE"]
-  slice{"More than 120 ms<br/>since this tick began?"}
-  rerender["Re-render the page.<br/>It reads the new cache entries."]
-  idle(["Stop: every experiment is cached"])
-  lookup --> tick --> todo
-  todo -- no --> idle
-  todo -- yes --> prio --> compute --> store --> slice
-  slice -- "no: next experiment" --> compute
-  slice -- yes --> rerender --> tick`,
+  wanted["useScores(jobs)<br/>jobs in priority order<br/>key = kind #124; deckSize #124; moves"]
+  dispatch{"An idle worker and a job<br/>neither cached nor in progress?"}
+  worker["scoring.worker.ts<br/>seed from the key<br/>computeResult(kind, deckSize, seq)<br/>sections 3 to 6"]
+  score["scoreResult(result)<br/>section 7"]
+  store["Store in the cache.<br/>It is now the latest result<br/>for every slot that asked for it."]
+  rerender["Re-render the page.<br/>A job still in progress shows<br/>its slot's latest result, dimmed."]
+  idle(["Wait for the next request"])
+  wanted --> dispatch
+  dispatch -- yes --> worker --> score --> store --> rerender --> dispatch
+  dispatch -- no --> idle`,
 
 s3: `flowchart TD
   total["T_TOTAL = the most decks any metric reads = 1,200"]
@@ -350,21 +347,21 @@ s7: `flowchart TD
   input --> level --> noise --> cat --> worst --> total --> out`,
 
 s8: `flowchart TD
-  results["results from useMethodResults<br/>one ScoredResult<br/>per experiment"]
-  series["Series[]<br/>experiments on the charts:<br/>result + name, colour"]
-  summary["SummaryPanel<br/>first series:<br/>categories, total"]
-  grid["DiagnosticGrid<br/>a chart per metric,<br/>level at every step"]
+  results["results from useScores<br/>one ScoredResult per experiment<br/>and starting deck"]
+  series["Series[]<br/>the active experiment first,<br/>then the ticked ones"]
+  card["ScoreCard<br/>active experiment:<br/>total and categories"]
+  grid["DiagnosticGrid and MetricDetail<br/>a chart per metric,<br/>level at every step"]
   h2h["HeadToHead<br/>closest to random,<br/>metric by metric"]
-  list["MethodList<br/>every experiment<br/>with its total"]
-  panel["MethodPanel<br/>runStates() animates<br/>one deck in MiniDeck"]
-  builder["MethodBuilder<br/>edit the moves<br/>and save"]
+  list["MethodList<br/>every experiment with<br/>its total from both decks"]
+  editor["RoutineEditor<br/>edits the active<br/>experiment in place"]
+  deck["DeckView<br/>one example deck<br/>at the caret's step"]
   results --> series
   results --> list
-  series --> summary
+  results --> card
   series --> grid
   series --> h2h
-  list -- open --> panel
-  list -- edit --> builder`,
+  list -- "activate" --> editor
+  editor -- "caret" --> deck`,
 
 s9: `flowchart TD
   subgraph cal ["npm run calibrate"]

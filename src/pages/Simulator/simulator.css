@@ -1,846 +1,1084 @@
-/* Simulator page. Everything is scoped under .sim. */
+/* Simulator page: a workbench for one routine at a time. Everything is scoped under .sim, except the dropdown lists,
+   which React Aria renders in a portal at the end of the page. */
 
 .sim {
-  max-width: 980px;
+  --mash: #1a6b3a;
+  --overhand: #c0612a;
+  --pile: #3a5f9e;
+  --ohr: #2f8f7f;
+  --ohb: #27796b;
+  --panel: #fdfbf7;
+  --focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
+
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 1.4rem;
+  padding: 1.5rem 1.5rem 3rem;
+  font-size: 0.95rem;
+  line-height: 1.45;
 }
 
-.sim .widget {
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  border-radius: 12px;
-  padding: 1.3rem 1.4rem;
-  box-shadow: 0 8px 28px -10px var(--shadow);
-}
-
-.sim .header {
-  text-align: center;
-  border-bottom: 1px solid var(--rule);
-  padding-bottom: 0.7rem;
-  margin-bottom: 0.9rem;
-}
-
-.sim h1 {
+.sim h2 {
   margin: 0;
-  font-family: var(--font-serif);
-  font-size: 1.5rem;
-  font-weight: 900;
-  letter-spacing: -0.01em;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
-.sim h1 em {
-  font-style: italic;
-  color: var(--accent);
+.sim [data-focus-visible],
+.sim .strip:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
 }
 
-.sim-backlink {
-  font-family: var(--font-mono);
-  font-size: 0.56rem;
-  color: var(--accent);
-  text-decoration: none;
-}
-
-/* ---------- deck controls ---------- */
-
-.sim .runbar {
-  display: flex;
-  gap: 0.6rem;
-  align-items: center;
-  margin: 0.3rem 0 0.4rem;
-  flex-wrap: wrap;
-}
-
-.sim .runbar select {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  border-radius: 7px;
-  padding: 0.22rem 0.4rem;
-}
-
-.sim .condlbl {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  color: var(--dim);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.sim .status {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  color: var(--dim);
-}
-
-.sim .animtoggle {
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  color: var(--dim);
-  background: none;
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  padding: 0.18rem 0.55rem;
+.sim button,
+.sim .react-aria-Button {
+  font: inherit;
+  color: inherit;
   cursor: pointer;
 }
 
-.sim .animtoggle:hover {
-  color: var(--ink);
-  border-color: var(--ink);
+.sim [data-disabled] {
+  cursor: default;
+  opacity: 0.35;
 }
 
-.sim .anim-setting {
-  margin-left: 0;
-  min-width: 11em;
-  text-align: center;
+/* ---------- top bar ---------- */
+
+.sim-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  padding-bottom: 1.1rem;
+  margin-bottom: 1.4rem;
+  border-bottom: 1px solid var(--rule);
 }
 
-/* ---------- summary panel (sticky) ---------- */
-
-.sim .bigsticky {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  margin-top: 0.7rem;
+.sim-title h1 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.9rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
 }
 
-.sim .bigwrap {
-  background: var(--surface);
-  border-radius: 8px;
+.sim-title p {
+  margin: 0.35rem 0 0.25rem;
+  color: var(--soft);
+  max-width: 34rem;
 }
 
-.sim .bigchart {
+.sim-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.9rem 1.2rem;
+}
+
+.sim .deckswitch,
+.sim .picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sim .deckswitch-label,
+.sim .picker .react-aria-Label,
+.sim .notationfield .react-aria-Label {
+  font-size: 0.78rem;
+  color: var(--soft);
+}
+
+.sim .react-aria-ToggleButtonGroup {
+  display: flex;
+  background: var(--bg);
   border: 1px solid var(--rule);
   border-radius: 8px;
-  padding: 0.7rem 0.8rem 0.5rem;
-  background: linear-gradient(160deg, #fdfaf4, #f4eee2);
+  padding: 2px;
 }
 
-.sim .bigchart .bctitle {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--dim);
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 0.3rem;
+.sim .segment {
+  border: 0;
+  background: none;
+  padding: 0.38rem 0.95rem;
+  border-radius: 6px;
+  color: var(--soft);
 }
 
-.sim .bigchart .bcval {
-  font-family: var(--font-mono);
+.sim .segment[data-selected] {
+  background: var(--surface);
+  color: var(--ink);
   font-weight: 600;
-  font-size: 1.1rem;
-  font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 2px var(--shadow);
 }
 
-.sim .bigchart .bcval.pass {
+.sim .picker-button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 7.5rem;
+  justify-content: space-between;
+  padding: 0.42rem 0.7rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.sim .picker-chevron {
+  color: var(--dim);
+  font-size: 0.75rem;
+}
+
+.picker-popover {
+  min-width: var(--trigger-width);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px -8px var(--shadow);
+  padding: 0.25rem;
+  font-family: var(--font-sans);
+}
+
+.picker-list {
+  outline: none;
+}
+
+.picker-option {
+  padding: 0.4rem 0.6rem;
+  border-radius: 5px;
+  cursor: pointer;
+  outline: none;
+  font-size: 0.92rem;
+}
+
+.picker-option[data-focused] {
+  background: var(--bg);
+}
+
+.picker-option[data-selected] {
+  font-weight: 600;
   color: var(--accent);
 }
 
-.sim .bigchart .bcval.fail {
+/* ---------- body: methods beside the workbench ---------- */
+
+.sim-body {
+  display: grid;
+  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+  gap: 1.4rem;
+  align-items: start;
+}
+
+/* ---------- method list ---------- */
+
+.sim .methods {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sim .methods-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sim .newbtn {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 7px;
+  padding: 0.32rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.sim .newbtn[data-pressed] {
+  background: #14552e;
+}
+
+.sim .methodlist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  outline: none;
+}
+
+.sim .methodrow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  background: var(--surface);
+  cursor: pointer;
+  outline: none;
+}
+
+.sim .methodrow[data-hovered] {
+  border-color: #c9bfae;
+}
+
+.sim .methodrow.active {
+  border-color: var(--ink);
+  box-shadow: inset 3px 0 0 var(--ink);
+}
+
+.sim .methodrow-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sim .methodrow-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.sim .methodrow-moves {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sim .showbox {
+  display: flex;
+  cursor: pointer;
+}
+
+.sim .showbox-mark {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 2px solid var(--series);
+  background: var(--surface);
+}
+
+.sim .showbox[data-selected] .showbox-mark {
+  background: var(--series);
+  box-shadow: inset 0 0 0 2px var(--surface);
+}
+
+.sim .showbox[data-focus-visible] .showbox-mark {
+  box-shadow: var(--focus);
+}
+
+.sim .methodrow-totals {
+  display: flex;
+  gap: 0.6rem;
+  margin: 0;
+  text-align: right;
+}
+
+.sim .methodrow-totals dt {
+  font-size: 0.7rem;
+  color: var(--dim);
+}
+
+.sim .methodrow-totals dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--soft);
+}
+
+.sim .methodrow-totals .current dd {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.sim .methodrow-totals dd.clean {
+  color: var(--accent);
+}
+
+.sim .methodrow-totals .stale dd {
+  opacity: 0.45;
+}
+
+.sim .methodlist-empty {
+  color: var(--soft);
+  margin: 0.4rem 0;
+}
+
+.sim .textbtn {
+  border: 0;
+  background: none;
+  padding: 0.2rem 0.1rem;
+  color: var(--accent);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+}
+
+.sim .textbtn[data-hovered] {
+  text-decoration-color: currentColor;
+}
+
+.sim .textbtn.danger,
+.sim .textbtn.armed {
   color: var(--bad);
 }
 
-.sim .bigchart .bcsub {
+.sim .resetbtn {
+  align-self: flex-start;
+  color: var(--soft);
+  font-size: 0.8rem;
+}
+
+/* ---------- workbench ---------- */
+
+.sim .workbench {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  min-width: 0;
+}
+
+.sim .workbench-empty {
+  color: var(--soft);
+  padding: 2rem 0;
+}
+
+/* ---------- editor ---------- */
+
+.sim .editor {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 1rem 1.1rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.sim .editor-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sim .namefield {
+  flex: 1;
+  min-width: 0;
+}
+
+.sim .namefield .react-aria-Input {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px dashed transparent;
+  background: none;
+  font: inherit;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 0.1rem 0;
+  outline: none;
+}
+
+.sim .namefield .react-aria-Input::placeholder {
+  color: var(--ink);
+}
+
+.sim .namefield .react-aria-Input[data-hovered],
+.sim .namefield .react-aria-Input[data-focused] {
+  border-bottom-color: var(--dim);
+}
+
+.sim .editor-actions {
+  display: flex;
+  gap: 0.9rem;
+}
+
+/* The move strip: the routine itself, set large. Moves up to the caret are the ones the deck and chart dots show. */
+.sim .strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.3rem;
+  min-height: 3.4rem;
+  padding: 0.6rem 0.7rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  cursor: text;
+}
+
+.sim .strip-start {
   font-size: 0.8rem;
   color: var(--soft);
-  line-height: 1.55;
-  margin-top: 0.4rem;
+  padding: 0.3rem 0.35rem;
+  cursor: pointer;
 }
 
-.sim .bigchart svg {
-  display: block;
-  width: 100%;
-  height: 130px;
-  overflow: visible;
-}
-
-.sim .bcaxis {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  fill: #a09380;
-}
-
-.sim .oplg {
-  display: flex;
-  gap: 0.8rem;
-  justify-content: center;
-  flex-wrap: wrap;
-  font-family: var(--font-mono);
-  font-size: 0.64rem;
-  color: var(--dim);
-  margin-top: 0.45rem;
-}
-
-.sim .oplg span {
+.sim .strip-slot {
   display: flex;
   align-items: center;
   gap: 0.3rem;
 }
 
-.sim .oplg i {
-  width: 13px;
-  height: 3px;
-  border-radius: 2px;
-  display: inline-block;
+.sim .strip-token {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.45rem 0.55rem;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  opacity: 0.42;
 }
 
-.sim .oplg-clear {
-  cursor: pointer;
+.sim .strip-token.done {
+  opacity: 1;
+}
+
+.sim .strip-token.mash,
+.sim .movebtn.mash .movebtn-token {
+  background: var(--mash);
+}
+
+.sim .strip-token.overhand,
+.sim .movebtn.overhand .movebtn-token {
+  background: var(--overhand);
+}
+
+.sim .strip-token.pile,
+.sim .movebtn.pile .movebtn-token {
+  background: var(--pile);
+}
+
+.sim .strip-token.ohr,
+.sim .movebtn.ohr .movebtn-token {
+  background: var(--ohr);
+}
+
+.sim .strip-token.ohb,
+.sim .movebtn.ohb .movebtn-token {
+  background: var(--ohb);
+}
+
+.sim .strip-caret {
+  width: 2px;
+  height: 1.9rem;
+  border-radius: 1px;
+  background: var(--ink);
+}
+
+.sim .strip:focus .strip-caret {
+  animation: caret-blink 1.1s steps(1) infinite;
+}
+
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.sim .strip-empty {
+  color: var(--dim);
+  font-size: 0.9rem;
+}
+
+.sim .movebar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.sim .movebar-moves,
+.sim .movebar-edit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.sim .movebar .react-aria-Separator {
+  width: 1px;
+  background: var(--rule);
+  margin: 0.2rem 0.2rem;
+  border: 0;
+}
+
+.sim .movebtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.45rem 0.3rem 0.3rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  font-size: 0.88rem;
+}
+
+.sim .movebtn[data-hovered] {
+  border-color: #b9ad99;
+}
+
+.sim .movebtn[data-pressed] {
+  background: var(--bg);
+}
+
+.sim .movebtn-token {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fff;
+  border-radius: 4px;
+  padding: 0.2rem 0.35rem;
+  min-width: 2.1rem;
+  text-align: center;
+}
+
+.sim kbd {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--dim);
+  border: 1px solid var(--rule);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 0 0.3rem;
+}
+
+.sim .editor-keys {
+  margin: -0.3rem 0 0;
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+
+.sim .toolbtn {
+  min-width: 2.4rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.sim .toolbtn[data-pressed] {
+  background: var(--bg);
+}
+
+.sim .editor-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.6rem 1.5rem;
+}
+
+.sim .notationfield {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  max-width: 26rem;
+}
+
+.sim .notationfield .react-aria-Input {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  outline: none;
+}
+
+.sim .notationfield .react-aria-Input[data-focused] {
+  box-shadow: var(--focus);
+}
+
+.sim .notationfield[data-invalid] .react-aria-Input {
+  border-color: var(--bad);
+}
+
+.sim .notationfield .react-aria-FieldError {
+  font-size: 0.8rem;
+  color: var(--bad);
+}
+
+.sim .editor-stats {
+  display: flex;
+  gap: 1.1rem;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- example deck and score, side by side ---------- */
+
+.sim .workbench-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 1.1rem;
+  align-items: start;
+}
+
+.sim .deckview,
+.sim .scorecard,
+.sim .detail {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+}
+
+.sim .deckview-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.sim .deckview-step {
+  flex: 1;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--soft);
+}
+
+.sim .stepbtn {
+  width: 2.2rem;
+  height: 2rem;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  background: var(--surface);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.sim .deckview-deck {
+  padding-left: 16px;
+}
+
+.sim .deckview-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.8rem;
+  margin-top: 0.7rem;
+  min-height: 1.3rem;
+  font-size: 0.82rem;
+  color: var(--soft);
+}
+
+.sim .deckview-tracking {
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+}
+
+.sim .scorecard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  transition: opacity 0.2s;
+}
+
+.sim .scorecard.stale {
+  opacity: 0.55;
+}
+
+.sim .scorecard h2 {
+  color: var(--soft);
+  font-weight: 500;
+}
+
+.sim .scorecard-waiting {
+  margin: 0;
+  color: var(--soft);
+}
+
+.sim .scorecard-total {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  margin: 0;
+}
+
+.sim .scorecard-number {
+  font-family: var(--font-mono);
+  font-size: 2.6rem;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.sim .scorecard-number.clean {
   color: var(--accent);
 }
 
-/* ---------- diagnostics grid ---------- */
+.sim .scorecard-number.short {
+  color: var(--bad);
+}
 
-.sim .diagh {
+.sim .scorecard-verdict {
+  color: var(--soft);
+  font-size: 0.9rem;
+}
+
+.sim .levels {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.sim .levels li {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr) 3.5rem;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.sim .levels-name {
+  font-size: 0.9rem;
+}
+
+.sim .levels-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.sim .levels-bar span {
+  display: block;
+  height: 100%;
+  width: calc(var(--level) * 100%);
+  min-width: 2px;
+  border-radius: 4px;
+  background: var(--bad);
+  transition: width 0.3s;
+}
+
+.sim .levels li.clean .levels-bar span {
+  background: var(--accent);
+}
+
+.sim .levels-value {
+  text-align: right;
   font-family: var(--font-mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sim .scorecard-scale {
+  margin: 0;
+  font-size: 0.8rem;
   color: var(--dim);
-  margin: 0.9rem 0 0.4rem;
+}
+
+.sim .scorecard-other {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.8rem;
+  margin: 0;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.88rem;
+  color: var(--soft);
+}
+
+.sim .scorecard-other b {
+  font-family: var(--font-mono);
+  color: var(--ink);
+}
+
+/* ---------- diagnostics ---------- */
+
+.sim .diagnostics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-top: 0.4rem;
+}
+
+.sim .diagnostics-hint {
+  margin: -0.3rem 0 0;
+  font-size: 0.85rem;
+  color: var(--soft);
+  max-width: 44rem;
 }
 
 .sim .charts {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.6rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
 }
 
 .sim .chart {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  text-align: left;
+  padding: 0.6rem 0.7rem 0.5rem;
+  background: var(--surface);
   border: 1px solid var(--rule);
-  border-radius: 7px;
-  padding: 0.5rem 0.55rem 0.4rem;
-  cursor: pointer;
-  background: linear-gradient(160deg, #fdfaf4, #f4eee2);
-  transition:
-    border-color 0.2s,
-    transform 0.12s;
+  border-radius: 10px;
 }
 
-.sim .chart:hover {
-  transform: translateY(-1px);
+.sim .chart[data-hovered] {
+  border-color: #c9bfae;
 }
 
 .sim .chart.sel {
   border-color: var(--ink);
-  box-shadow: inset 0 0 0 1.5px var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
 }
 
 .sim .chart .ctitle {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--dim);
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  font-size: 0.85rem;
+  color: var(--soft);
 }
 
-.sim .chart .cval {
+.sim .cval {
   font-family: var(--font-mono);
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-variant-numeric: tabular-nums;
-  color: var(--ink);
 }
 
-.sim .chart .cval.pass {
+.sim .cval.pass {
   color: var(--accent);
 }
 
-.sim .chart .cval.fail {
+.sim .cval.fail {
   color: var(--bad);
+}
+
+.sim .chart-plot {
+  display: block;
+  width: 100%;
 }
 
 .sim .chart svg {
   display: block;
   width: 100%;
   height: 60px;
-  margin-top: 0.2rem;
+  margin-top: 0.3rem;
   overflow: visible;
+}
+
+.sim .detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sim .detail-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+}
+
+.sim .detail-head h2 {
+  font-size: 1.05rem;
+}
+
+.sim .detail-value {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.sim .detail svg {
+  display: block;
+  width: 100%;
+  height: 150px;
+  overflow: visible;
+}
+
+.sim .bcaxis {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--dim);
+}
+
+.sim .detail-text {
+  margin: 0;
+  color: var(--soft);
+  max-width: 44rem;
+}
+
+.sim .legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.sim .legend i {
+  display: inline-block;
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+  margin-right: 0.4rem;
+  vertical-align: middle;
 }
 
 /* ---------- head to head ---------- */
 
 .sim .hth-card {
+  background: var(--surface);
   border: 1px solid var(--rule);
   border-radius: 12px;
-  background: var(--surface);
-  padding: 0.75rem 0.85rem;
-  margin-bottom: 0.6rem;
+  padding: 0.8rem 1rem;
 }
 
 .sim .hth-lead {
-  font-size: 0.74rem;
-  line-height: 1.55;
-  color: var(--ink);
-  margin-bottom: 0.55rem;
+  font-size: 0.9rem;
+  color: var(--soft);
+  margin-bottom: 0.6rem;
 }
 
 .sim .hth-scroll {
   overflow-x: auto;
-  margin: 0 -0.85rem;
-  padding: 0 0.85rem;
 }
 
 .sim table.hth {
-  min-width: 100%;
   border-collapse: collapse;
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
+  width: 100%;
+  font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
 }
 
 .sim table.hth th {
-  color: var(--dim);
-  font-weight: 400;
   text-align: right;
-  padding: 0.2rem 0.35rem;
+  font-weight: 600;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--rule);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 8em;
 }
 
 .sim table.hth td {
   text-align: right;
-  padding: 0.22rem 0.35rem;
-  border-top: 1px solid var(--rule);
-  color: var(--dim);
-  white-space: nowrap;
+  font-family: var(--font-mono);
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid #efe9df;
+  color: var(--soft);
 }
 
 .sim table.hth .hth-t {
   text-align: left;
+  font-family: var(--font-sans);
   color: var(--ink);
-  white-space: normal;
-  min-width: 6.5em;
 }
 
 .sim table.hth .hth-win {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .sim table.hth th .cmpsw {
-  margin-right: 0.3rem;
-}
-
-/* ---------- method list ---------- */
-
-.sim .cmplist {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.sim .cmprow {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.4rem 0.55rem;
-  border: 1px solid var(--rule);
-  border-radius: 8px;
-  background: var(--surface);
-  cursor: pointer;
-  transition: border-color 0.15s;
-}
-
-.sim .cmprow:hover {
-  border-color: var(--ink);
-}
-
-.sim .cmprow.sel {
-  background: #f3ede1;
-}
-
-.sim .cmprow.paneled {
-  border-radius: 8px 8px 0 0;
-}
-
-.sim .cmpsw {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
   display: inline-block;
-  margin-right: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin-right: 0.35rem;
   vertical-align: -1px;
 }
 
-.sim .cmprank {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  color: var(--dim);
-  width: 1.6rem;
-  flex: none;
-  text-align: center;
-}
+/* ---------- narrower screens ---------- */
 
-.sim .cmpname {
-  flex: 1;
-  font-size: 0.78rem;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sim .cmprow.paneled .cmpname {
-  white-space: normal;
-  overflow: visible;
-}
-
-.sim .cmpscore {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  color: var(--dim);
-  flex: none;
-}
-
-.sim .cmphint {
-  font-size: 0.72rem;
-  color: var(--dim);
-  font-family: var(--font-mono);
-}
-
-.sim .cmpreset {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  color: var(--dim);
-  cursor: pointer;
-  padding: 0.3rem 0.2rem 0;
-  align-self: flex-end;
-}
-
-.sim .cmpreset:hover {
-  color: var(--accent);
-}
-
-.sim .expmag,
-.sim .expov {
-  flex: 0 0 auto;
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  border: 2px solid var(--rule);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--dim);
-  cursor: pointer;
-  transition: all 0.12s;
-}
-
-.sim .expmag:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.sim .expov.on {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
-/* ---------- animation panel ---------- */
-
-.sim .cmpanim {
-  border: 1px solid var(--rule);
-  border-top: 0;
-  border-radius: 0 0 8px 8px;
-  background: linear-gradient(160deg, #efe7d8, #e7ddca);
-  margin: -0.3rem 0 0.3rem;
-  padding: 0.6rem;
-}
-
-.sim .panhead {
-  margin-bottom: 0.55rem;
-}
-
-.sim .panseq {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  align-items: center;
-  margin-bottom: 0.4rem;
-}
-
-.sim .panmeta {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  color: var(--dim);
-  line-height: 1.5;
-}
-
-.sim .panuntrack {
-  float: right;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.sim .cmpaniml {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  color: var(--dim);
-  text-align: center;
-  min-height: 1.1em;
-}
-
-.sim .mininav {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.7rem;
-  margin-top: 0.5rem;
-}
-
-.sim .mininav button {
-  font-family: var(--font-mono);
-  font-size: 1rem;
-  color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  border-radius: 8px;
-  width: 2rem;
-  height: 2rem;
-  cursor: pointer;
-  line-height: 1;
-}
-
-.sim .mininav button:disabled {
-  color: var(--rule);
-  cursor: default;
-}
-
-.sim .btrack {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--ink);
-  margin-top: 0.3rem;
-  min-height: 1.2em;
-}
-
-/* ---------- move tokens (shared by panel and builder) ---------- */
-
-.sim .tok {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  padding: 0.18rem 0.4rem;
-  border-radius: 5px;
-  color: #fff;
-  cursor: pointer;
-  opacity: 0.55;
-}
-
-.sim .tok.curr {
-  opacity: 1;
-  box-shadow:
-    0 0 0 2px var(--surface),
-    0 0 0 3.5px currentColor;
-}
-
-.sim .tok.mash {
-  background: #1a6b3a;
-}
-
-.sim .tok.overhand {
-  background: #c0612a;
-}
-
-.sim .tok.pile {
-  background: #3a5f9e;
-}
-
-.sim .tok.ohr {
-  background: #2f8f7f;
-}
-
-.sim .tok.ohb {
-  background: #27796b;
-}
-
-/* ---------- builder ---------- */
-
-.sim .btitle {
-  width: 100%;
-  font-family: var(--font-sans);
-  font-size: 0.82rem;
-  padding: 0.4rem 0.5rem;
-  border: 1px solid var(--rule);
-  border-radius: 7px;
-  background: var(--surface);
-  color: var(--ink);
-}
-
-.sim .bframe {
-  background: linear-gradient(160deg, #efe7d8, #e7ddca);
-  border-radius: 12px;
-  padding: 0.8rem;
-  margin: 0.6rem 0;
-}
-
-.sim .seqrow {
-  display: flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.sim .bseqrow {
-  min-height: 1.7rem;
-  margin: 0.5rem 0 0.2rem;
-}
-
-.sim .seqslot {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.sim .seqslot:empty {
-  display: none;
-}
-
-.sim .seqlabel {
-  cursor: pointer;
-  padding: 0.15rem 0.4rem 0.15rem 0.1rem;
-  border-radius: 6px;
-  user-select: none;
-}
-
-.sim .seqlabel:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.sim .seqlabel.curr {
-  background: var(--accent);
-  color: #fff;
-}
-
-.sim .caret {
-  display: inline-block;
-  width: 2px;
-  height: 1.05em;
-  background: var(--accent);
-  border-radius: 1px;
-  animation: sim-blink 1s steps(2) infinite;
-  vertical-align: -2px;
-}
-
-@keyframes sim-blink {
-  0%,
-  50% {
-    opacity: 1;
-  }
-  50.01%,
-  100% {
-    opacity: 0.15;
+@media (max-width: 1100px) {
+  .sim .workbench-pair {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
-.sim .bnav {
-  display: flex;
-  gap: 0.4rem;
-  margin: 0.5rem 0;
-}
+@media (max-width: 860px) {
+  .sim {
+    padding: 1rem 1rem 7rem;
+  }
 
-.sim .navbtn {
-  flex: 1;
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--ink);
-  cursor: pointer;
-  padding: 0.4rem 0;
-  text-align: center;
-  background: linear-gradient(180deg, #fffdf8, #efe7d6);
-  border: 1px solid var(--rule);
-  border-radius: 10px;
-  box-shadow:
-    0 2px 3px rgba(60, 45, 20, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
+  .sim-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
-.sim .navbtn:active {
-  box-shadow: inset 0 2px 4px rgba(60, 45, 20, 0.3);
-  transform: translateY(1px);
-}
+  .sim .methods {
+    position: static;
+  }
 
-.sim .navbtn:disabled {
-  color: var(--rule);
-  cursor: default;
-  box-shadow: none;
-  background: var(--surface);
-}
-
-.sim .navbtn.navundo {
-  color: #a04a2a;
-  flex: 1.3;
-}
-
-.sim .builder2 {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  align-items: center;
-  margin-top: 0.5rem;
-}
-
-.sim .chip {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  padding: 0.28rem 0.5rem;
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  cursor: pointer;
-  background: linear-gradient(180deg, #fffdf8, #efe7d6);
-  box-shadow:
-    0 2px 3px rgba(60, 45, 20, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
-
-.sim .chip:active {
-  box-shadow: inset 0 2px 4px rgba(60, 45, 20, 0.3);
-  transform: translateY(1px);
-}
-
-.sim .chip.mash {
-  color: #1a6b3a;
-}
-
-.sim .chip.pile {
-  color: #3a5f9e;
-}
-
-.sim .ohpill {
-  display: inline-flex;
-  align-items: stretch;
-  border: 1px solid var(--rule);
-  border-radius: 20px;
-  overflow: hidden;
-  background: #f6f0e2;
-}
-
-.sim .ohlab {
-  display: flex;
-  align-items: center;
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  color: #c0612a;
-  padding: 0.32rem 0.7rem;
-}
-
-.sim .ohhalf {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  font-weight: 600;
-  color: #2f8f7f;
-  cursor: pointer;
-  user-select: none;
-  padding: 0.32rem 0.65rem;
-  background: linear-gradient(180deg, #fffdf8, #efe7d6);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -2px 3px rgba(60, 45, 20, 0.15);
-}
-
-.sim .ohhalf.toph {
-  border-radius: 20px 0 0 20px;
-  border-right: 1.5px solid rgba(60, 45, 20, 0.3);
-}
-
-.sim .ohhalf:active {
-  box-shadow: inset 0 2px 4px rgba(60, 45, 20, 0.3);
-}
-
-.sim .bhint {
-  font-size: 0.72rem;
-  color: var(--dim);
-  line-height: 1.5;
-  margin: 0.4rem 0;
-}
-
-.sim button.run {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  padding: 0.45rem 0.9rem;
-  border: none;
-  border-radius: 7px;
-  background: var(--accent);
-  color: #fff;
-  cursor: pointer;
-}
-
-/* ---------- key and footer ---------- */
-
-.sim .keyline {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  color: var(--dim);
-  display: flex;
-  gap: 0.9rem;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-top: 0.7rem;
-}
-
-.sim .kg {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.sim .kg-sw {
-  width: 54px;
-  height: 9px;
-  border-radius: 2px;
-}
-
-.sim .kg-dash {
-  display: inline-block;
-  width: 18px;
-  border-top: 2px dashed #1a6b3a;
-}
-
-.sim .sim-intro {
-  font-size: 0.85rem;
-  color: var(--soft);
-  line-height: 1.55;
-  max-width: 46rem;
-  margin: 0.55rem auto 0;
-}
-
-.sim .desc {
-  font-size: 0.78rem;
-  color: var(--soft);
-  line-height: 1.55;
-  margin-top: 0.7rem;
-}
-
-.sim .simfoot {
-  margin-top: 1.1rem;
-  border-top: 1px solid var(--rule);
-  padding-top: 0.7rem;
-  font-size: 0.75rem;
-  line-height: 1.6;
-  color: var(--soft);
-}
-
-.sim .simfoot p {
-  margin: 0 0 0.6em;
-}
-
-@media (max-width: 680px) {
   .sim .charts {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* The move buttons stay at the bottom of the screen, in reach of a thumb, while the charts scroll past. */
+  .sim .movebar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    justify-content: center;
+    padding: 0.55rem 0.7rem calc(0.55rem + env(safe-area-inset-bottom));
+    background: rgba(253, 251, 247, 0.96);
+    border-top: 1px solid var(--rule);
+    box-shadow: 0 -6px 18px -10px var(--shadow);
+  }
+
+  .sim .movebtn-label,
+  .sim .editor-keys {
+    display: none;
+  }
+
+  /* Five moves and three edit buttons fit one row across a 360px phone. */
+  .sim .movebar {
+    flex-wrap: nowrap;
+    gap: 0.3rem;
+  }
+
+  .sim .movebar-moves,
+  .sim .movebar-edit {
+    flex-wrap: nowrap;
+    gap: 0.25rem;
+  }
+
+  .sim .movebtn {
+    padding: 0.2rem;
+  }
+
+  .sim .movebtn-token {
+    min-width: 1.9rem;
+    font-size: 0.85rem;
+    padding: 0.45rem 0.25rem;
+  }
+
+  .sim .toolbtn {
+    min-width: 2.1rem;
+    padding: 0.3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sim .strip:focus .strip-caret {
+    animation: none;
+  }
+
+  .sim .levels-bar span,
+  .sim .scorecard {
+    transition: none;
   }
 }

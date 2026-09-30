@@ -1,107 +1,80 @@
-import { Fragment, useEffect, useState, type ReactNode } from 'react'
-import type { Experiment } from './experiments'
-import { CATEGORIES } from '../../engine/metrics'
+import type { CSSProperties } from 'react'
+import { Button, Checkbox, GridList, GridListItem, type Selection } from 'react-aria-components'
+import ConfirmButton from './ConfirmButton'
+import type { DeckKind } from '../../engine/decks'
+import { compressSeq } from '../../engine/routines'
 import { fmtLevel } from '../../engine/scoring'
-import { PencilIcon, PulseIcon } from './icons'
-import type { ScoredResult } from './types'
+import { methodName, type Experiment } from './experiments'
+import type { Scored } from './scorer'
+
+export interface MethodRow {
+  experiment: Experiment
+  color: string
+  /** the method's result from each starting deck, when scored (possibly for an earlier version of its moves) */
+  totals: Record<DeckKind, Scored | undefined>
+}
 
 interface Props {
-  experiments: Experiment[]
-  results: Map<string, ScoredResult>
-  pending: number
-  /** overlay colour per selected method id */
-  colors: Map<string, string>
-  openId: string | null
-  onOpen: (id: string) => void
-  onToggleOverlay: (id: string) => void
-  onEdit: (id: string) => void
+  rows: MethodRow[]
+  kind: DeckKind
+  activeId: string | undefined
+  shownIds: string[]
+  onActivate: (id: string) => void
+  onShownChange: (ids: string[]) => void
+  onNew: () => void
   onReset: () => void
-  /** the animation panel for the open row */
-  panel: ReactNode
 }
 
-/** Every saved method, ranked by its total under the current deck: closest to random first. */
-export default function MethodList({ experiments, results, pending, colors, openId, onOpen, onToggleOverlay, onEdit, onReset, panel }: Props) {
-  if (pending > 0) {
-    const done = experiments.length - pending
-    return (
-      <div className="cmplist">
-        <div className="cmphint">
-          {done === 0 ? `scoring ${experiments.length} methods under the current deck…` : `scoring methods… ${done} / ${experiments.length}`}
-        </div>
+const DECK_LABELS: Record<DeckKind, string> = { sorted: 'Sorted', played: 'Played' }
+
+/**
+ * Every saved method, in the order they were made. Activate a row to edit it; tick its box to draw it on the charts
+ * next to the one being edited. Each row shows its total from both starting decks, so decks compare at a glance.
+ */
+export default function MethodList({ rows, kind, activeId, shownIds, onActivate, onShownChange, onNew, onReset }: Props) {
+  const onSelectionChange = (selection: Selection) => onShownChange(selection === 'all' ? rows.map((row) => row.experiment.id) : [...selection].map(String))
+
+  return (
+    <aside className="methods" aria-label="Methods">
+      <div className="methods-head">
+        <h2>Methods</h2>
+        <Button className="newbtn" onPress={onNew}>
+          New method
+        </Button>
       </div>
-    )
-  }
-
-  const ranked = experiments
-    .map((experiment) => ({ experiment, result: results.get(experiment.id)! }))
-    .sort((left, right) => left.result.total - right.result.total)
-
-  return (
-    <div className="cmplist">
-      {ranked.map(({ experiment, result }, rank) => {
-        const color = colors.get(experiment.id)
-        const open = openId === experiment.id
-        return (
-          <Fragment key={experiment.id}>
-            <div className={`cmprow${color ? ' sel' : ''}${open ? ' paneled' : ''}`} title="Watch this method shuffle" onClick={() => onOpen(experiment.id)}>
-              <span className="cmprank">#{rank + 1}</span>
-              <span className="cmpname">
-                {color && <i className="cmpsw" style={{ background: color }} />}
-                {experiment.title}
-              </span>
-              <span className="cmpscore">
-                <b>{fmtLevel(result.total)}</b> · {result.clearCount}/{CATEGORIES.length} clear
-              </span>
-              <span
-                className={`expov${color ? ' on' : ''}`}
-                title="Overlay on charts"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onToggleOverlay(experiment.id)
-                }}
-              >
-                <PulseIcon />
-              </span>
-              <span
-                className="expmag"
-                title="Edit method"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onEdit(experiment.id)
-                }}
-              >
-                <PencilIcon />
-              </span>
+      <GridList
+        className="methodlist"
+        aria-label="Saved methods"
+        selectionMode="multiple"
+        selectionBehavior="toggle"
+        selectedKeys={shownIds}
+        onSelectionChange={onSelectionChange}
+        onAction={(key) => onActivate(String(key))}
+        renderEmptyState={() => <p className="methodlist-empty">No methods yet. Make one with New method.</p>}
+      >
+        {rows.map(({ experiment, color, totals }) => (
+          <GridListItem key={experiment.id} id={experiment.id} textValue={methodName(experiment)} className={`methodrow${experiment.id === activeId ? ' active' : ''}`}>
+            <Checkbox slot="selection" className="showbox" aria-label={`Show ${methodName(experiment)} on the charts`} style={{ '--series': color } as CSSProperties}>
+              <span className="showbox-mark" aria-hidden="true" />
+            </Checkbox>
+            <div className="methodrow-text">
+              <span className="methodrow-name">{methodName(experiment)}</span>
+              {experiment.name && <span className="methodrow-moves">{compressSeq(experiment.seq)}</span>}
             </div>
-            {open && panel}
-          </Fragment>
-        )
-      })}
-      <ResetLink onReset={onReset} />
-    </div>
-  )
-}
-
-/** Two taps to reset: the first arms it for a few seconds. */
-function ResetLink({ onReset }: { onReset: () => void }) {
-  const [armed, setArmed] = useState(false)
-  useEffect(() => {
-    if (!armed) return
-    const timer = setTimeout(() => setArmed(false), 3500)
-    return () => clearTimeout(timer)
-  }, [armed])
-  return (
-    <div
-      className="cmpreset"
-      onClick={() => {
-        if (armed) {
-          setArmed(false)
-          onReset()
-        } else setArmed(true)
-      }}
-    >
-      {armed ? 'tap again to reset (deletes your custom methods)' : 'reset list to defaults'}
-    </div>
+            <dl className="methodrow-totals">
+              {(['sorted', 'played'] as const).map((deck) => (
+                <div key={deck} className={`${deck === kind ? 'current' : ''}${totals[deck]?.stale ? ' stale' : ''}`}>
+                  <dt>{DECK_LABELS[deck]}</dt>
+                  <dd className={totals[deck] && totals[deck].result.clearCount === totals[deck].result.categories.length ? 'clean' : ''}>
+                    {totals[deck] ? fmtLevel(totals[deck].result.total) : '…'}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </GridListItem>
+        ))}
+      </GridList>
+      <ConfirmButton className="textbtn resetbtn" label="Reset to the default methods" armedLabel="Press again to delete the methods you made" onConfirm={onReset} />
+    </aside>
   )
 }

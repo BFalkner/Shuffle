@@ -66,11 +66,15 @@ export default function MetricChart({ metric, series, width, big = false, step }
           </text>
         </>
       )}
-      {series.map((entry) => {
-        let path = ''
-        for (let index = 0; index <= entry.moveCount; index++) path += `${index ? 'L' : 'M'}${toX(index).toFixed(1)},${toY(disp(entry, index)).toFixed(1)} `
-        return <path key={entry.id} d={path} fill="none" stroke={entry.color} strokeWidth={big ? 1.5 : 1.3} strokeLinejoin="round" opacity={0.85} />
-      })}
+      {/* The first series is the method being edited: drawn last, so it sits on top, and heavier than the rest. */}
+      {series
+        .map((entry, index) => ({ entry, emphasis: index === 0 }))
+        .reverse()
+        .map(({ entry, emphasis }) => {
+          const path = Array.from({ length: entry.moveCount + 1 }, (_, index) => `${index ? 'L' : 'M'}${toX(index).toFixed(1)},${toY(disp(entry, index)).toFixed(1)}`).join(' ')
+          const width = (big ? 1.5 : 1.3) * (emphasis ? 1.6 : 1)
+          return <path key={entry.id} d={path} fill="none" stroke={entry.color} strokeWidth={width} strokeLinejoin="round" opacity={entry.stale ? 0.35 : emphasis ? 1 : 0.6} />
+        })}
       {step !== null &&
         series.map((entry) => {
           const shownStep = Math.min(step, entry.moveCount)

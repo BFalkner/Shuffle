@@ -1,227 +1,184 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { ToggleButton, ToggleButtonGroup } from 'react-aria-components'
 import { Link } from 'react-router'
-import { colorFor } from '../../components/deckColors'
+import { emptySlots, type TrackSlots } from '../../components/tracking'
 import { DECK_KINDS, DECK_SIZES, startDeck, type DeckKind } from '../../engine/decks'
-import { defaultExperiments, loadExperiments, saveExperiments, uid, type Experiment } from './experiments'
 import type { MetricKey } from '../../engine/metrics'
 import type { OpKey } from '../../engine/moves'
-import { emptySlots, type TrackSlots } from '../../components/tracking'
-import { useAnimationSetting } from '../../hooks/useAnimationSetting'
+import { ANIMATION_SETTINGS, useAnimationSetting } from '../../hooks/useAnimationSetting'
 import { useTitle } from '../../hooks/useTitle'
+import DeckView from './DeckView'
 import DiagnosticGrid from './DiagnosticGrid'
+import { defaultExperiments, loadExperiments, methodName, saveExperiments, uid, type Experiment } from './experiments'
 import HeadToHead from './HeadToHead'
-import MethodBuilder from './MethodBuilder'
-import MethodList from './MethodList'
-import MethodPanel from './MethodPanel'
-import SummaryPanel from './SummaryPanel'
+import MethodList, { type MethodRow } from './MethodList'
+import MetricDetail from './MetricDetail'
+import Picker from './Picker'
+import RoutineEditor from './RoutineEditor'
+import ScoreCard from './ScoreCard'
+import { scoreJob, useScores } from './scorer'
 import { SERIES_COLORS, type Series } from './types'
-import { useMethodResults } from './useMethodResults'
+import { useRoutineEditor } from './useRoutineEditor'
 import './simulator.css'
 
-export default function Simulator() {
-  useTitle('Shuffle Simulator — explore the data')
-  const anim = useAnimationSetting()
+const DECK_OPTIONS = DECK_KINDS.map(({ value }) => ({ value, label: value === 'sorted' ? 'Sorted' : 'Played' }))
+const SIZE_OPTIONS = DECK_SIZES.map(({ value }) => ({ value, label: `${value} cards` }))
+const ANIMATION_OPTIONS = ANIMATION_SETTINGS.map(({ label }) => ({ value: label, label }))
 
-  // Deck condition
+export default function Simulator() {
+  useTitle('Shuffle Simulator')
+  const animation = useAnimationSetting()
+
   const [kind, setKind] = useState<DeckKind>('sorted')
   const [deckSize, setDeckSize] = useState(99)
-  // One fixed starting deck per condition, shared by every animation panel and the builder.
+  // One fixed starting deck per condition, for the example deck.
   const start = useMemo(() => startDeck(kind, deckSize), [kind, deckSize])
+  const otherKind: DeckKind = kind === 'sorted' ? 'played' : 'sorted'
 
-  // Saved methods
   const [experiments, setExperiments] = useState<Experiment[]>(loadExperiments)
   useEffect(() => saveExperiments(experiments), [experiments])
-
-  // Which methods are overlaid on the charts (in order: the first sets the summary and colours).
-  const [overlaid, setOverlaid] = useState<string[]>(() => experiments.slice(0, 2).map((experiment) => experiment.id))
+  const [activeId, setActiveId] = useState<string | undefined>(() => experiments[0]?.id)
+  const active = experiments.find((experiment) => experiment.id === activeId) ?? experiments[0]
+  // Methods drawn on the charts beside the active one, which is always drawn.
+  const [shownIds, setShownIds] = useState<string[]>(() => experiments.map((experiment) => experiment.id))
   const [metric, setMetric] = useState<MetricKey | null>(null)
-  const [openId, setOpenId] = useState<string | null>(null)
-  const [step, setStep] = useState(0)
   const [tracked, setTracked] = useState<TrackSlots>(emptySlots)
-  const [builder, setBuilder] = useState<{ editId: string | null } | null>(null)
-  const returnY = useRef(0)
 
-  const { results, pending } = useMethodResults(experiments, kind, deckSize, overlaid)
+  const setSeq = (id: string, seq: OpKey[]) => setExperiments((list) => list.map((experiment) => (experiment.id === id ? { ...experiment, seq } : experiment)))
+  const editor = useRoutineEditor(active, setSeq)
 
-  const colors = new Map<string, string>()
-  const series: Series[] = []
-  overlaid
-    .filter((id) => experiments.some((experiment) => experiment.id === id))
-    .forEach((id, index) => {
-      const color = SERIES_COLORS[index % SERIES_COLORS.length]
-      colors.set(id, color)
-      const result = results.get(id)
-      if (result) series.push({ ...result, id, name: experiments.find((experiment) => experiment.id === id)!.title, color })
+  // Score the active method first, then what the charts show, then the rest, all from the current starting deck; then
+  // the same again from the other one.
+  const byPriority = [...(active ? [active] : []), ...experiments.filter((experiment) => shownIds.includes(experiment.id)), ...experiments]
+  const jobFor = (experiment: Experiment, deck: DeckKind) => scoreJob(experiment.id, deck, deckSize, experiment.seq)
+  const scores = useScores([kind, otherKind].flatMap((deck) => byPriority.map((experiment) => jobFor(experiment, deck))))
+  // While an edit is scored, each method keeps showing its last score, marked stale.
+  const scoredFor = (experiment: Experiment, deck: DeckKind) => scores(jobFor(experiment, deck))
+
+  const colorOf = (experiment: Experiment) => SERIES_COLORS[experiments.indexOf(experiment) % SERIES_COLORS.length]
+  const rows: MethodRow[] = experiments.map((experiment) => ({
+    experiment,
+    color: colorOf(experiment),
+    totals: { sorted: scoredFor(experiment, 'sorted'), played: scoredFor(experiment, 'played') },
+  }))
+
+  // The charts: the active method first, then the others that are ticked.
+  const series: Series[] = experiments
+    .filter((experiment) => experiment === active || shownIds.includes(experiment.id))
+    .sort((left, right) => Number(right === active) - Number(left === active))
+    .flatMap((experiment) => {
+      const scored = scoredFor(experiment, kind)
+      return scored ? [{ ...scored.result, id: experiment.id, name: methodName(experiment), color: colorOf(experiment), stale: scored.stale }] : []
     })
+  const activeSeries = active && series[0]?.id === active.id ? series : []
 
-  const toggleOverlay = (id: string) => setOverlaid((current) => (current.includes(id) ? current.filter((x) => x !== id) : [...current, id]))
-  const openExp = openId ? experiments.find((experiment) => experiment.id === openId) : undefined
-  const chartStep = openExp ? step : null
-
-  const openBuilder = (editId: string | null) => {
-    returnY.current = window.scrollY
-    window.scrollTo({ top: 0 })
-    setBuilder({ editId })
+  const activate = (id: string) => setActiveId(id)
+  const addMethod = (experiment: Experiment, after?: Experiment) => {
+    setExperiments((list) => {
+      const at = after ? list.indexOf(after) + 1 : list.length
+      return [...list.slice(0, at), experiment, ...list.slice(at)]
+    })
+    setActiveId(experiment.id)
   }
-  const closeBuilder = () => {
-    setBuilder(null)
-    const y = returnY.current
-    setTimeout(() => window.scrollTo({ top: y }), 40)
+  const deleteActive = () => {
+    if (!active) return
+    const index = experiments.indexOf(active)
+    const remaining = experiments.filter((experiment) => experiment !== active)
+    setExperiments(remaining)
+    setShownIds((ids) => ids.filter((id) => id !== active.id))
+    setActiveId(remaining[Math.min(index, remaining.length - 1)]?.id)
   }
-
-  const saveMethod = (title: string, seq: OpKey[]) => {
-    const id = builder?.editId ?? uid()
-    setExperiments((list) => (list.some((experiment) => experiment.id === id) ? list.map((experiment) => (experiment.id === id ? { id, title, seq } : experiment)) : [...list, { id, title, seq }]))
-    setOverlaid((current) => (current.includes(id) ? current : [...current, id]))
-    closeBuilder()
-  }
-  const deleteMethod = () => {
-    const id = builder?.editId
-    if (!id) return
-    setExperiments((list) => list.filter((experiment) => experiment.id !== id))
-    setOverlaid((current) => current.filter((x) => x !== id))
-    closeBuilder()
-  }
-  const resetMethods = () => {
+  const reset = () => {
     const fresh = defaultExperiments()
     setExperiments(fresh)
-    setOverlaid(fresh.slice(0, 2).map((experiment) => experiment.id))
-    setOpenId(null)
+    setShownIds(fresh.map((experiment) => experiment.id))
+    setActiveId(fresh[0]?.id)
   }
 
   return (
     <div className="sim">
-      <div className="widget">
-        <div className="header">
-          <h1>
-            Shuffle <em>Simulator</em>
-          </h1>
-          <p className="sim-intro">
-            Pick a starting deck, then choose a routine from the list or build your own. The simulator runs each routine many times and shows, for
-            every test, how close the deck gets to random after each step. Click a test to read what it checks.
-          </p>
-          <div style={{ marginTop: '0.3rem' }}>
-            <Link className="sim-backlink" to="/">
-              ← back to home
-            </Link>
-          </div>
+      <header className="sim-top">
+        <div className="sim-title">
+          <h1>Shuffle Simulator</h1>
+          <p>Build a shuffling routine and see how close to random it leaves the deck. Scores update as you edit.</p>
+          <Link className="backlink" to="/">
+            Back to home
+          </Link>
         </div>
+        <div className="sim-controls">
+          <div className="deckswitch">
+            <span className="deckswitch-label" id="deckswitch-label">
+              Starting deck
+            </span>
+            <ToggleButtonGroup
+              aria-labelledby="deckswitch-label"
+              selectionMode="single"
+              disallowEmptySelection
+              selectedKeys={[kind]}
+              onSelectionChange={(keys) => setKind([...keys][0] as DeckKind)}
+            >
+              {DECK_OPTIONS.map((option) => (
+                <ToggleButton key={option.value} id={option.value} className="segment">
+                  {option.label}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          </div>
+          <Picker label="Deck size" value={deckSize} options={SIZE_OPTIONS} onChange={setDeckSize} />
+          <Picker label="Animation" value={animation.label} options={ANIMATION_OPTIONS} onChange={animation.choose} />
+        </div>
+      </header>
 
-        {builder ? (
-          <MethodBuilder
-            editing={builder.editId ? (experiments.find((experiment) => experiment.id === builder.editId) ?? null) : null}
-            start={start}
-            tracked={tracked}
-            onTracked={setTracked}
-            animate={anim.enabled}
-            speed={anim.speed}
-            onSave={saveMethod}
-            onCancel={closeBuilder}
-            onDelete={deleteMethod}
-          />
-        ) : (
-          <>
-            <div className="runbar">
-              <span className="condlbl">Deck</span>
-              <select value={kind} onChange={(event) => setKind(event.target.value as DeckKind)}>
-                {DECK_KINDS.map((deckKind) => (
-                  <option key={deckKind.value} value={deckKind.value}>
-                    {deckKind.label}
-                  </option>
-                ))}
-              </select>
-              <select value={deckSize} onChange={(event) => setDeckSize(Number(event.target.value))}>
-                {DECK_SIZES.map((size) => (
-                  <option key={size.value} value={size.value}>
-                    {size.label}
-                  </option>
-                ))}
-              </select>
-              <span className="status">{pending > 0 ? 'Scoring…' : 'Ready.'}</span>
-              <button className="animtoggle" type="button" onClick={() => openBuilder(null)}>
-                + New method
-              </button>
-              <button className="animtoggle anim-setting" type="button" onClick={anim.cycle}>
-                Animation: {anim.label}
-              </button>
-            </div>
+      <div className="sim-body">
+        <MethodList
+          rows={rows}
+          kind={kind}
+          activeId={active?.id}
+          shownIds={shownIds}
+          onActivate={activate}
+          onShownChange={setShownIds}
+          onNew={() => addMethod({ id: uid(), seq: [] })}
+          onReset={reset}
+        />
 
-            <div className="bigsticky">
-              <div className="bigwrap">
-                <SummaryPanel series={series} selected={metric} step={chartStep} onClearComparison={() => setOverlaid([])} />
+        <main className="workbench">
+          {active ? (
+            <>
+              <RoutineEditor
+                method={active}
+                editor={editor}
+                onRename={(name) => setExperiments((list) => list.map((experiment) => (experiment === active ? { ...experiment, name: name.trim() ? name : undefined } : experiment)))}
+                onDuplicate={() => addMethod({ id: uid(), name: active.name && `${active.name} copy`, seq: active.seq.slice() }, active)}
+                onDelete={deleteActive}
+              />
+              <div className="workbench-pair">
+                <DeckView
+                  start={start}
+                  seq={active.seq}
+                  startLabel={kind}
+                  step={editor.caret}
+                  onStep={editor.setCaret}
+                  tracked={tracked}
+                  onTracked={setTracked}
+                  animate={animation.enabled}
+                  speed={animation.speed}
+                />
+                <ScoreCard kind={kind} current={scoredFor(active, kind)} other={scoredFor(active, otherKind)} onSwitchDeck={() => setKind(otherKind)} />
               </div>
-            </div>
-
-            <div className="diagh">Randomness diagnostics</div>
-            {series.length > 0 && <DiagnosticGrid series={series} selected={metric} onSelect={setMetric} step={chartStep} />}
-
-            <div className="diagh" style={{ marginTop: '1rem' }}>
-              Compare methods
-            </div>
-            <HeadToHead series={series} />
-            <MethodList
-              experiments={experiments}
-              results={results}
-              pending={pending}
-              colors={colors}
-              openId={openId}
-              onOpen={(id) => setOpenId((cur) => (cur === id ? null : id))}
-              onToggleOverlay={toggleOverlay}
-              onEdit={openBuilder}
-              onReset={resetMethods}
-              panel={
-                openExp && (
-                  <MethodPanel
-                    exp={openExp}
-                    result={results.get(openExp.id)}
-                    start={start}
-                    startLabel={kind}
-                    step={step}
-                    onStep={setStep}
-                    tracked={tracked}
-                    onTracked={setTracked}
-                    animate={anim.enabled}
-                    speed={anim.speed}
-                  />
-                )
-              }
-            />
-
-            <div className="keyline">
-              <div className="kg">
-                <span className="kg-sw" style={{ background: `linear-gradient(to right,${colorFor(0, deckSize)},${colorFor(deckSize - 1, deckSize)})` }} />
-                original order
-              </div>
-              <div className="kg">
-                <span className="kg-dash" />
-                random baseline
-              </div>
-            </div>
-            <div className="desc">
-              Each chart line is one overlaid method, averaged over many trials. Click a diagnostic to see it full size. Click a method to watch it
-              shuffle an example deck: the dots on the charts mark the step you&rsquo;re viewing, and you can tap a card to follow it through the
-              shuffle.
-            </div>
-          </>
-        )}
-      </div>
-
-      <div className="simfoot">
-        <p>
-          Four tests are shown as a percentage of the way from the starting deck to random: ordering, proximity, position and land spacing. Their raw
-          numbers depend on deck size, so a percentage compares fairly across 52-, 60- and 99-card decks. The other tests keep their own units, and
-          clicking one shows its random value.
-        </p>
-        <p>
-          Most tests fail when too much order survives. Seven also fail when a deck misses random in the other direction: ordering, proximity, global
-          proximity, neighbour correlation, end retention, land spacing and clump rate. A pile deal or an early mash spreads neighbours too evenly, mana
-          weaving spaces lands too evenly, and an off-centre riffle moves the end cards away from the ends too reliably.
-        </p>
-        <p>
-          The headline score puts every test on the same percentage scale and averages them. The four core tests (ordering, proximity, position and
-          neighbour correlation) count double. The score is capped at the lowest-scoring test that fails, so a deck can&rsquo;t read 90% randomized while a
-          test is still failing. Clump rate is left out of the cap, because a fresh deck can fail it just because of where the decklist put the lands.
-        </p>
+              {activeSeries.length > 0 && (
+                <section className="diagnostics" aria-label="Diagnostics">
+                  <h2>Diagnostics</h2>
+                  <p className="diagnostics-hint">Each chart follows one metric from the starting deck to the last move. The dashed line is a random deck, and the dots mark the step at the caret.</p>
+                  {metric && <MetricDetail metricKey={metric} series={activeSeries} step={editor.caret} onClose={() => setMetric(null)} />}
+                  <DiagnosticGrid series={activeSeries} selected={metric} onSelect={setMetric} step={editor.caret} />
+                  <HeadToHead series={activeSeries} />
+                </section>
+              )}
+            </>
+          ) : (
+            <p className="workbench-empty">No method is open. Make one with New method, or reset to the default methods.</p>
+          )}
+        </main>
       </div>
     </div>
   )
