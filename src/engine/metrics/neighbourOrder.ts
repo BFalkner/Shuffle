@@ -1,11 +1,17 @@
-import { posOf } from '../decks.ts'
 import type { Deck } from '../moves.ts'
 import { RUN_DECKS, powerMean, type Metric } from './types.ts'
 
-/** For each pair of old neighbours (card c and card c + 1), whether card c + 1 still comes after card c. */
-function keptInOrder(deck: Deck): boolean[] {
-  const positions = posOf(deck)
-  return Array.from({ length: deck.length - 1 }, (_, card) => positions[card + 1] > positions[card])
+// Neighbour order runs on every deck at every step, so it is written for speed: plain loops, and one positions array
+// per batch that each deck refills instead of allocating its own.
+
+/** Fill `positions` so positions[card] is the card's place in the deck, top card first. */
+function fillPositions(deck: Deck, positions: Int32Array): void {
+  for (let place = 0; place < deck.length; place++) positions[deck[place]] = place
+}
+
+/** Add one deck to `inOrder`: inOrder[card] counts the decks in which card + 1 still comes after card. */
+function countNeighboursInOrder(positions: Int32Array, inOrder: Int32Array): void {
+  for (let card = 0; card < inOrder.length; card++) if (positions[card + 1] > positions[card]) inOrder[card]++
 }
 
 /**
@@ -13,7 +19,11 @@ function keptInOrder(deck: Deck): boolean[] {
  * are, −1 when all of them are reversed, and 0 when half are.
  */
 export function orderBalance(deck: Deck): number {
-  const kept = keptInOrder(deck).filter(Boolean).length
+  const positions = new Int32Array(deck.length)
+  const inOrder = new Int32Array(deck.length - 1)
+  fillPositions(deck, positions)
+  countNeighboursInOrder(positions, inOrder)
+  const kept = inOrder.reduce((total, count) => total + count, 0)
   return (2 * kept) / (deck.length - 1) - 1
 }
 
@@ -31,16 +41,16 @@ export const neighbourOrder: Metric = {
   title: 'Neighbour order',
   trials: RUN_DECKS,
   batch: (deckSize) => {
-    // inOrder[card]: decks in which card + 1 still comes after card
-    let inOrder: number[] = Array(deckSize - 1).fill(0)
+    const positions = new Int32Array(deckSize)
+    const inOrder = new Int32Array(deckSize - 1)
     let count = 0
     return {
       add: (deck) => {
-        const kept = keptInOrder(deck)
-        inOrder = inOrder.map((decks, card) => decks + (kept[card] ? 1 : 0))
+        fillPositions(deck, positions)
+        countNeighboursInOrder(positions, inOrder)
         count++
       },
-      value: () => powerMean(inOrder.map((kept) => Math.abs((2 * kept) / count - 1))),
+      value: () => powerMean(Array.from(inOrder, (kept) => Math.abs((2 * kept) / count - 1))),
     }
   },
   calibration: { kind: 'batches' },
