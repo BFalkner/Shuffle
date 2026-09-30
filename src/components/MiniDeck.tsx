@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { posOf } from '../engine/decks'
 import type { Deck } from '../engine/moves'
 import { useElementWidth } from '../hooks/useElementWidth'
@@ -15,7 +15,150 @@ const STRIP = 18
 /** total stagger across the deck, ms at normal speed */
 const WAVE = 420
 /** slide duration, s at normal speed */
-const DUR = 0.95
+const DUR = 0.8
+/** which way the shine's lamp stands from the deck's centre, degrees clockwise: 0 far side, 90 right, 180 near side, 270 left */
+const LAMP_DIRECTION = 18.4
+/** how far the lamp stands from the deck's centre along the table, in deck widths */
+const LAMP_DISTANCE = 15
+/** how high the lamp is above the table, in deck widths: the lower it is, the brighter the deck's near side than its far side */
+const LAMP_HEIGHT = 15
+/** half the beam's width at the deck's centre, px: the light is half as bright this far from the middle of the beam */
+const BEAM_WIDTH = 45
+/** how bright the beam is at the deck's centre */
+const BEAM_PEAK = 0.20
+/** the beam's average speed across the deck's centre, px a second */
+const SHINE_SPEED = 170
+/** the shortest and longest wait before each shine, ms; each wait is picked at random between them */
+const SHINE_WAIT_SHORTEST = 2 * 60_000
+const SHINE_WAIT_LONGEST = 5 * 60_000
+/** how far out the beam's light is faded to nothing, in BEAM_WIDTHs; by then it is under 3% of its peak */
+const BEAM_REACH = 6
+/** where the gradient samples the beam's brightness across its width, in BEAM_WIDTHs from its middle */
+const BEAM_SAMPLES = [0.22, 0.44, 0.67, 1, 1.33, 1.78, 2.33, 3, 3.78, 4.89]
+
+const degrees = (radians: number) => (radians * 180) / Math.PI
+const radians = (degrees: number) => (degrees * Math.PI) / 180
+
+/**
+ * Whether the shine is sweeping now, and a callback for when its sweep ends. A sweep starts after a random wait, and
+ * the end of each sweep starts the next wait. Nothing is timed while animation is off, and turning it off ends a sweep.
+ */
+function useShine(enabled: boolean): [boolean, () => void] {
+  const [sweeping, setSweeping] = useState(false)
+  if (!enabled && sweeping) setSweeping(false)
+
+  useEffect(() => {
+    if (!enabled || sweeping) return
+    const wait = SHINE_WAIT_SHORTEST + Math.random() * (SHINE_WAIT_LONGEST - SHINE_WAIT_SHORTEST)
+    const timer = setTimeout(() => setSweeping(true), wait)
+    return () => clearTimeout(timer)
+  }, [enabled, sweeping])
+
+  return [sweeping, () => setSweeping(false)]
+}
+
+interface LampBeam {
+  style: CSSProperties
+  /** the rotations the beam swings from and to, degrees */
+  swing: [number, number]
+  /** ms */
+  duration: number
+}
+
+/**
+ * The shine's beam, worked out from the settings above for a deck of this size. It comes from a lamp standing off the
+ * deck (keep LAMP_DISTANCE above about 1, so the lamp stays off it) and turning on its base, so the beam swings across
+ * the deck in an arc.
+ *
+ * The beam is drawn in a box hanging straight down from the lamp, covering the distances from the lamp to the deck's
+ * nearest and farthest corners, and turned round the lamp. Across its width the beam is lit the way light spreads from
+ * a lamp: at an angle a from its middle, 1 / (1 + (a / spread)²), where the spread is the angle BEAM_WIDTH makes at the
+ * deck's centre. Along it, a raised lamp's light falls off with the square of the distance to it, so a card whose floor
+ * distance to the lamp is r gets (nearest² + height²) / (r² + height²) of the light the nearest card gets. The mask
+ * draws that, and the opacity sets the deck's centre to BEAM_PEAK.
+ *
+ * The swing starts with the beam's faded edge just past the deck's first corner and ends with it just past the last,
+ * at SHINE_SPEED on average across the deck's centre. The light travels left to right, or top to bottom when the lamp
+ * stands straight out to one side.
+ */
+function lampBeam(stageW: number, stageH: number): LampBeam {
+  const distance = LAMP_DISTANCE * stageW
+  const height = LAMP_HEIGHT * stageW
+  const direction = radians(LAMP_DIRECTION)
+  const x = stageW / 2 + distance * Math.sin(direction)
+  const y = stageH / 2 - distance * Math.cos(direction)
+  const corners = [
+    [0, 0],
+    [stageW, 0],
+    [0, stageH],
+    [stageW, stageH],
+  ]
+
+  // rotate(a) turns "straight down" to point along (-sin a, cos a), so rotating by LAMP_DIRECTION aims the beam at the
+  // deck's centre. Each corner's aim is measured from there, between -180° and 180°, so no direction wraps round.
+  const aimAt = ([cornerX, cornerY]: number[]) => ((((degrees(Math.atan2(x - cornerX, cornerY - y)) - LAMP_DIRECTION) % 360) + 540) % 360) - 180
+  const aims = corners.map(aimAt)
+  const spread = degrees(Math.atan(BEAM_WIDTH / distance))
+  const edge = BEAM_REACH * spread
+  const first = LAMP_DIRECTION + Math.min(...aims) - edge
+  const last = LAMP_DIRECTION + Math.max(...aims) + edge
+  // Turning the beam clockwise moves its light across the deck along (-cos d, -sin d), for the lamp's direction d.
+  const clockwiseMovesRight = Math.abs(Math.cos(direction)) > 0.01 ? -Math.cos(direction) > 0 : -Math.sin(direction) > 0
+  const swing: [number, number] = clockwiseMovesRight ? [first, last] : [last, first]
+  const duration = ((radians(last - first) * distance) / SHINE_SPEED) * 1000
+
+  const reaches = corners.map(([cornerX, cornerY]) => Math.hypot(cornerX - x, cornerY - y))
+  const nearest = Math.min(...reaches) - 2
+  const farthest = Math.max(...reaches) + 2
+  const lightAt = (reach: number) => (nearest ** 2 + height ** 2) / (reach ** 2 + height ** 2)
+  const falloff = Array.from({ length: 6 }, (_, index) => nearest + ((farthest - nearest) * index) / 5).map(
+    (reach) => `rgba(0,0,0,${lightAt(reach).toFixed(3)}) ${Math.round(reach)}px`,
+  )
+
+  // The beam points straight down the box, at 180° in the conic gradient.
+  const glow = (widths: number) => `rgba(255,250,232,${(1 / (1 + widths ** 2)).toFixed(3)})`
+  const across = [
+    ...BEAM_SAMPLES.toReversed().map((widths) => `${glow(widths)} ${(180 - widths * spread).toFixed(3)}deg`),
+    `${glow(0)} 180deg`,
+    ...BEAM_SAMPLES.map((widths) => `${glow(widths)} ${(180 + widths * spread).toFixed(3)}deg`),
+  ]
+  const width = 2 * farthest * Math.tan(radians(edge))
+
+  return {
+    style: {
+      left: x - width / 2,
+      top: y + nearest,
+      width,
+      height: farthest - nearest,
+      opacity: BEAM_PEAK / lightAt(distance),
+      background: `conic-gradient(at 50% ${-nearest}px,transparent ${(180 - edge).toFixed(3)}deg,${across.join(',')},transparent ${(180 + edge).toFixed(3)}deg)`,
+      maskImage: `radial-gradient(circle at 50% ${-nearest}px,${falloff.join(',')})`,
+      transformOrigin: `50% ${-nearest}px`,
+      transform: `rotate(${swing[0]}deg)`,
+    },
+    swing,
+    duration,
+  }
+}
+
+/** One sweep of the shine's beam. It swings once on mount, and `onEnd` runs when it has finished. */
+function ShineBeam({ beam, onEnd }: { beam: LampBeam; onEnd: () => void }) {
+  const beamRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const sweep = beamRef.current?.animate([{ transform: `rotate(${beam.swing[0]}deg)` }, { transform: `rotate(${beam.swing[1]}deg)` }], {
+      duration: beam.duration,
+      easing: 'ease-in-out',
+      fill: 'both',
+    })
+    // A sweep cancelled on unmount rejects `finished`; there is nothing to do then.
+    sweep?.finished.then(onEnd, () => {})
+    return () => sweep?.cancel()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return <div ref={beamRef} className="minideck-shine-beam" style={beam.style} />
+}
 
 function gridFor(deckSize: number, width: number) {
   const gap = GAP
@@ -25,7 +168,7 @@ function gridFor(deckSize: number, width: number) {
   const cardWidth = Math.max(6, Math.floor((usableWidth - (cols - 1) * gap) / cols))
   const cardHeight = Math.round(cardWidth * CARD_RATIO)
   const rows = Math.ceil(deckSize / cols)
-  return { cols, cardWidth, cardHeight, gap, stageW: cols * cardWidth + (cols - 1) * gap, stageH: rows * cardHeight + (rows - 1) * gap }
+  return { cols, rows, cardWidth, cardHeight, gap, stageW: cols * cardWidth + (cols - 1) * gap, stageH: rows * cardHeight + (rows - 1) * gap }
 }
 
 interface Props {
@@ -51,6 +194,7 @@ export default function MiniDeck({ deck, step, tracked, animate, speed, onCardCl
   const [shown, setShown] = useState<{ deck: Deck; step: number; from: { deck: Deck; step: number } | null }>({ deck, step, from: null })
   if (shown.deck !== deck) setShown({ deck, step, from: { deck: shown.deck, step: shown.step } })
   const last = shown.from && shown.from.deck.length === deckSize ? shown.from : null
+  const [shining, endShine] = useShine(animate)
 
   const pos = posOf(deck)
   const startPos = posOf(last ? last.deck : deck)
@@ -61,6 +205,18 @@ export default function MiniDeck({ deck, step, tracked, animate, speed, onCardCl
     width: grid.stageW,
     height: grid.stageH,
     '--dur': `${(DUR / speed).toFixed(3)}s`,
+  } as CSSProperties
+
+  // The shine's mask covers each card's slot. A short last row leaves empty slots at its end, cut off by the clip.
+  const lastRow = deckSize % grid.cols
+  const fullHeight = (grid.rows - 1) * (grid.cardHeight + grid.gap)
+  const lastRowWidth = lastRow * (grid.cardWidth + grid.gap)
+  const shineStyle = {
+    '--card-w': `${grid.cardWidth}px`,
+    '--card-h': `${grid.cardHeight}px`,
+    '--pitch-x': `${grid.cardWidth + grid.gap}px`,
+    '--pitch-y': `${grid.cardHeight + grid.gap}px`,
+    clipPath: lastRow ? `polygon(0 0,100% 0,100% ${fullHeight}px,${lastRowWidth}px ${fullHeight}px,${lastRowWidth}px 100%,0 100%)` : undefined,
   } as CSSProperties
 
   return (
@@ -102,6 +258,11 @@ export default function MiniDeck({ deck, step, tracked, animate, speed, onCardCl
             </div>
           )
         })}
+        {shining && (
+          <div className="minideck-shine" style={shineStyle} aria-hidden="true">
+            <ShineBeam beam={lampBeam(grid.stageW, grid.stageH)} onEnd={endShine} />
+          </div>
+        )}
       </div>
     </div>
   )

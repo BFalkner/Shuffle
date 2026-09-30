@@ -34,6 +34,27 @@
   transition: none;
 }
 
+/* A beam of light that crosses the deck now and then, as on a foil card. MiniDeck adds it at random times and takes it
+   away when its one sweep ends. One layer over the whole deck, masked to
+   the card slots so the gaps stay dark, holds the beam. The beam only moves by transform, so the browser turns it
+   without restyling or repainting any card. */
+.minideck-shine {
+  position: absolute;
+  inset: 0;
+  z-index: 2000;
+  overflow: hidden;
+  pointer-events: none;
+  mask:
+    linear-gradient(to right, #000 var(--card-w), transparent 0) 0 0 / var(--pitch-x) 100% repeat-x,
+    linear-gradient(to bottom, #000 var(--card-h), transparent 0) 0 0 / 100% var(--pitch-y) repeat-y;
+  mask-composite: intersect;
+}
+
+/* The beam. MiniDeck works out its box, light and swing from the lamp settings at the top of MiniDeck.tsx. */
+.minideck-shine-beam {
+  position: absolute;
+}
+
 .minideck-badge {
   position: absolute;
   top: -7px;
