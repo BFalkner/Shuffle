@@ -19,6 +19,9 @@
  * 9  ends is removed and spread is renamed position, so each category holds one metric. Position reads what spread did,
  *    and sequence, proximity and distinguishability don't change. Totals drop by the old ends level wherever ends was
  *    the worse of the two
+ * 10 sequence and position read each part on its own (each pair of old neighbours, each starting place) and combine
+ *    the parts with a power mean (p = 4), not one balance over all pairs or the worst starting place. Changes both
+ *    metrics' readings and baselines. Proximity and distinguishability don't change
  */
-export const ENGINE_VERSION = 9
-export const ENGINE_FINGERPRINT = 'a7e529d2'
+export const ENGINE_VERSION = 10
+export const ENGINE_FINGERPRINT = 'b0186188'

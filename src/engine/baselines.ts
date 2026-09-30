@@ -7,8 +7,8 @@ export const CALIBRATION_BATCHES = 1000
 export const BASELINES: Record<number, Base> = {
   "52": {
     "sequence": {
-      "mean": 0.0019407516339869264,
-      "standardDeviation": 0.0014359612449907607,
+      "mean": 0.037152957253662834,
+      "standardDeviation": 0.004611521993475788,
       "sorted": 1
     },
     "proximity": {
@@ -17,9 +17,9 @@ export const BASELINES: Record<number, Base> = {
       "sorted": 0.9615384615384615
     },
     "position": {
-      "mean": 0.05574224358974357,
-      "standardDeviation": 0.004816120176020804,
-      "sorted": 0.9038461538461542
+      "mean": 0.03744977591541485,
+      "standardDeviation": 0.0013939722144873962,
+      "sorted": 0.8995169148009309
     },
     "classifier": {
       "mean": 0.5,
@@ -29,8 +29,8 @@ export const BASELINES: Record<number, Base> = {
   },
   "60": {
     "sequence": {
-      "mean": 0.0018071751412429365,
-      "standardDeviation": 0.0014010630933481833,
+      "mean": 0.03743479643413356,
+      "standardDeviation": 0.0042217906274403475,
       "sorted": 1
     },
     "proximity": {
@@ -39,9 +39,9 @@ export const BASELINES: Record<number, Base> = {
       "sorted": 0.9666666666666667
     },
     "position": {
-      "mean": 0.056899166666666744,
-      "standardDeviation": 0.004997021065102755,
-      "sorted": 0.9000000000000004
+      "mean": 0.037625303139465244,
+      "standardDeviation": 0.0012961793754893728,
+      "sorted": 0.9000000000000006
     },
     "classifier": {
       "mean": 0.5,
@@ -51,8 +51,8 @@ export const BASELINES: Record<number, Base> = {
   },
   "99": {
     "sequence": {
-      "mean": 0.0013782482993197288,
-      "standardDeviation": 0.0010122388271105746,
+      "mean": 0.03770931314233977,
+      "standardDeviation": 0.0032080653612105076,
       "sorted": 1
     },
     "proximity": {
@@ -61,9 +61,9 @@ export const BASELINES: Record<number, Base> = {
       "sorted": 0.9797979797979798
     },
     "position": {
-      "mean": 0.058763030303030296,
-      "standardDeviation": 0.004835328580547712,
-      "sorted": 0.9090909090909091
+      "mean": 0.037624514465049164,
+      "standardDeviation": 0.0010026609861055959,
+      "sorted": 0.8999223137852403
     },
     "classifier": {
       "mean": 0.5,

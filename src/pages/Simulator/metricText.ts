@@ -22,7 +22,7 @@ export const METRIC_TEXT: Record<MetricKey, MetricText> = {
     writeup: { to: '/order-tests', label: FULL },
   },
   position: {
-    desc: 'Whether a card’s starting place tells you where it ends up. It checks the worst starting place, so a few cards that stay put count, like the mash’s top and bottom cards. A pile deal fails it completely.',
+    desc: 'Whether a card’s starting place tells you where it ends up. It weights the worst starting places heavily, so a few cards that stay put still count, like the mash’s top and bottom cards. A pile deal fails it completely.',
     writeup: { to: '/global-tests', label: FULL },
   },
   classifier: {

@@ -169,13 +169,14 @@
 
 <h3>What each metric counts</h3>
 <p>Two of the metrics finish with <code>mismatch</code>, found in <code>metrics/types.ts</code>. It compares the shares a run put in each bin with the shares a random deck would put there. The result is 0 when they match and 1 when every observation lands where a random deck never puts one. Statisticians call it the total variation distance.</p>
+<p>Two of the metrics read many parts separately (pairs of old neighbours, or starting places) and combine them with <code>powerMean</code>, also in <code>metrics/types.ts</code>. It raises each part's reading to the 4th power, averages, then takes the 4th root. A plain average would let one bad part among 99 count for a 99th of its reading. The power mean counts it for about a third, so a few bad parts aren't averaged away, while the single worst part doesn't decide the value on its own.</p>
 <p>"Old neighbours" are cards that started next to each other: card <em>c</em> and card <em>c</em> + 1.</p>
 <div class="table-wrap">
 <table>
   <tr><th>Metric</th><th>Category</th><th>Each deck adds</th><th>The batch's value</th></tr>
-  <tr><td>Sequence</td><td>sequence</td><td>The share of old neighbours still in their old order, as a number from −1 (all reversed) to +1 (all kept)</td><td>The average, without its sign. Kept order and reversed order both read high.</td></tr>
+  <tr><td>Sequence</td><td>sequence</td><td>For each pair of old neighbours, whether it is still in its old order</td><td>Each pair's balance over the batch, from −1 (always reversed) to +1 (always kept), without its sign, so kept order and reversed order both read high. The pairs are combined with <code>powerMean</code>. Reading each pair on its own stops pairs that a routine keeps from cancelling out pairs it reverses.</td></tr>
   <tr><td>Proximity</td><td>proximity</td><td>How far apart each pair of old neighbours now sits, counted into bins: one bin per distance up to 40% of the deck, then 3 bins for longer distances</td><td><code>mismatch</code> against the distances in a random deck</td></tr>
-  <tr><td>Position</td><td>position</td><td>For each card, which tenth of the deck it ends in, counted separately for each starting place</td><td><code>mismatch</code> against an even 10% per tenth for each starting place. The value is the worst place, so a few cards that stay put, such as the mash's top and bottom cards, count in full.</td></tr>
+  <tr><td>Position</td><td>position</td><td>For each card, which tenth of the deck it ends in, counted separately for each starting place</td><td><code>mismatch</code> against an even 10% per tenth for each starting place. The places are combined with <code>powerMean</code>, so a few cards that stay put, such as the mash's top and bottom cards, still count.</td></tr>
   <tr><td>Distinguishability</td><td>none</td><td>Five numbers describing the deck: the average and spread of the jumps between neighbouring card numbers, the share of small jumps, the share of jumps of 1, and how closely each card number tracks the next. Only the first 1,000 decks are used.</td><td>A small classifier learns to tell these decks from 1,000 random ones. The value is its accuracy on decks it didn't train on. 50% means it can't tell them apart.</td></tr>
 </table>
 </div>

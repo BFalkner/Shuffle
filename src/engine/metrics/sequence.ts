@@ -1,6 +1,6 @@
 import { posOf } from '../decks.ts'
 import type { Deck } from '../moves.ts'
-import { RUN_DECKS, type Metric } from './types.ts'
+import { RUN_DECKS, powerMean, type Metric } from './types.ts'
 
 /**
  * How many old neighbours (card c and card c + 1) are still in their old order, as a signed share: +1 when all of them
@@ -15,23 +15,28 @@ export function orderBalance(deck: Deck): number {
 
 /**
  * Sequence: whether old neighbours still come in their old order. The mash keeps each half's cards in order, so after a few
- * passes most neighbours still do. The overhand reverses its packets, so most come out reversed. The batch averages the
- * balance with its sign, then drops the sign, so reliably reversed reads as high as reliably kept.
+ * passes most neighbours still do. The overhand reverses its packets, so most come out reversed. For each pair of old
+ * neighbours, the batch reads its balance over every deck without the sign, so reliably reversed reads as high as
+ * reliably kept. It combines the pairs with a power mean. Reading each pair on its own matters when a routine keeps
+ * some pairs and reverses others, as a half overhand between mashes does: one balance over all pairs would let the two
+ * cancel out.
  */
 export const sequence: Metric = {
   key: 'sequence',
   category: 'sequence',
   title: 'Sequence',
   trials: RUN_DECKS,
-  batch: () => {
-    let sum = 0
+  batch: (deckSize) => {
+    // inOrder[card]: decks in which card + 1 still comes after card
+    const inOrder = new Int32Array(deckSize - 1)
     let count = 0
     return {
       add: (deck) => {
-        sum += orderBalance(deck)
+        const positions = posOf(deck)
+        for (let card = 0; card < deckSize - 1; card++) if (positions[card + 1] > positions[card]) inOrder[card]++
         count++
       },
-      value: () => Math.abs(sum / count),
+      value: () => powerMean(Array.from(inOrder, (kept) => Math.abs((2 * kept) / count - 1))),
     }
   },
   calibration: { kind: 'batches' },

@@ -49,6 +49,20 @@ export interface Metric {
 /** Decks in one run. Every metric except distinguishability reads all of them. */
 export const RUN_DECKS = 1200
 
+/** The power the per-part metrics use to combine their parts. See powerMean. */
+export const PART_POWER = 4
+
+/**
+ * Combine per-part readings so a few bad parts aren't averaged away: the p-th root of the mean of each reading to the
+ * power p. p = 1 is the plain average, and a higher p moves it toward the worst part. With p = 4, one bad part among 99
+ * counts for about a third of its own reading (99^(−1/4)), where a plain average would count it for a 99th.
+ */
+export function powerMean(values: ArrayLike<number>, p = PART_POWER): number {
+  let total = 0
+  for (let index = 0; index < values.length; index++) total += values[index] ** p
+  return (total / values.length) ** (1 / p)
+}
+
 /**
  * The share of observations that fall where random decks wouldn't put them: half the summed difference between the
  * observed shares and the expected ones (the total variation distance). 0 when they match, and 1 when every observation
