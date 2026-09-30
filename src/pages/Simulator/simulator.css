@@ -896,7 +896,6 @@ body:has(.sim) {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
   gap: 1.1rem;
-  align-items: start;
 }
 
 .sim .deckview,
@@ -909,6 +908,12 @@ body:has(.sim) {
   padding: 0.9rem 1rem;
 }
 
+/* The two panels stretch to the same height; each keeps its last line at the bottom. */
+.sim .deckview {
+  display: flex;
+  flex-direction: column;
+}
+
 .sim .deckview-head {
   display: flex;
   align-items: center;
@@ -919,8 +924,8 @@ body:has(.sim) {
 .sim .deckview-step {
   flex: 1;
   text-align: center;
-  font-size: 0.88rem;
-  color: var(--soft);
+  font-size: 1.05rem;
+  color: var(--ink);
 }
 
 .sim .stepbtn {
@@ -942,7 +947,8 @@ body:has(.sim) {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.3rem 0.8rem;
-  margin-top: 0.7rem;
+  margin-top: auto;
+  padding-top: 0.7rem;
   min-height: 1.3rem;
   font-size: 0.82rem;
   color: var(--soft);
@@ -1061,7 +1067,7 @@ body:has(.sim) {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.3rem 0.8rem;
-  margin: 0;
+  margin: auto 0 0;
   padding-top: 0.6rem;
   border-top: 1px solid var(--rule);
   font-size: 0.88rem;

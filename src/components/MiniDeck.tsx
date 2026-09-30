@@ -6,8 +6,10 @@ import { colorFor } from './deckColors'
 import { TRACK_COLORS } from './tracking'
 import './MiniDeck.css'
 
-const GAP = 2
-const MAX_TILE = 24
+const GAP = 4
+const MAX_TILE = 22
+/** height over width: a Magic card is 63 × 88 mm */
+const CARD_RATIO = 88 / 63
 /** room on the left for the original-order strip */
 const STRIP = 18
 /** total stagger across the deck, ms at normal speed */
@@ -21,7 +23,7 @@ function gridFor(deckSize: number, width: number) {
   // Cap the tile size: wide screens get more columns, not giant tiles.
   const cols = Math.min(deckSize, Math.max(10, Math.ceil(deckSize / 6), Math.floor((usableWidth + gap) / (MAX_TILE + gap))))
   const cardWidth = Math.max(6, Math.floor((usableWidth - (cols - 1) * gap) / cols))
-  const cardHeight = Math.round(cardWidth * 1.4)
+  const cardHeight = Math.round(cardWidth * CARD_RATIO)
   const rows = Math.ceil(deckSize / cols)
   return { cols, cardWidth, cardHeight, gap, stageW: cols * cardWidth + (cols - 1) * gap, stageH: rows * cardHeight + (rows - 1) * gap }
 }
