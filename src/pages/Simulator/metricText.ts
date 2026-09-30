@@ -13,16 +13,16 @@ export interface MetricText {
 const FULL = 'Full write-up'
 
 export const METRIC_TEXT: Record<MetricKey, MetricText> = {
-  order: {
+  sequence: {
     desc: 'Whether cards that started next to each other still come in the same order. A random deck keeps half of them in order. The mash keeps most of them. The overhand reverses most of them, which counts too.',
     writeup: { to: '/order-tests', label: FULL },
   },
-  neighbours: {
+  proximity: {
     desc: 'How far apart cards that started next to each other end up, compared with a random deck. The overhand leaves them too close. A pile deal or an early mash spreads them <i>too</i> evenly. Both count.',
     writeup: { to: '/order-tests', label: FULL },
   },
   spread: {
-    desc: 'Whether a card’s starting place tells you where it ends up, over many shuffles. A pile deal puts every card in a fixed place, so it reads as high as a deck that was never shuffled.',
+    desc: 'Whether a card’s starting place tells you where it ends up. It checks the worst starting place, so a few cards that stay put count, like the mash’s top and bottom cards. A pile deal fails it completely.',
     writeup: { to: '/global-tests', label: FULL },
   },
   ends: {

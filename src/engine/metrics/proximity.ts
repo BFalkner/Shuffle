@@ -41,14 +41,14 @@ export function addGaps(counts: Int32Array, deck: Deck): void {
 }
 
 /**
- * Neighbours: how far apart old neighbours (card c and card c + 1) now sit, compared with how far apart a random deck
+ * Proximity: how far apart old neighbours (card c and card c + 1) now sit, compared with how far apart a random deck
  * puts them. It reads the share of pairs at distances a random deck wouldn't produce. That catches neighbours left too
  * close, as the overhand leaves them, and neighbours spread too evenly, as a pile deal or an early mash spreads them.
  */
-export const neighbours: Metric = {
-  key: 'neighbours',
-  category: 'neighbours',
-  title: 'Neighbours',
+export const proximity: Metric = {
+  key: 'proximity',
+  category: 'proximity',
+  title: 'Proximity',
   trials: RUN_DECKS,
   batch: (deckSize) => {
     const counts = new Int32Array(gapBins(deckSize).expected.length)

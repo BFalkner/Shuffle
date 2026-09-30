@@ -1,13 +1,13 @@
 import type { CardTypes } from '../decks.ts'
 import type { Deck } from '../moves.ts'
 
-export type MetricKey = 'order' | 'neighbours' | 'spread' | 'ends' | 'lands' | 'classifier'
+export type MetricKey = 'sequence' | 'proximity' | 'spread' | 'ends' | 'lands' | 'classifier'
 
 /**
  * The four kinds of leftover order a shuffle can leave behind. Each metric belongs to one, except distinguishability,
  * the catch-all, which is reported alongside them.
  */
-export type Category = 'order' | 'neighbours' | 'position' | 'lands'
+export type Category = 'sequence' | 'proximity' | 'position' | 'lands'
 
 /** A metric's reading of random decks, which is its level 0, and of an unshuffled sorted deck, which is its level 1. */
 export interface Baseline {

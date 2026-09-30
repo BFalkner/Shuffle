@@ -11,6 +11,9 @@
  * 5  a thirteenth test, neighbour gaps, compares how far apart old neighbours sit with a random deck's spread
  * 6  the thirteen tests become five metrics in four categories (order, neighbours, position and lands), each read as a
  *    level from 0 (random) to 1 (an unshuffled sorted deck), plus distinguishability
+ * 7  spread reads its worst starting place, not the average over all places, so a few cards that stay put (the mash's
+ *    ends, one overhand's middle) count in full. Changes spread's readings, baselines and levels, and position's level.
+ *    The order and neighbours metrics and categories become sequence and proximity; their values don't change
  */
-export const ENGINE_VERSION = 6
-export const ENGINE_FINGERPRINT = '3b77df6c'
+export const ENGINE_VERSION = 7
+export const ENGINE_FINGERPRINT = '2f35f9ea'

@@ -5,8 +5,9 @@ const DEPTH = 4
 
 /**
  * Position, ends: how often the cards that started on top and on the bottom are still within three places of their end.
- * A random deck leaves each there 4 times in 99. The mash barely moves the ends, so they stay far more often. The spread
- * reading misses this, because two cards out of 99 barely move its average.
+ * A random deck leaves each there 4 times in 99. The mash barely moves the ends, so they stay far more often. Spread
+ * reads its worst starting place, so it catches this too, from the tenth each end card lands in. Ends looks closer, at
+ * the four places at each end.
  */
 export const ends: Metric = {
   key: 'ends',

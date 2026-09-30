@@ -106,8 +106,8 @@ groups its metrics into four categories:
 
 | Category   | Metrics        | What it looks for                                            |
 | ---------- | -------------- | ------------------------------------------------------------ |
-| Order      | Order          | Old neighbours still in their old order, or reliably reversed |
-| Neighbours | Neighbours     | Old neighbours too close together, or spread too evenly      |
+| Sequence   | Sequence       | Old neighbours still in their old order, or reliably reversed |
+| Proximity  | Proximity      | Old neighbours too close together, or spread too evenly      |
 | Position   | Spread, Ends   | A card's starting place predicting where it ends up          |
 | Lands      | Lands          | Lands spaced too evenly or too unevenly                      |
 
@@ -177,7 +177,7 @@ sticky-ends sweeps) came from ad hoc runs that weren't saved as scripts.
   each drop is scaled by the cards each hand still holds. Both likely make
   the simulated mash better at moving the end cards than a real one.
 - The sorted and played decks number their cards by type (lands first), as
-  a deck built and sorted by type would be. The order and neighbours metrics therefore
+  a deck built and sorted by type would be. The sequence and proximity metrics therefore
   see type structure in those decks as leftover order. The woven and clumped
   decks draw their card order and types at random, so only their land
   placement is structured.
