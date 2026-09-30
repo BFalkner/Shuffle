@@ -5,9 +5,9 @@
 //        npm run search -- --routine "M×4·P·M×4" [--routine M×8 ...] [--final-runs 200]   (skip the search, test these)
 //
 // --decks limits which starting decks are run and ranked (comma-separated). A routine is ranked by its weakest listed
-// deck, so with all four the sorted deck usually decides. For a between-games routine, use --from played --decks played.
+// deck, so with both the sorted deck usually decides. For a between-games routine, use --from played --decks played.
 //
-// Each run's total is the sum of its four categories' levels: 0 is random, and an unshuffled sorted deck reads about 4.
+// Each run's total is the sum of its three categories' levels: 0 is random, and an unshuffled sorted deck reads about 3.
 import { writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { DECK_KINDS, fisher, type DeckKind } from '../src/engine/decks.ts'
@@ -180,7 +180,7 @@ stage3.sort(byWeakestDeck)
 const reference = routineStats(['mash'], finalRuns, (deck) => fisher(deck.length))
 clearProgress()
 console.log(`  Each category's level is how far it sits from random: 0 is a random deck, and 1 is a sorted deck that was never`)
-console.log(`  shuffled. The total adds up the four categories, mean ± SD over the runs. "clean" counts the runs with every`)
+console.log(`  shuffled. The total adds up the three categories, mean ± SD over the runs. "clean" counts the runs with every`)
 console.log(`  category within the noise of random, with a 95% interval.\n`)
 console.log(`  Perfect shuffle (reference: a truly random deck)  weakest deck total ${reference.weakest.toFixed(3)}, clean ${reference.clean}/${finalRuns * kinds.length}`)
 kinds.forEach((kind, i) => console.log(deckLine(kind, reference.perDeck[i])))

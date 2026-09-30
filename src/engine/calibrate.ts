@@ -1,6 +1,6 @@
 // Each metric's baseline: what it reads for random decks (level 0) and for an unshuffled sorted deck (level 1).
 import { BASELINES } from './baselines.ts'
-import { fisher, numberedTypes, sortedDeck } from './decks.ts'
+import { fisher, sortedDeck } from './decks.ts'
 import { METRICS, type MetricKey } from './metrics.ts'
 import type { Baseline } from './metrics/types.ts'
 
@@ -14,7 +14,6 @@ export type Base = Record<MetricKey, Baseline>
  * metric's comes from its formula.
  */
 export function calibrate(deckSize: number, batchCount: number): Base {
-  const types = numberedTypes(deckSize)
   const sorted = sortedDeck(deckSize)
   const batched = METRICS.filter((metric) => metric.calibration.kind === 'batches')
   const decksPerBatch = Math.max(...batched.map((metric) => metric.trials))
@@ -25,7 +24,7 @@ export function calibrate(deckSize: number, batchCount: number): Base {
       // A random deck dealt from the sorted one, so the sorted deck is also where each card started.
       const deck = fisher(deckSize)
       batched.forEach((metric, index) => {
-        if (trial < metric.trials) open[index].add(deck, types, sorted)
+        if (trial < metric.trials) open[index].add(deck, sorted)
       })
     }
     open.forEach((batch, index) => readings[index].push(batch.value()))
@@ -42,7 +41,7 @@ export function calibrate(deckSize: number, batchCount: number): Base {
     const mean = values.reduce((total, value) => total + value, 0) / values.length
     const variance = values.length > 1 ? values.reduce((total, value) => total + (value - mean) ** 2, 0) / (values.length - 1) : 0
     const unshuffled = metric.batch(deckSize)
-    for (let trial = 0; trial < metric.trials; trial++) unshuffled.add(sorted, types, sorted)
+    for (let trial = 0; trial < metric.trials; trial++) unshuffled.add(sorted, sorted)
     base[metric.key] = { mean, standardDeviation: Math.sqrt(variance), sorted: unshuffled.value() }
   }
   return base

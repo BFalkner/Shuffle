@@ -29,7 +29,7 @@ export const spread: Metric = {
     // counts[startingPlace * SLICES + tenth]
     const counts = new Int32Array(deckSize * SLICES)
     return {
-      add: (deck, _types, start) => {
+      add: (deck, start) => {
         const startingPlace = posOf(start)
         for (let position = 0; position < deckSize; position++) counts[startingPlace[deck[position]] * SLICES + sliceOf[position]]++
       },

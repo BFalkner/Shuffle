@@ -49,7 +49,7 @@ src/
     routines.ts             move costs and names, and the "M×4·P·M×4" notation
     decks.ts                starting decks and card types
     metrics/                one file per metric: what it measures and how it reads a run's decks
-    metrics.ts              the list of metrics, in display order, and the four categories
+    metrics.ts              the list of metrics, in display order, and the three categories
     runs.ts                 deals starting decks and puts them through a routine
     simulate.ts             reads every metric over a run of 1200 decks
     calibrate.ts            each metric's reading for random decks and for a sorted deck
@@ -102,25 +102,23 @@ src/
 ### How the engine judges a deck
 
 Each shuffle leaves a different kind of leftover order, so the engine
-groups its metrics into four categories:
+groups its metrics into three categories:
 
 | Category   | Metrics        | What it looks for                                            |
 | ---------- | -------------- | ------------------------------------------------------------ |
 | Sequence   | Sequence       | Old neighbours still in their old order, or reliably reversed |
 | Proximity  | Proximity      | Old neighbours too close together, or spread too evenly      |
 | Position   | Spread, Ends   | A card's starting place predicting where it ends up          |
-| Lands      | Lands          | Lands spaced too evenly or too unevenly                      |
 
 Each metric reads a run of 1,200 decks and gives a level: how far the
 run is from random. A level of 0 is what random decks read on average,
 and 1 is what a sorted deck that was never shuffled reads. Random decks
-vary a little either side of 0. A deck can read above 1 when it is
-further from random than a sorted deck, as a mana-woven deck is on lands.
+vary a little either side of 0.
 Each metric's baseline (its random reading, how much that varies, and
 its sorted reading) is stored in `src/engine/baselines.ts`.
 
 A category reads its worst metric. A routine's total is the sum of its
-four categories, so a sorted deck totals 4. A category is "clear" when
+three categories, so a sorted deck totals 3. A category is "clear" when
 all its metrics are within three standard deviations of random. The
 clear count is shown, but routines are ranked by the total.
 
@@ -136,7 +134,7 @@ runs that aren't re-run in the browser. That data lives in
 
 `npm run search` reproduces the numbers behind the home page
 recommendations and footnote. It scores every routine up to a cost limit
-from a played deck, then reruns the leaders from all four starting decks.
+from a played deck, then reruns the leaders from both starting decks, sorted and played.
 It ranks each run by its total, and each routine by its weakest starting
 deck. For each finalist and starting deck, the search prints the total as
 a mean and standard deviation, each category's average level, and the
@@ -148,7 +146,7 @@ To change the limits, pass options after `--`, for example
 `npm run search -- --max-cost 6 --from sorted`. Add `--json results.json`
 to save the full statistics for every category. To test specific routines
 without the search, name them:
-`npm run search -- --routine "M×4·P·M×4" --routine M×8`. With all four
+`npm run search -- --routine "M×4·P·M×4" --routine M×8`. With both
 starting decks, the sorted deck usually decides the ranking. To judge a
 routine for one situation, limit the decks: a between-games search is
 `npm run search -- --from played --decks played`. The defaults
@@ -158,9 +156,9 @@ match the footnote. The options are listed at the top of `scripts/search.ts`.
 from truly random ones. It needs Python with scikit-learn and numpy
 (`pip install -r scripts/requirements.txt`). For each routine,
 `scripts/forest-features.ts` shuffles decks from sorted with the engine and
-writes 44 features per deck: the per-deck measures of the old test battery
-(`scripts/forest-measures.ts`), old-neighbour distances, land spacing and
-clumps, and where tracked cards ended up. The forest's accuracy
+writes 38 features per deck: the per-deck measures of the old test battery
+(`scripts/forest-measures.ts`), old-neighbour distances,
+and where tracked cards ended up. The forest's accuracy
 comes from 5-fold cross-validation, next to a random-against-random control
 and a logistic regression on the same features. Run it with
 `python scripts/forest.py --routine "M×12" --routine "M×5·P·M×5"`. Results
@@ -176,11 +174,6 @@ sticky-ends sweeps) came from ad hoc runs that weren't saved as scripts.
   without interleaving. The model's halves also run out together, because
   each drop is scaled by the cards each hand still holds. Both likely make
   the simulated mash better at moving the end cards than a real one.
-- The sorted and played decks number their cards by type (lands first), as
-  a deck built and sorted by type would be. The sequence and proximity metrics therefore
-  see type structure in those decks as leftover order. The woven and clumped
-  decks draw their card order and types at random, so only their land
-  placement is structured.
 
 ## Tests
 
@@ -194,7 +187,7 @@ that each extra pair of mashes brings a sorted deck closer to random.
 The engine is random, so the statistical checks use tolerances wide enough
 to be stable from run to run.
 
-`src/engine/snapshot.test.ts` seeds Math.random for each of 25 cases and
+`src/engine/snapshot.test.ts` seeds Math.random for each of 17 cases and
 hashes everything the engine produces: every move, a calibration, four
 routines from every starting deck, and each metric's metadata, levels
 and formatting. A change that should only reorganise code must leave

@@ -45,9 +45,9 @@ export function computeResult(
     deckSize,
     seq,
     T_TOTAL,
-    (trial, step, deck, types, start) => {
+    (trial, step, deck, start) => {
       METRICS.forEach((metric, index) => {
-        if (trial < metric.trials) batches[index][step]!.add(deck, types, start)
+        if (trial < metric.trials) batches[index][step]!.add(deck, start)
       })
     },
     measured,
@@ -67,7 +67,7 @@ export function computeResult(
 export interface Scored {
   /** each category's reading at the final step */
   categories: CategoryReading[]
-  /** the sum of the categories' levels: 0 is random, and an unshuffled sorted deck reads about 4 */
+  /** the sum of the categories' levels: 0 is random, and an unshuffled sorted deck reads about 3 */
   total: number
   /** categories within the noise of random */
   clearCount: number

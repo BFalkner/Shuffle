@@ -18,7 +18,7 @@ export const ends: Metric = {
     let stayed = 0
     let checked = 0
     return {
-      add: (deck, _types, start) => {
+      add: (deck, start) => {
         const top = start[0]
         const bottom = start[deckSize - 1]
         for (let depth = 0; depth < DEPTH; depth++) {

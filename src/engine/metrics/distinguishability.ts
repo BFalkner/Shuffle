@@ -3,7 +3,7 @@ import type { Metric } from './types.ts'
 
 /**
  * Distinguishability: the held-out accuracy of a classifier trained to tell the run's decks from random ones. 50% is a
- * coin flip. It is the catch-all for patterns the four categories don't look for, so it belongs to none of them.
+ * coin flip. It is the catch-all for patterns the three categories don't look for, so it belongs to none of them.
  */
 export const distinguishability: Metric = {
   key: 'classifier',

@@ -26,11 +26,6 @@ export const BASELINES: Record<number, Base> = {
       "standardDeviation": 0.005302648777382721,
       "sorted": 1
     },
-    "lands": {
-      "mean": 0.005547482078741342,
-      "standardDeviation": 0.001749751989113896,
-      "sorted": 0.5961538461538411
-    },
     "classifier": {
       "mean": 0.5,
       "standardDeviation": 0.02,
@@ -58,11 +53,6 @@ export const BASELINES: Record<number, Base> = {
       "standardDeviation": 0.00501134182432346,
       "sorted": 1
     },
-    "lands": {
-      "mean": 0.005305550347140639,
-      "standardDeviation": 0.0016308146593351533,
-      "sorted": 0.5999999999999995
-    },
     "classifier": {
       "mean": 0.5,
       "standardDeviation": 0.02,
@@ -89,11 +79,6 @@ export const BASELINES: Record<number, Base> = {
       "mean": 0.040371666666666646,
       "standardDeviation": 0.003851582101511617,
       "sorted": 1
-    },
-    "lands": {
-      "mean": 0.004101519025008719,
-      "standardDeviation": 0.001283217955921993,
-      "sorted": 0.5959595959595959
     },
     "classifier": {
       "mean": 0.5,

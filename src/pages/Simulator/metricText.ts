@@ -1,7 +1,7 @@
 // What the simulator says about each metric: a short description and a link to its write-up.
 import type { MetricKey } from '../../engine/metrics'
 
-export type WriteupRoute = '/order-tests' | '/global-tests' | '/mana-tests' | '/sticky-ends'
+export type WriteupRoute = '/order-tests' | '/global-tests' | '/sticky-ends'
 
 export interface MetricText {
   /** Short description. `<i>…</i>` marks italics; nothing else is markup. */
@@ -29,12 +29,8 @@ export const METRIC_TEXT: Record<MetricKey, MetricText> = {
     desc: 'How often the top and bottom cards stay within three places of their end. A random 99-card deck leaves each one there 4 times in 99. The mash barely moves the ends.',
     writeup: { to: '/sticky-ends', label: 'The sticky-ends write-up' },
   },
-  lands: {
-    desc: 'How the gaps between lands compare with a random deck. Mana weaving spaces the lands <i>too</i> evenly, and clumps space them too unevenly. Both count.',
-    writeup: { to: '/mana-tests', label: FULL },
-  },
   classifier: {
-    desc: 'A classifier learns to tell these decks from random ones. It catches patterns the four categories don’t look for. It isn’t part of the total, and its readings are noisier than the others.',
+    desc: 'A classifier learns to tell these decks from random ones. It catches patterns the three categories don’t look for. It isn’t part of the total, and its readings are noisier than the others.',
     writeup: { to: '/global-tests', label: FULL },
   },
 }

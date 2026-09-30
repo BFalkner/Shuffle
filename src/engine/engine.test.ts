@@ -4,7 +4,6 @@ import { describe, expect, test } from 'vitest'
 import { getBase } from './calibrate.ts'
 import { posOf, sortedDeck } from './decks.ts'
 import { METRICS } from './metrics.ts'
-import { landGapShares } from './metrics/lands.ts'
 import { orderBalance } from './metrics/sequence.ts'
 import { OPS, type OpKey } from './moves.ts'
 import { OP_COST } from './routines.ts'
@@ -102,13 +101,6 @@ describe('metric & calibration structure', () => {
       expect(level(metric, baseline.mean, base), metric.key).toBeCloseTo(0, 10)
       expect(level(metric, baseline.sorted, base), metric.key).toBeCloseTo(1, 10)
       expect(noiseLevel(metric, base), metric.key).toBeLessThan(0.2)
-    }
-  })
-
-  test('a random deck’s land gaps have shares that add up to 1', () => {
-    for (const deckSize of [52, 60, 99]) {
-      const total = landGapShares(deckSize).reduce((sum, share) => sum + share, 0)
-      expect(total, `${deckSize} cards`).toBeCloseTo(1, 10)
     }
   })
 })

@@ -1,6 +1,6 @@
 """Can a random forest tell a routine's decks from truly random ones?
 
-For each routine, scripts/forest-features.ts shuffles many decks from sorted and writes 44 features per deck. This
+For each routine, scripts/forest-features.ts shuffles many decks from sorted and writes 38 features per deck. This
 script trains a random forest to separate those decks from truly random ones and reports its accuracy under 5-fold
 cross-validation, so every deck is tested once by a forest that never saw it. 50% means the forest can't tell them
 apart. A control compares two sets of truly random decks, which shows how high the forest reads by chance. A logistic

@@ -1,8 +1,8 @@
 import { useState, type CSSProperties } from 'react'
-import { LAND, posOf, type CardTypes } from '../engine/decks'
+import { posOf } from '../engine/decks'
 import type { Deck } from '../engine/moves'
 import { useElementWidth } from '../hooks/useElementWidth'
-import { LAND_COLOR, OTHER_COLOR, colorFor } from './deckColors'
+import { colorFor } from './deckColors'
 import { TRACK_COLORS } from './tracking'
 import './MiniDeck.css'
 
@@ -36,12 +36,10 @@ interface Props {
   animate: boolean
   speed: number
   onCardClick?: (card: number) => void
-  /** When given, colour cards by type (land or not) instead of by original position. */
-  types?: CardTypes
 }
 
 /** A deck laid out as a grid of colour-coded tiles that slide to their new places after each move. */
-export default function MiniDeck({ deck, step, tracked, animate, speed, onCardClick, types }: Props) {
+export default function MiniDeck({ deck, step, tracked, animate, speed, onCardClick }: Props) {
   const [wrapRef, width] = useElementWidth<HTMLDivElement>(320)
   const deckSize = deck.length
   const grid = gridFor(deckSize, width)
@@ -66,13 +64,11 @@ export default function MiniDeck({ deck, step, tracked, animate, speed, onCardCl
   return (
     <div ref={wrapRef} className={`minideck${animate ? '' : ' minideck--still'}`}>
       <div className="minideck-stage" style={stageStyle}>
-        {!types && (
-          <div
-            className="minideck-strip"
-            title="original order, front to back"
-            style={{ background: `linear-gradient(to bottom,${colorFor(0, deckSize)},${colorFor(Math.floor(deckSize / 2), deckSize)},${colorFor(deckSize - 1, deckSize)})` }}
-          />
-        )}
+        <div
+          className="minideck-strip"
+          title="original order, front to back"
+          style={{ background: `linear-gradient(to bottom,${colorFor(0, deckSize)},${colorFor(Math.floor(deckSize / 2), deckSize)},${colorFor(deckSize - 1, deckSize)})` }}
+        />
         {Array.from({ length: deckSize }, (_, card) => {
           const idx = pos[card]
           const row = Math.floor(idx / grid.cols)
@@ -84,7 +80,7 @@ export default function MiniDeck({ deck, step, tracked, animate, speed, onCardCl
           const style: CSSProperties = {
             width: grid.cardWidth,
             height: grid.cardHeight,
-            background: types ? (types[card] === LAND ? LAND_COLOR : OTHER_COLOR) : colorFor(card, deckSize),
+            background: colorFor(card, deckSize),
             transform: `translate(${column * (grid.cardWidth + grid.gap)}px,${row * (grid.cardHeight + grid.gap)}px)`,
             transitionDelay: `${animate ? (key * delayPer).toFixed(0) : 0}ms`,
             // tracked on top; movers above stationary; longer trips higher

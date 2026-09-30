@@ -1,5 +1,5 @@
 // Levels: how far each reading sits from random, on a scale where random decks read 0 and an unshuffled sorted deck
-// reads 1. Categories read their worst metric, and a routine's total is the sum of its four categories.
+// reads 1. Categories read their worst metric, and a routine's total is the sum of its three categories.
 import type { Base } from './calibrate.ts'
 import { CATEGORIES, metricsIn, type Category, type Metric, type MetricKey } from './metrics.ts'
 
@@ -8,8 +8,7 @@ export type Averages = Record<MetricKey, number[]>
 
 /**
  * How far a reading sits from random: 0 is what random decks read on average, and 1 is what an unshuffled sorted deck
- * reads. Noise takes random decks a little either side of 0. A deck can read above 1 when it is further from random than
- * sorted is, as a mana-woven deck is on lands.
+ * reads. Noise takes random decks a little either side of 0.
  */
 export function level(metric: Metric, value: number, base: Base): number {
   const baseline = base[metric.key]
@@ -54,7 +53,7 @@ export function categoryReadings(avg: Averages, base: Base, step: number): Categ
   })
 }
 
-/** A routine's total: the sum of its categories' levels. 0 is random, and an unshuffled sorted deck reads about 4. */
+/** A routine's total: the sum of its categories' levels. 0 is random, and an unshuffled sorted deck reads about 3. */
 export function totalLevel(readings: CategoryReading[]): number {
   return readings.reduce((total, reading) => total + reading.level, 0)
 }

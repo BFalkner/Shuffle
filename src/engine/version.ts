@@ -14,6 +14,8 @@
  * 7  spread reads its worst starting place, not the average over all places, so a few cards that stay put (the mash's
  *    ends, one overhand's middle) count in full. Changes spread's readings, baselines and levels, and position's level.
  *    The order and neighbours metrics and categories become sequence and proximity; their values don't change
+ * 8  the woven and clumped decks, card types and the lands metric are removed, leaving three categories. A sorted deck
+ *    totals about 3, not 4. Every other metric reads the same values from the sorted and played decks
  */
-export const ENGINE_VERSION = 7
-export const ENGINE_FINGERPRINT = '2f35f9ea'
+export const ENGINE_VERSION = 8
+export const ENGINE_FINGERPRINT = 'f055dac7'

@@ -57,7 +57,7 @@ export default function SummaryPanel({ series, selected, step, onClearComparison
         <div className="bcsub">
           {readings.map((reading) => `${reading.title} ${fmtLevel(reading.level)}`).join(' · ')}.{' '}
           {allClear ? 'Every category is within the noise of a random deck.' : `Furthest from random: ${furthest.title}.`} In each category, 0 is a
-          random deck and 1 is a sorted deck that was never shuffled. The total adds up the four. Click any chart below for detail, or compare
+          random deck and 1 is a sorted deck that was never shuffled. The total adds up the three. Click any chart below for detail, or compare
           methods further down.
         </div>
         {legend}

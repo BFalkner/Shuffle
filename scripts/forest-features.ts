@@ -6,8 +6,8 @@
 import { writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { deckFeatures, mCorr } from '../src/engine/classifier.ts'
-import { LAND, fisher, numberedTypes, posOf, sortedDeck } from '../src/engine/decks.ts'
-import { mChain, mClump, mGradient, mOrdering, mProximity, mSpacing, mStrided } from './forest-measures.ts'
+import { fisher, posOf, sortedDeck } from '../src/engine/decks.ts'
+import { mChain, mGradient, mOrdering, mProximity, mStrided } from './forest-measures.ts'
 import { OPS, type Deck } from '../src/engine/moves.ts'
 import { parseRoutine } from '../src/engine/routines.ts'
 
@@ -23,7 +23,6 @@ const { values } = parseArgs({
 if (!values.out || (!values.routine && !values.random)) throw new Error('Give --out and either --routine or --random.')
 const deckCount = Number(values.decks)
 const deckSize = Number(values.size)
-const types = numberedTypes(deckSize)
 const seq = values.random ? [] : parseRoutine(values.routine!)
 
 /** Old-neighbour distance bins: how far apart card c and card c + 1 now sit. */
@@ -37,7 +36,6 @@ const header = [
   'ordering', 'chain', 'close_pairs', 'local_order', 'strided', 'correlation',
   ...GAP_BINS.map(([low, high]) => (low === high ? `gap_${low}` : `gap_${low}_${high}`)),
   'now_gap_mean', 'now_gap_sd', 'now_gap_near', 'now_gap_one', 'now_corr',
-  'land_spacing', 'land_clump', 'land_max_run', 'lands_top_7', 'lands_most_in_10', 'lands_fewest_in_10',
   ...TRACKED.map((card) => `pos_card_${card}`),
 ]
 
@@ -49,20 +47,6 @@ function features(deck: Deck): number[] {
     const distance = Math.abs(positions[card + 1] - positions[card])
     gaps[GAP_BINS.findIndex(([low, high]) => distance >= low && distance <= high)]++
   }
-  const isLand = deck.map((card) => types[card] === LAND)
-  let longestLandRun = 0
-  let run = 0
-  for (const land of isLand) {
-    run = land ? run + 1 : 0
-    longestLandRun = Math.max(longestLandRun, run)
-  }
-  let most = 0
-  let fewest = 10
-  for (let start = 0; start + 10 <= deckSize; start++) {
-    const lands = isLand.slice(start, start + 10).filter(Boolean).length
-    most = Math.max(most, lands)
-    fewest = Math.min(fewest, lands)
-  }
   return [
     mOrdering(deck),
     mChain(deck),
@@ -72,12 +56,6 @@ function features(deck: Deck): number[] {
     mCorr(deck, deckSize),
     ...gaps.map((count) => count / (deckSize - 1)),
     ...deckFeatures(deck, deckSize),
-    mSpacing(deck, deckSize, types),
-    mClump(deck, deckSize, types),
-    longestLandRun,
-    isLand.slice(0, 7).filter(Boolean).length,
-    most,
-    fewest,
     ...TRACKED.map((card) => positions[card]),
   ]
 }
