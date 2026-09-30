@@ -236,7 +236,7 @@
   color: var(--dim);
   font-size: 1rem;
   line-height: 1;
-  cursor: grab;
+  cursor: pointer;
   border-radius: 4px;
 }
 
@@ -244,8 +244,14 @@
   color: var(--ink);
 }
 
-.sim .methodlist .react-aria-DropIndicator[data-drop-target] {
+/* React Aria puts a drop line between every pair of rows while a drag is on. The negative margins cancel the gap each
+   one would add, so the rows don't shift under the pointer, and centre the line in the gap between two rows. */
+.sim .methodlist .react-aria-DropIndicator {
   height: 0;
+  margin: calc(-0.35rem / 2) 0;
+}
+
+.sim .methodlist .react-aria-DropIndicator[data-drop-target] {
   outline: 1.5px solid var(--accent);
   border-radius: 1px;
 }

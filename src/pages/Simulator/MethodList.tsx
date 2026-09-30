@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { Button, GridList, GridListItem, ToggleButton, useDragAndDrop, type Key } from 'react-aria-components'
 import ConfirmButton from './ConfirmButton'
+import { earlyDropTarget } from './dropTarget'
 import type { DeckKind } from '../../engine/decks'
 import { compressSeq } from '../../engine/routines'
 import { fmtLevel } from '../../engine/scoring'
@@ -38,6 +39,7 @@ export default function MethodList({ rows, kind, activeId, shownIds, onActivate,
   const byId = new Map(rows.map((row) => [row.experiment.id, row.experiment]))
   // Drag a row by its handle (or pick it up with the keyboard) to reorder the list.
   const { dragAndDropHooks } = useDragAndDrop({
+    dropTargetDelegate: earlyDropTarget('.methodlist'),
     getItems: (keys: Set<Key>) => [...keys].map((key) => ({ 'text/plain': methodName(byId.get(String(key))!) })),
     onReorder: (event) => {
       if (event.target.dropPosition !== 'on') onReorder([...event.keys].map(String), String(event.target.key), event.target.dropPosition)
