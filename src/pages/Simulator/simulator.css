@@ -607,7 +607,8 @@
   color: var(--bad);
 }
 
-/* A puff of smoke where a move was dropped off the strip. Each puff swells, drifts out from the centre and fades. */
+/* A puff of smoke where a move was dropped off the strip. Each wisp follows its own wobbling, rising path (set in
+   SmokePuff.tsx as --x0..3 and --y0..3), growing, turning and thinning out as it goes. */
 .sim .smoke {
   position: fixed;
   z-index: 50;
@@ -623,22 +624,31 @@
   width: var(--size);
   height: var(--size);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(112, 104, 96, 0.8) 0%, rgba(112, 104, 96, 0.5) 50%, rgba(112, 104, 96, 0) 72%);
+  background: radial-gradient(circle, rgba(112, 104, 96, 0.45) 0%, rgba(112, 104, 96, 0.25) 48%, rgba(112, 104, 96, 0) 72%);
+  mask-size: 100% 100%;
+  -webkit-mask-size: 100% 100%;
   opacity: 0;
-  animation: smoke-puff 650ms ease-out both;
+  animation-name: smoke-puff;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
 }
 
 @keyframes smoke-puff {
   0% {
     opacity: 0.95;
-    transform: translate(0, 0) scale(0.35);
+    transform: translate(var(--x0), var(--y0)) rotate(0deg) scale(0.35);
   }
-  35% {
-    opacity: 0.85;
+  30% {
+    opacity: 0.8;
+    transform: translate(var(--x1), var(--y1)) rotate(calc(var(--turn) * 0.4)) scale(calc(0.35 + (var(--grow) - 0.35) * 0.5));
+  }
+  65% {
+    opacity: 0.4;
+    transform: translate(var(--x2), var(--y2)) rotate(calc(var(--turn) * 0.75)) scale(calc(0.35 + (var(--grow) - 0.35) * 0.82));
   }
   100% {
     opacity: 0;
-    transform: translate(var(--dx), var(--dy)) scale(1.8);
+    transform: translate(var(--x3), var(--y3)) rotate(var(--turn)) scale(var(--grow));
   }
 }
 
