@@ -12,6 +12,8 @@
     "search": "node scripts/search.ts",
     "calibrate": "node scripts/calibrate.ts",
     "claims": "node scripts/claims.ts",
+    "worst-case": "node scripts/worst-case.ts",
+    "home-charts": "node scripts/home-charts.ts",
     "test:watch": "vitest",
     "lint": "oxlint",
     "typecheck": "tsc -b"
