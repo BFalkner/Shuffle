@@ -43,46 +43,81 @@ function exponentialSample(rate: number): number {
   return -Math.log(1 - Math.random()) / rate
 }
 
+// The moves below run for every deck in every run, so they are written for speed: each one writes into a single result
+// array by index, with no shift, unshift, slice or concat per card or packet. Each draws its random numbers in the
+// same order as the plain versions it replaced, so the same seed deals the same decks.
+
+/**
+ * Interleave top[topFrom..topTo) with bottom[bottomFrom..bottomTo) into a new deck. Halves strictly alternate, and each
+ * drop is scaled by that side's share of the cards still held (with stochastic rounding), so the thicker half releases
+ * faster and the two deplete together. The halves are read by index; neither array changes.
+ */
+function interleave(top: Deck, topFrom: number, topTo: number, bottom: Deck, bottomFrom: number, bottomTo: number): Deck {
+  const result: Deck = []
+  // The next card each half will drop.
+  let topNext = topFrom
+  let bottomNext = bottomFrom
+  let side = Math.random() < 0.5 ? 0 : 1
+  while (topNext < topTo && bottomNext < bottomTo) {
+    const topHeld = topTo - topNext
+    const bottomHeld = bottomTo - bottomNext
+    const held = side === 0 ? topHeld : bottomHeld
+    const share = held / ((topHeld + bottomHeld) / 2)
+    const drop = drawPacket() * share
+    let count = Math.floor(drop)
+    if (Math.random() < drop - count) count++
+    count = Math.max(1, Math.min(held, count))
+    if (side === 0) {
+      for (const end = topNext + count; topNext < end; topNext++) result.push(top[topNext])
+    } else {
+      for (const end = bottomNext + count; bottomNext < end; bottomNext++) result.push(bottom[bottomNext])
+    }
+    side ^= 1
+  }
+  // One half has run out: the rest of the other falls on the bottom.
+  for (; topNext < topTo; topNext++) result.push(top[topNext])
+  for (; bottomNext < bottomTo; bottomNext++) result.push(bottom[bottomNext])
+  return result
+}
+
 /**
  * Interleave two halves. Halves strictly alternate, and each drop is scaled by
  * that side's share of the cards still held (with stochastic rounding), so the
  * thicker half releases faster and the two deplete together.
  */
 export function riffle(topHalf: Deck, bottomHalf: Deck): Deck {
-  const halves = [topHalf.slice(), bottomHalf.slice()]
-  let side = Math.random() < 0.5 ? 0 : 1
-  const result: Deck = []
-  while (halves[0].length && halves[1].length) {
-    const share = halves[side].length / ((halves[0].length + halves[1].length) / 2)
-    const drop = drawPacket() * share
-    let count = Math.floor(drop)
-    if (Math.random() < drop - count) count++
-    count = Math.max(1, Math.min(halves[side].length, count))
-    for (let moved = 0; moved < count; moved++) result.push(halves[side].shift()!)
-    side ^= 1
-  }
-  while (halves[0].length) result.push(halves[0].shift()!)
-  while (halves[1].length) result.push(halves[1].shift()!)
-  return result
+  return interleave(topHalf, 0, topHalf.length, bottomHalf, 0, bottomHalf.length)
 }
 
 /** Mash / riffle: cut, then interleave the halves. */
 export function mash(deck: Deck): Deck {
   const cutAt = cut(deck.length)
-  return riffle(deck.slice(0, cutAt), deck.slice(cutAt))
+  return interleave(deck, 0, cutAt, deck, cutAt, deck.length)
+}
+
+const OVERHAND_PACKET_MEAN = 3
+const OVERHAND_PACKET_CAP = 8
+
+/**
+ * Overhand deck[from..to) into result[from..to): peel packets off the top, each landing on the last. The first packet
+ * ends up at the bottom of the range and the last on top, so the range fills from its bottom up, each packet keeping
+ * its own order.
+ */
+function overhandInto(deck: Deck, from: number, to: number, result: Deck): void {
+  let taken = from
+  let end = to
+  while (taken < to) {
+    const packet = Math.max(1, Math.min(Math.min(to - taken, OVERHAND_PACKET_CAP), Math.floor(exponentialSample(1 / OVERHAND_PACKET_MEAN))))
+    end -= packet
+    for (let card = 0; card < packet; card++) result[end + card] = deck[taken + card]
+    taken += packet
+  }
 }
 
 /** Overhand: peel packets (mean 3, max 8) off the top, each landing on the last. */
 export function overhand(deck: Deck): Deck {
-  const cap = 8
-  const mean = 3
-  let remaining = deck.slice()
-  let result: Deck = []
-  while (remaining.length) {
-    const packet = Math.max(1, Math.min(Math.min(remaining.length, cap), Math.floor(exponentialSample(1 / mean))))
-    result = remaining.slice(0, packet).concat(result)
-    remaining = remaining.slice(packet)
-  }
+  const result: Deck = new Array<number>(deck.length).fill(0)
+  overhandInto(deck, 0, deck.length, result)
   return result
 }
 
@@ -92,23 +127,29 @@ export function overhand(deck: Deck): Deck {
  */
 export function pile(deck: Deck): Deck {
   const pileCount = 6
-  const piles: Deck[] = Array.from({ length: pileCount }, () => [])
-  for (let position = 0; position < deck.length; position++) piles[position % pileCount].unshift(deck[position])
-  let result: Deck = []
-  for (const dealtPile of piles) result = result.concat(dealtPile)
+  const result: Deck = []
+  for (let dealtPile = 0; dealtPile < pileCount; dealtPile++) {
+    // This pile holds the cards dealt at dealtPile, dealtPile + 6, …; the last one dealt is on top.
+    const lastDealt = dealtPile + pileCount * Math.floor((deck.length - 1 - dealtPile) / pileCount)
+    for (let position = lastDealt; position >= dealtPile; position -= pileCount) result.push(deck[position])
+  }
   return result
 }
 
 /** Overhand the top half only; the bottom half is untouched. */
 export function ohTop(deck: Deck): Deck {
   const cutAt = cut(deck.length)
-  return overhand(deck.slice(0, cutAt)).concat(deck.slice(cutAt))
+  const result = deck.slice()
+  overhandInto(deck, 0, cutAt, result)
+  return result
 }
 
 /** Overhand the bottom half only; the top half is untouched. */
 export function ohBottom(deck: Deck): Deck {
   const cutAt = cut(deck.length)
-  return deck.slice(0, cutAt).concat(overhand(deck.slice(cutAt)))
+  const result = deck.slice()
+  overhandInto(deck, cutAt, deck.length, result)
+  return result
 }
 
 /** Off-centre riffle: the halves merge offset by `offset` cards, so both new ends come from the middle. */
