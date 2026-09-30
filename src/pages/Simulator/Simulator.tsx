@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ToggleButton, ToggleButtonGroup } from 'react-aria-components'
+import { DropZone, ToggleButton, ToggleButtonGroup } from 'react-aria-components'
 import { Link } from 'react-router'
 import { emptySlots, type TrackSlots } from '../../components/tracking'
 import { DECK_KINDS, DECK_SIZES, startDeck, type DeckKind } from '../../engine/decks'
@@ -13,6 +13,8 @@ import { defaultExperiments, loadExperiments, methodName, saveExperiments, uid, 
 import HeadToHead from './HeadToHead'
 import MethodList, { type MethodRow } from './MethodList'
 import MetricDetail from './MetricDetail'
+import SmokePuff from './SmokePuff'
+import { TOKEN_TYPE, heldMoveCentre, moveOverlapsStrip } from './stripDrag'
 import Picker from './Picker'
 import RoutineEditor from './RoutineEditor'
 import ScoreCard from './ScoreCard'
@@ -42,6 +44,10 @@ export default function Simulator() {
   // Methods drawn on the charts beside the active one, which is always drawn.
   const [shownIds, setShownIds] = useState<string[]>(() => experiments.map((experiment) => experiment.id))
   const [metric, setMetric] = useState<MetricKey | null>(null)
+  // A move from the strip is being held far enough outside it that letting go would take it out.
+  const [removing, setRemoving] = useState(false)
+  // Puffs of smoke where moves were dropped off the strip, each cleared when its animation ends.
+  const [puffs, setPuffs] = useState<{ id: number; x: number; y: number }[]>([])
   const [tracked, setTracked] = useState<TrackSlots>(emptySlots)
 
   const setSeq = (id: string, seq: OpKey[]) => setExperiments((list) => list.map((experiment) => (experiment.id === id ? { ...experiment, seq } : experiment)))
@@ -98,7 +104,28 @@ export default function Simulator() {
   }
 
   return (
-    <div className="sim">
+    // A move dragged out of the strip and dropped anywhere else on the page is taken out, once no part of it still
+    // overlaps the strip. The strip is a drop target of its own, so drops on it never reach here.
+    <DropZone
+      className={removing ? 'sim removing' : 'sim'}
+      aria-label="Remove the move"
+      getDropOperation={(types) => (types.has(TOKEN_TYPE) ? 'move' : 'cancel')}
+      onDropEnter={(event) => setRemoving(!moveOverlapsStrip('.sim', event.x, event.y))}
+      onDropMove={(event) => setRemoving(!moveOverlapsStrip('.sim', event.x, event.y))}
+      onDropExit={() => setRemoving(false)}
+      onDrop={async (event) => {
+        setRemoving(false)
+        if (moveOverlapsStrip('.sim', event.x, event.y)) return
+        const item = event.items.find((candidate) => candidate.kind === 'text' && candidate.types.has(TOKEN_TYPE))
+        if (item?.kind !== 'text') return
+        const centre = heldMoveCentre('.sim', event.x, event.y)
+        setPuffs((current) => [...current, { id: Date.now(), ...centre }])
+        editor.remove(Number(await item.getText(TOKEN_TYPE)))
+      }}
+    >
+      {puffs.map((puff) => (
+        <SmokePuff key={puff.id} x={puff.x} y={puff.y} onDone={() => setPuffs((current) => current.filter((other) => other.id !== puff.id))} />
+      ))}
       <header className="sim-top">
         <div className="sim-title">
           <h1>Shuffle Simulator</h1>
@@ -190,6 +217,6 @@ export default function Simulator() {
           )}
         </main>
       </div>
-    </div>
+    </DropZone>
   )
 }

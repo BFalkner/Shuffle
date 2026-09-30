@@ -23,8 +23,7 @@
   font-weight: 600;
 }
 
-.sim [data-focus-visible],
-.sim .strip:focus-visible {
+.sim [data-focus-visible] {
   outline: none;
   box-shadow: var(--focus);
 }
@@ -448,32 +447,41 @@
 
 /* The move strip: the routine itself, set large. Moves up to the caret are the ones the deck and chart dots show. */
 .sim .strip {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.3rem;
+  align-items: flex-start;
+  gap: 0.3rem;
   min-height: 3.4rem;
   padding: 0.6rem 0.7rem;
   background: var(--panel);
   border: 1px solid var(--rule);
   border-radius: 9px;
-  cursor: text;
+}
+
+.sim .strip-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.4rem;
+  flex: 1;
+  min-width: 0;
+  min-height: 2.1rem;
+  outline: none;
 }
 
 .sim .strip-start {
+  position: relative;
+  border: 0;
+  background: none;
   font-size: 0.8rem;
   color: var(--soft);
-  padding: 0.3rem 0.35rem;
-  cursor: pointer;
-}
-
-.sim .strip-slot {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
+  padding: 0.55rem 0.4rem;
+  margin-right: 0.15rem;
+  border-radius: 6px;
 }
 
 .sim .strip-token {
+  position: relative;
   font-family: var(--font-mono);
   font-size: 1.05rem;
   font-weight: 600;
@@ -483,10 +491,32 @@
   color: #fff;
   cursor: pointer;
   opacity: 0.42;
+  outline: none;
+}
+
+.sim .strip-drag {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
+}
+
+/* The hidden handle has keyboard focus: show it on the token. */
+.sim .strip-token:has(.strip-drag[data-focus-visible]) {
+  box-shadow: var(--focus);
 }
 
 .sim .strip-token.done {
   opacity: 1;
+}
+
+.sim .strip-token[data-dragging] {
+  opacity: 0.2;
 }
 
 .sim .strip-token.mash,
@@ -514,14 +544,21 @@
   background: var(--ohb);
 }
 
-.sim .strip-caret {
+/* The caret: a line in the gap after the token it follows, or after Start. */
+.sim .strip-token.caret-after::after,
+.sim .strip-start.at::after {
+  content: '';
+  position: absolute;
+  top: -0.2rem;
+  bottom: -0.2rem;
+  right: calc(-0.2rem - 1px);
   width: 2px;
-  height: 1.9rem;
   border-radius: 1px;
   background: var(--ink);
 }
 
-.sim .strip:focus .strip-caret {
+.sim .strip:focus-within .strip-token.caret-after::after,
+.sim .strip:focus-within .strip-start.at::after {
   animation: caret-blink 1.1s steps(1) infinite;
 }
 
@@ -531,9 +568,91 @@
   }
 }
 
+/* React Aria puts a drop line between every pair of tokens while a drag is on. The negative margin cancels the gap each
+   one would add, so the tokens don't shift, and the line sits in the middle of the gap. */
+.sim .strip-list .react-aria-DropIndicator {
+  width: 0;
+  align-self: stretch;
+  margin: 0 calc(-0.4rem / 2);
+}
+
+.sim .strip-list .react-aria-DropIndicator[data-drop-target] {
+  outline: 1.5px solid var(--accent);
+  border-radius: 1px;
+}
+
+.sim .strip-list[data-drop-target] {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+  border-radius: 6px;
+}
+
 .sim .strip-empty {
   color: var(--dim);
   font-size: 0.9rem;
+  align-self: center;
+}
+
+/* A move from the strip held far enough outside it: letting go takes it out. */
+.sim.removing .strip {
+  border-color: var(--bad);
+  box-shadow: inset 0 0 0 1px var(--bad);
+}
+
+.sim.removing .strip::after {
+  content: 'Release to remove the move';
+  position: absolute;
+  right: 0.7rem;
+  bottom: -1.4rem;
+  font-size: 0.78rem;
+  color: var(--bad);
+}
+
+/* A puff of smoke where a move was dropped off the strip. Each puff swells, drifts out from the centre and fades. */
+.sim .smoke {
+  position: fixed;
+  z-index: 50;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.sim .smoke-puff {
+  position: absolute;
+  left: calc(var(--size) / -2);
+  top: calc(var(--size) / -2);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(112, 104, 96, 0.8) 0%, rgba(112, 104, 96, 0.5) 50%, rgba(112, 104, 96, 0) 72%);
+  opacity: 0;
+  animation: smoke-puff 650ms ease-out both;
+}
+
+@keyframes smoke-puff {
+  0% {
+    opacity: 0.95;
+    transform: translate(0, 0) scale(0.35);
+  }
+  35% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(1.8);
+  }
+}
+
+@keyframes smoke-fade {
+  0% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.sim .movebtn.dragging {
+  opacity: 0.5;
 }
 
 .sim .movebar {
@@ -1120,7 +1239,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sim .strip:focus .strip-caret {
+  .sim .smoke-puff {
+    animation-name: smoke-fade;
+  }
+
+  .sim .strip:focus-within .strip-token.caret-after::after,
+  .sim .strip:focus-within .strip-start.at::after {
     animation: none;
   }
 

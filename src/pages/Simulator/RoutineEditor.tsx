@@ -1,8 +1,9 @@
 import { useState, type KeyboardEvent } from 'react'
-import { Button, FieldError, Group, Input, Label, Separator, TextField, Toolbar } from 'react-aria-components'
+import { Button, FieldError, Group, Input, Label, Separator, TextField } from 'react-aria-components'
 import type { OpKey } from '../../engine/moves'
-import { OP_COST, OP_NAME, OP_TOKEN, compressSeq, parseRoutine } from '../../engine/routines'
+import { OP_COST, compressSeq, parseRoutine } from '../../engine/routines'
 import ConfirmButton from './ConfirmButton'
+import MoveStrip, { MoveButton } from './MoveStrip'
 import { methodName, type Experiment } from './experiments'
 import type { RoutineEditor as Editor } from './useRoutineEditor'
 
@@ -25,20 +26,18 @@ interface Props {
 
 /**
  * The active method, edited in place. The moves read like text: a caret sits between them, the move buttons (or their
- * keys) type a move in at the caret, and Backspace deletes the move before it. Every change is saved at once and can be
- * undone.
+ * keys) type a move in at the caret, and Backspace deletes the move before it. Moves can also be dragged: within the
+ * strip to move them, out of it to take them out, and from a move button into it. Every change is saved at once and can
+ * be undone.
  */
 export default function RoutineEditor({ method, editor, onRename, onDuplicate, onDelete }: Props) {
   const { seq } = method
   const units = seq.reduce((total, op) => total + OP_COST[op], 0)
 
-  // Letter keys, Backspace, Delete and undo work anywhere in the editor except the text fields. Arrow keys move the
-  // caret only from the move strip, because the toolbar uses them to move between its buttons.
+  // Letter keys, Backspace, Delete and undo work anywhere in the editor except the text fields. The strip handles the
+  // arrow keys itself.
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    const target = event.target as HTMLElement
-    if (target.closest('input, textarea')) return
-    const onStrip = target.classList.contains('strip')
-    if (!onStrip && ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+    if ((event.target as HTMLElement).closest('input, textarea')) return
     if (editor.handleKey(event)) event.preventDefault()
   }
 
@@ -56,15 +55,14 @@ export default function RoutineEditor({ method, editor, onRename, onDuplicate, o
         </div>
       </div>
 
-      <MoveStrip seq={seq} caret={editor.caret} onCaret={editor.setCaret} />
+      <MoveStrip seq={seq} editor={editor} />
 
-      <Toolbar className="movebar" aria-label="Moves">
+      {/* A plain group, not React Aria's Toolbar: Toolbar sends focus back to the button focused last whenever focus comes
+          in from outside, and that interrupts a mouse press on any other button, so it could never start a drag. */}
+      <Group className="movebar" aria-label="Moves">
         <Group className="movebar-moves" aria-label="Add a move at the caret">
           {MOVE_BUTTONS.map(({ op, label, key }) => (
-            <Button key={op} className={`movebtn ${op}`} onPress={() => editor.insert(op)} aria-label={OP_NAME[op]} aria-keyshortcuts={key}>
-              <span className="movebtn-token">{OP_TOKEN[op]}</span>
-              <span className="movebtn-label">{label}</span>
-            </Button>
+            <MoveButton key={op} op={op} label={label} shortcut={key} onAdd={() => editor.insert(op)} />
           ))}
         </Group>
         <Separator orientation="vertical" />
@@ -79,10 +77,10 @@ export default function RoutineEditor({ method, editor, onRename, onDuplicate, o
             ↷
           </Button>
         </Group>
-      </Toolbar>
+      </Group>
       <p className="editor-keys">
-        Keys: <kbd>M</kbd> <kbd>T</kbd> <kbd>B</kbd> <kbd>O</kbd> <kbd>P</kbd> add a move at the caret, <kbd>Backspace</kbd> deletes the one before it, the arrow keys
-        move the caret on the strip, and <kbd>Ctrl</kbd> <kbd>Z</kbd> undoes.
+        Drag a move to reorder it, or off the strip to remove it. Keys: <kbd>M</kbd> <kbd>T</kbd> <kbd>B</kbd> <kbd>O</kbd> <kbd>P</kbd> add a move at the caret,{' '}
+        <kbd>Backspace</kbd> deletes the one before it, the arrow keys move along the strip, and <kbd>Ctrl</kbd> <kbd>Z</kbd> undoes.
       </p>
 
       <div className="editor-foot">
@@ -97,36 +95,6 @@ export default function RoutineEditor({ method, editor, onRename, onDuplicate, o
         </p>
       </div>
     </section>
-  )
-}
-
-/**
- * The moves as tokens with a caret between them. Click a token to put the caret after it, or the start to put it before
- * the first move. With focus here, the arrow keys, Home and End move the caret.
- */
-function MoveStrip({ seq, caret, onCaret }: { seq: OpKey[]; caret: number; onCaret: (caret: number) => void }) {
-  return (
-    <div
-      className="strip"
-      tabIndex={0}
-      role="group"
-      aria-label={`Moves, caret after move ${caret} of ${seq.length}`}
-      aria-description="Type M, T, B, O or P to add a move at the caret. Backspace deletes the move before it. Arrow keys move the caret."
-    >
-      <span className={`strip-start${caret === 0 ? ' at' : ''}`} onClick={() => onCaret(0)}>
-        Start
-      </span>
-      {caret === 0 && <span className="strip-caret" aria-hidden="true" />}
-      {seq.map((op, index) => (
-        <span key={index} className="strip-slot">
-          <span className={`strip-token ${op}${index < caret ? ' done' : ''}`} title={OP_NAME[op]} onClick={() => onCaret(index + 1)}>
-            {OP_TOKEN[op]}
-          </span>
-          {caret === index + 1 && <span className="strip-caret" aria-hidden="true" />}
-        </span>
-      ))}
-      {seq.length === 0 && <span className="strip-empty">Add a move to begin.</span>}
-    </div>
   )
 }
 

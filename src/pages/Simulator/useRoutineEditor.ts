@@ -22,11 +22,30 @@ export function caretAfterChange(before: readonly OpKey[], after: readonly OpKey
   return after.length - (suffix < 0 ? suffixRoom : suffix)
 }
 
+/**
+ * Move the move at `from` to just before or after the one at `target`. Returns the new moves and where the moved one
+ * ends up.
+ */
+export function moveWithin(seq: readonly OpKey[], from: number, target: number, position: 'before' | 'after'): { seq: OpKey[]; at: number } {
+  // Dropped on itself: nothing moves.
+  if (target === from) return { seq: seq.slice(), at: from }
+  const rest = seq.filter((_, index) => index !== from)
+  // Taking the move out shifts everything after it down by one.
+  const targetInRest = target > from ? target - 1 : target
+  const at = targetInRest + (position === 'after' ? 1 : 0)
+  return { seq: [...rest.slice(0, at), seq[from], ...rest.slice(at)], at }
+}
+
 export interface RoutineEditor {
   /** moves before the caret; the deck and the chart dots show the deck at this step */
   caret: number
   setCaret: (caret: number) => void
-  insert: (op: OpKey) => void
+  /** add a move at `at` (the caret by default) and put the caret after it */
+  insert: (op: OpKey, at?: number) => void
+  /** take out the move at `index` */
+  remove: (index: number) => void
+  /** move the move at `from` to just before or after the one at `target`, and put the caret after it */
+  move: (from: number, target: number, position: 'before' | 'after') => void
   deleteBefore: () => void
   deleteAfter: () => void
   /** replace every move, as one undoable change */
@@ -73,13 +92,16 @@ export function useRoutineEditor(active: Experiment | undefined, setSeq: (id: st
   const editor: RoutineEditor = {
     caret,
     setCaret,
-    insert: (op) => change([...seq.slice(0, caret), op, ...seq.slice(caret)], caret + 1),
-    deleteBefore: () => {
-      if (caret > 0) change(seq.filter((_, index) => index !== caret - 1), caret - 1)
+    insert: (op, at = caret) => change([...seq.slice(0, at), op, ...seq.slice(at)], at + 1),
+    remove: (index) => {
+      if (index >= 0 && index < seq.length) change(seq.filter((_, other) => other !== index), caret > index ? caret - 1 : caret)
     },
-    deleteAfter: () => {
-      if (caret < seq.length) change(seq.filter((_, index) => index !== caret), caret)
+    move: (from, target, position) => {
+      const moved = moveWithin(seq, from, target, position)
+      if (moved.seq.join(',') !== seq.join(',')) change(moved.seq, moved.at + 1)
     },
+    deleteBefore: () => editor.remove(caret - 1),
+    deleteAfter: () => editor.remove(caret),
     replace: (next) => {
       if (next.join(',') !== seq.join(',')) change(next, caretAfterChange(seq, next))
     },
@@ -103,10 +125,6 @@ export function useRoutineEditor(active: Experiment | undefined, setSeq: (id: st
       if (MOVE_KEYS[key]) editor.insert(MOVE_KEYS[key])
       else if (event.key === 'Backspace') editor.deleteBefore()
       else if (event.key === 'Delete') editor.deleteAfter()
-      else if (event.key === 'ArrowLeft') setCaret(caret - 1)
-      else if (event.key === 'ArrowRight') setCaret(caret + 1)
-      else if (event.key === 'Home') setCaret(0)
-      else if (event.key === 'End') setCaret(seq.length)
       else return false
       return true
     },
