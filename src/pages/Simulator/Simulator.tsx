@@ -80,13 +80,21 @@ export default function Simulator() {
     })
   const activeSeries = active && series[0]?.id === active.id ? series : []
 
-  const activate = (id: string) => setActiveId(id)
+  // Bumped when a method opens, to send focus to its move strip.
+  const [stripFocus, setStripFocus] = useState(0)
+  const focusStrip = () => setStripFocus((count) => count + 1)
+
+  const activate = (id: string) => {
+    setActiveId(id)
+    focusStrip()
+  }
   const addMethod = (experiment: Experiment, after?: Experiment) => {
     setExperiments((list) => {
       const at = after ? list.indexOf(after) + 1 : list.length
       return [...list.slice(0, at), experiment, ...list.slice(at)]
     })
     setActiveId(experiment.id)
+    focusStrip()
   }
   const deleteActive = () => {
     if (!active) return
@@ -184,6 +192,7 @@ export default function Simulator() {
               <RoutineEditor
                 method={active}
                 editor={editor}
+                focusRequest={stripFocus}
                 onRename={(name) => setExperiments((list) => list.map((experiment) => (experiment === active ? { ...experiment, name: name.trim() ? name : undefined } : experiment)))}
                 onDuplicate={() => addMethod({ id: uid(), name: active.name && `${active.name} copy`, seq: active.seq.slice() }, active)}
                 onDelete={deleteActive}

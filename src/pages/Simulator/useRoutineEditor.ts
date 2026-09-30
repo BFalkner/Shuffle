@@ -125,6 +125,8 @@ export function useRoutineEditor(active: Experiment | undefined, setSeq: (id: st
       if (MOVE_KEYS[key]) editor.insert(MOVE_KEYS[key])
       else if (event.key === 'Backspace') editor.deleteBefore()
       else if (event.key === 'Delete') editor.deleteAfter()
+      else if (event.key === 'ArrowLeft') setCaret(caret - 1)
+      else if (event.key === 'ArrowRight') setCaret(caret + 1)
       else return false
       return true
     },

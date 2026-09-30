@@ -18,7 +18,7 @@ async function droppedMove(items: DropItem[]): Promise<OpKey | null> {
  * move it, or drop it anywhere outside the strip to take it out. Drop a move button's move between two tokens to add it
  * there.
  */
-export default function MoveStrip({ seq, editor }: { seq: OpKey[]; editor: RoutineEditor }) {
+export default function MoveStrip({ seq, editor, focusRequest }: { seq: OpKey[]; editor: RoutineEditor; focusRequest: number }) {
   const { caret } = editor
   const stripRef = useRef<HTMLDivElement>(null)
 
@@ -45,14 +45,30 @@ export default function MoveStrip({ seq, editor }: { seq: OpKey[]; editor: Routi
     },
   })
 
+  // Focus the token before the caret, or Start. React Aria puts a new token on the page one render after the moves change,
+  // so this waits a frame for it. Returns a cleanup that cancels the wait.
+  const focusCaret = () => {
+    const frame = requestAnimationFrame(() => {
+      const strip = stripRef.current
+      const target = caret === 0 ? strip?.querySelector('.strip-start') : strip?.querySelector(`[data-key="${caret - 1}"]`)
+      if (target instanceof HTMLElement && target !== document.activeElement) target.focus()
+    })
+    return () => cancelAnimationFrame(frame)
+  }
+
   // While focus is in the strip, keep it on the token before the caret (or on Start), so typing a move or deleting one
   // leaves focus where the next key press acts.
   useEffect(() => {
-    const strip = stripRef.current
-    if (!strip?.contains(document.activeElement)) return
-    const target = caret === 0 ? strip.querySelector('.strip-start') : strip.querySelector(`[data-key="${caret - 1}"]`)
-    if (target instanceof HTMLElement && target !== document.activeElement) target.focus()
+    if (stripRef.current?.contains(document.activeElement)) return focusCaret()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caret, seq])
+
+  // When asked (a method was opened), take focus. This runs after the render that asked, so the caret is already the new
+  // one. Only a new request moves focus.
+  useEffect(() => {
+    if (focusRequest) return focusCaret()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusRequest])
 
   // Focusing a token (by keyboard or click) puts the caret after it.
   const followFocus = (event: FocusEvent<HTMLDivElement>) => {

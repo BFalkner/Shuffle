@@ -56,6 +56,8 @@ export default function MethodList({ rows, kind, activeId, shownIds, onActivate,
       </div>
       <GridList
         className="methodlist"
+        // The letter keys add moves anywhere on the page, so they don't also jump to a method here.
+        disallowTypeAhead
         aria-label="Saved methods"
         onAction={(key) => onActivate(String(key))}
         dragAndDropHooks={dragAndDropHooks}
