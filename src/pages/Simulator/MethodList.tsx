@@ -63,9 +63,14 @@ export default function MethodList({ rows, kind, activeId, shownIds, onActivate,
       >
         {rows.map(({ experiment, color, totals }) => (
           <GridListItem key={experiment.id} id={experiment.id} textValue={methodName(experiment)} className={`methodrow${experiment.id === activeId ? ' active' : ''}`}>
-            <Button slot="drag" className="draghandle" aria-label={`Move ${methodName(experiment)}`}>
-              <span aria-hidden="true">⠿</span>
-            </Button>
+            {/* React Aria makes the drag button ignore the mouse (the whole row drags), so the grip under it carries the grab
+                cursor, and the button on top takes keyboard focus. */}
+            <span className="dragcell">
+              <span className="draggrip" aria-hidden="true">
+                ⠿
+              </span>
+              <Button slot="drag" className="draghandle" aria-label={`Move ${methodName(experiment)}`} />
+            </span>
             {/* A toggle, not list selection: React Aria drags every selected row together, and this only marks charts. */}
             <ToggleButton
               className="showbox"
