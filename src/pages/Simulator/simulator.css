@@ -209,7 +209,7 @@
 
 .sim .methodrow {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.65rem;
   padding: 0.55rem 0.65rem;
@@ -222,6 +222,32 @@
 
 .sim .methodrow[data-hovered] {
   border-color: #c9bfae;
+}
+
+.sim .methodrow[data-dragging] {
+  opacity: 0.45;
+}
+
+.sim .draghandle {
+  border: 0;
+  background: none;
+  padding: 0.2rem 0;
+  margin: -0.2rem -0.3rem -0.2rem -0.2rem;
+  color: var(--dim);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: grab;
+  border-radius: 4px;
+}
+
+.sim .draghandle[data-hovered] {
+  color: var(--ink);
+}
+
+.sim .methodlist .react-aria-DropIndicator[data-drop-target] {
+  height: 0;
+  outline: 1.5px solid var(--accent);
+  border-radius: 1px;
 }
 
 .sim .methodrow.active {
@@ -251,7 +277,11 @@
 
 .sim .showbox {
   display: flex;
+  border: 0;
+  background: none;
+  padding: 0;
   cursor: pointer;
+  border-radius: 4px;
 }
 
 .sim .showbox-mark {

@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { Button, Checkbox, GridList, GridListItem, type Selection } from 'react-aria-components'
+import { Button, GridList, GridListItem, ToggleButton, useDragAndDrop, type Key } from 'react-aria-components'
 import ConfirmButton from './ConfirmButton'
 import type { DeckKind } from '../../engine/decks'
 import { compressSeq } from '../../engine/routines'
@@ -21,6 +21,8 @@ interface Props {
   shownIds: string[]
   onActivate: (id: string) => void
   onShownChange: (ids: string[]) => void
+  /** move these methods to just before or after the target method */
+  onReorder: (ids: string[], targetId: string, position: 'before' | 'after') => void
   onNew: () => void
   onReset: () => void
 }
@@ -28,11 +30,19 @@ interface Props {
 const DECK_LABELS: Record<DeckKind, string> = { sorted: 'Sorted', played: 'Played' }
 
 /**
- * Every saved method, in the order they were made. Activate a row to edit it; tick its box to draw it on the charts
+ * Every saved method, in the order you arrange them. Activate a row to edit it, tick its box to draw it on the charts, and drag its handle to move it
  * next to the one being edited. Each row shows its total from both starting decks, so decks compare at a glance.
  */
-export default function MethodList({ rows, kind, activeId, shownIds, onActivate, onShownChange, onNew, onReset }: Props) {
-  const onSelectionChange = (selection: Selection) => onShownChange(selection === 'all' ? rows.map((row) => row.experiment.id) : [...selection].map(String))
+export default function MethodList({ rows, kind, activeId, shownIds, onActivate, onShownChange, onReorder, onNew, onReset }: Props) {
+  const toggleShown = (id: string) => onShownChange(shownIds.includes(id) ? shownIds.filter((shown) => shown !== id) : [...shownIds, id])
+  const byId = new Map(rows.map((row) => [row.experiment.id, row.experiment]))
+  // Drag a row by its handle (or pick it up with the keyboard) to reorder the list.
+  const { dragAndDropHooks } = useDragAndDrop({
+    getItems: (keys: Set<Key>) => [...keys].map((key) => ({ 'text/plain': methodName(byId.get(String(key))!) })),
+    onReorder: (event) => {
+      if (event.target.dropPosition !== 'on') onReorder([...event.keys].map(String), String(event.target.key), event.target.dropPosition)
+    },
+  })
 
   return (
     <aside className="methods" aria-label="Methods">
@@ -45,18 +55,25 @@ export default function MethodList({ rows, kind, activeId, shownIds, onActivate,
       <GridList
         className="methodlist"
         aria-label="Saved methods"
-        selectionMode="multiple"
-        selectionBehavior="toggle"
-        selectedKeys={shownIds}
-        onSelectionChange={onSelectionChange}
         onAction={(key) => onActivate(String(key))}
+        dragAndDropHooks={dragAndDropHooks}
         renderEmptyState={() => <p className="methodlist-empty">No methods yet. Make one with New method.</p>}
       >
         {rows.map(({ experiment, color, totals }) => (
           <GridListItem key={experiment.id} id={experiment.id} textValue={methodName(experiment)} className={`methodrow${experiment.id === activeId ? ' active' : ''}`}>
-            <Checkbox slot="selection" className="showbox" aria-label={`Show ${methodName(experiment)} on the charts`} style={{ '--series': color } as CSSProperties}>
+            <Button slot="drag" className="draghandle" aria-label={`Move ${methodName(experiment)}`}>
+              <span aria-hidden="true">⠿</span>
+            </Button>
+            {/* A toggle, not list selection: React Aria drags every selected row together, and this only marks charts. */}
+            <ToggleButton
+              className="showbox"
+              aria-label={`Show ${methodName(experiment)} on the charts`}
+              isSelected={shownIds.includes(experiment.id)}
+              onChange={() => toggleShown(experiment.id)}
+              style={{ '--series': color } as CSSProperties}
+            >
               <span className="showbox-mark" aria-hidden="true" />
-            </Checkbox>
+            </ToggleButton>
             <div className="methodrow-text">
               <span className="methodrow-name">{methodName(experiment)}</span>
               {experiment.name && <span className="methodrow-moves">{compressSeq(experiment.seq)}</span>}

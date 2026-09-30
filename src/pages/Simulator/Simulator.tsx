@@ -55,7 +55,9 @@ export default function Simulator() {
   // While an edit is scored, each method keeps showing its last score, marked stale.
   const scoredFor = (experiment: Experiment, deck: DeckKind) => scores(jobFor(experiment, deck))
 
-  const colorOf = (experiment: Experiment) => SERIES_COLORS[experiments.indexOf(experiment) % SERIES_COLORS.length]
+  // Colours follow the order methods were made (ids start with their creation time), so reordering the list keeps them.
+  const byCreation = experiments.map((experiment) => experiment.id).sort()
+  const colorOf = (experiment: Experiment) => SERIES_COLORS[byCreation.indexOf(experiment.id) % SERIES_COLORS.length]
   const rows: MethodRow[] = experiments.map((experiment) => ({
     experiment,
     color: colorOf(experiment),
@@ -137,6 +139,14 @@ export default function Simulator() {
           shownIds={shownIds}
           onActivate={activate}
           onShownChange={setShownIds}
+          onReorder={(ids, targetId, position) =>
+            setExperiments((list) => {
+              const moving = list.filter((experiment) => ids.includes(experiment.id))
+              const staying = list.filter((experiment) => !ids.includes(experiment.id))
+              const at = staying.findIndex((experiment) => experiment.id === targetId) + (position === 'after' ? 1 : 0)
+              return [...staying.slice(0, at), ...moving, ...staying.slice(at)]
+            })
+          }
           onNew={() => addMethod({ id: uid(), seq: [] })}
           onReset={reset}
         />
