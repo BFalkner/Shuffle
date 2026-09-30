@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'vitest'
 import { isOpKey } from '../../engine/moves'
-import { EXAMPLES, SEED } from './experiments'
+import { SEED } from './experiments'
 
 describe('seeded methods', () => {
-  const all = SEED.concat(EXAMPLES)
+  const all = SEED
 
   test('every seeded method has a non-empty sequence of known moves', () => {
     for (const exp of all) {

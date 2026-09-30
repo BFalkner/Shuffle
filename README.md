@@ -90,7 +90,7 @@ src/
   `npm run calibrate`.
 - **Change the recommendations on the home page** →
   `src/pages/Home/recommendations.ts`.
-- **Change the default method list** → `SEED` / `EXAMPLES` in
+- **Change the default method list** → `SEED` in
   `src/pages/Simulator/experiments.ts`. Methods people saved themselves live in their
   browser's localStorage and aren't affected; "reset list to defaults" in
   the simulator reloads these.

@@ -245,8 +245,8 @@ overview: `flowchart TD
 s1: `flowchart TD
   load["loadExperiments()<br/>reads localStorage key 'shuffleExperiments'"]
   saved{"Anything saved?"}
-  defaults["defaultExperiments()<br/>SEED + EXAMPLES with new ids"]
-  fix["Unknown move names become 'overhand'.<br/>Missing EXAMPLES are added once<br/>(flag 'shuffleExamplesV2')."]
+  defaults["defaultExperiments()<br/>SEED with new ids"]
+  fix["Unknown move names become 'overhand'."]
   state["State in Simulator.tsx<br/>kind = 'sorted', deckSize = 99<br/>experiments<br/>overlaid = ids shown on the charts"]
   save["saveExperiments()<br/>runs after every change"]
   starting["startDeck(kind, deckSize)<br/>one deck for the animations only"]
