@@ -458,7 +458,14 @@
   border-radius: 9px;
 }
 
+/* The list is the drop target for moves, and it reaches --strip-reach past the strip's border on the top, right and
+   bottom, so a move let go just outside the box still lands in it. Negative margins grow its box; matching padding keeps
+   the moves where they were. It stops at Start on the left, and --strip-reach stays under the editor's 0.8rem gap, so it
+   never covers the name field above or the move buttons below. */
 .sim .strip-list {
+  --strip-reach: 0.6rem;
+  --out-y: calc(0.6rem + 1px + var(--strip-reach));
+  --out-x: calc(0.7rem + 1px + var(--strip-reach));
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -466,6 +473,9 @@
   flex: 1;
   min-width: 0;
   min-height: 2.1rem;
+  margin: calc(-1 * var(--out-y)) calc(-1 * var(--out-x)) calc(-1 * var(--out-y)) 0;
+  padding: var(--out-y) var(--out-x) var(--out-y) 0;
+  box-sizing: content-box;
   outline: none;
 }
 
@@ -581,9 +591,9 @@
   border-radius: 1px;
 }
 
-.sim .strip-list[data-drop-target] {
-  box-shadow: inset 0 0 0 1.5px var(--accent);
-  border-radius: 6px;
+.sim .strip:has(.strip-list[data-drop-target]) {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 .sim .strip-empty {

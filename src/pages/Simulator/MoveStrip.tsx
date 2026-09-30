@@ -2,7 +2,7 @@ import { useEffect, useRef, type FocusEvent } from 'react'
 import { Button, GridList, GridListItem, useDrag, useDragAndDrop, type DropItem } from 'react-aria-components'
 import { isOpKey, type OpKey } from '../../engine/moves'
 import { OP_NAME, OP_TOKEN } from '../../engine/routines'
-import { MOVE_TYPE, TOKEN_TYPE, holdMove } from './stripDrag'
+import { MOVE_TYPE, TOKEN_TYPE, holdMove, stripDropTarget } from './stripDrag'
 import type { RoutineEditor } from './useRoutineEditor'
 
 /** The move a move button's drag carries, if the drop has one. */
@@ -30,6 +30,7 @@ export default function MoveStrip({ seq, editor }: { seq: OpKey[]; editor: Routi
     },
     getAllowedDropOperations: () => ['move'],
     acceptedDragTypes: [TOKEN_TYPE, MOVE_TYPE],
+    dropTargetDelegate: stripDropTarget('.strip-list'),
     getDropOperation: (_target, types) => (types.has(MOVE_TYPE) ? 'copy' : 'move'),
     onReorder: (event) => {
       if (event.target.dropPosition !== 'on') editor.move(Number([...event.keys][0]), Number(event.target.key), event.target.dropPosition)
