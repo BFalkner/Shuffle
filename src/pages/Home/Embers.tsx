@@ -2,8 +2,11 @@ import { useEffect, useRef } from 'react'
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-/** Sparks drifting up from the bottom of the hero. Stops when the hero is off screen or motion is reduced. */
-export default function Embers() {
+/**
+ * Sparks drifting up from the bottom of the canvas, `count` of them at a time. Stops when the canvas is off screen or
+ * motion is reduced.
+ */
+export default function Embers({ count, className }: { count: number; className: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
     const canvas = canvasRef.current!
@@ -29,7 +32,7 @@ export default function Embers() {
       phase: Math.random() * Math.PI * 2,
       life: 0.4 + Math.random() * 0.6,
     })
-    const sparks = Array.from({ length: 70 }, () => spawn(true))
+    const sparks = Array.from({ length: count }, () => spawn(true))
     let frame = 0
     let running = false
     const draw = (time: number) => {
@@ -65,6 +68,6 @@ export default function Embers() {
       cancelAnimationFrame(frame)
       window.removeEventListener('resize', resize)
     }
-  }, [])
-  return <canvas ref={canvasRef} className="embers" aria-hidden="true" />
+  }, [count])
+  return <canvas ref={canvasRef} className={className} aria-hidden="true" />
 }

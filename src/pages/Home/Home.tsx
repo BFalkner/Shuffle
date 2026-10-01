@@ -3,11 +3,14 @@ import { Link } from 'react-router'
 import { useTitle } from '../../hooks/useTitle'
 import DATA from './data.json'
 import Cost, { PIP_CLASS, type Pip } from './Cost'
+import Embers from './Embers'
 import Hero from './Hero'
+import { Vista } from './Landscape'
 import MoveChart, { MoveTable } from './MoveChart'
 import { CHART_MOVES, MOVE_COLOR, type Reading } from './moveCharts'
 import { startMoveDemo, type DemoMove } from './moveDemo'
 import { RECOMMENDATIONS } from './recommendations'
+import { VISTAS } from './vistas'
 import './home.css'
 
 /** One move: what your hands do, one thing it does well, and the order it leaves behind. */
@@ -146,170 +149,181 @@ export default function Home() {
       </Hero>
 
       <main>
-        <section className="realm" id="routines">
-          <div className="wrap">
-            <h2>Two routines worth learning</h2>
-            <p className="intro">Use the first after every game. Use the second when a deck is new or sorted, or when you don&rsquo;t know where it&rsquo;s been.</p>
-            <div className="rec-grid">
-              {RECOMMENDATIONS.map((card) => (
-                <article key={card.name} className="block rec">
-                  <div className="block-head">
-                    <h3>{card.crown}</h3>
-                    <Cost moves={card.moves} />
-                  </div>
-                  <p className="block-sub">{card.name}</p>
-                  {card.when && (
-                    <p className="when">
-                      <b>Use on</b> {card.when}
-                    </p>
-                  )}
-                  <p>{card.blurb}</p>
-                  <Link className="card-cta" to="/simulator">
-                    Test it in the simulator
-                  </Link>
-                </article>
-              ))}
-            </div>
+        {/* The night goes on below the hero, one stretch of sky and ridges per section, with sparks drifting through
+            all of it, down to the lamp-lit table. */}
+        <div className="world">
+          <div className="world-embers">
+            <Embers count={36} className="world-embers-canvas" />
           </div>
-        </section>
-
-        <section className="realm" id="moves">
-          <div className="wrap">
-            <h2>Three moves, three weaknesses</h2>
-            <p className="intro">
-              Hand shuffles combine a few basic moves. Each move breaks up some of the old order and leaves its own kind behind. The demos start from a
-              sorted deck and apply the move three times. Tap one to run it again.
-            </p>
-            <div className="move-grid">
-              {STEPS.map((step) => (
-                <article key={step.name} className="move" style={{ '--frame': step.color } as CSSProperties}>
-                  <div className="demo">
-                    <MoveDemo op={step.op} />
-                  </div>
-                  <div className="move-text">
-                    <h3>{step.name}</h3>
-                    <p className="how">{step.how}</p>
-                    <p className="ability">
-                      <span className="mark good" aria-label="Strength">
-                        ▲
-                      </span>
-                      {step.good}
-                    </p>
-                    <p className="ability">
-                      <span className="mark bad" aria-label="Weakness">
-                        ▼
-                      </span>
-                      {step.bad}
-                    </p>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            <div className="tome">
-              <h3>What&rsquo;s left after each repeat</h3>
-              <p className="tome-intro">
-                Each line starts from a sorted deck and repeats one move ten times. The readings show how much of its order, proximity and position is left:
-                100% for the sorted deck, 0% for a random one.
-              </p>
-              <div className="oplegend" aria-hidden="true">
-                {CHART_MOVES.map(({ op, name, color }) => (
-                  <span key={op}>
-                    <i style={{ background: color }} />
-                    {name}
-                  </span>
+          <section className="realm" id="routines">
+            <Vista {...VISTAS.routines} />
+            <div className="wrap">
+              <h2>Two routines worth learning</h2>
+              <p className="intro">Use the first after every game. Use the second when a deck is new or sorted, or when you don&rsquo;t know where it&rsquo;s been.</p>
+              <div className="rec-grid">
+                {RECOMMENDATIONS.map((card) => (
+                  <article key={card.name} className="block rec">
+                    <div className="block-head">
+                      <h3>{card.crown}</h3>
+                      <Cost moves={card.moves} />
+                    </div>
+                    <p className="block-sub">{card.name}</p>
+                    {card.when && (
+                      <p className="when">
+                        <b>Use on</b> {card.when}
+                      </p>
+                    )}
+                    <p>{card.blurb}</p>
+                    <Link className="card-cta" to="/simulator">
+                      Test it in the simulator
+                    </Link>
+                  </article>
                 ))}
               </div>
-              <div className="opsgrid">
-                {CHARTS.map((chart) => (
-                  <MoveChart key={chart.reading} {...chart} />
+            </div>
+          </section>
+
+          <section className="realm" id="moves">
+            <Vista {...VISTAS.moves} />
+            <div className="wrap">
+              <h2>Three moves, three weaknesses</h2>
+              <p className="intro">
+                Hand shuffles combine a few basic moves. Each move breaks up some of the old order and leaves its own kind behind. The demos start from a
+                sorted deck and apply the move three times. Tap one to run it again.
+              </p>
+              <div className="move-grid">
+                {STEPS.map((step) => (
+                  <article key={step.name} className="move" style={{ '--frame': step.color } as CSSProperties}>
+                    <div className="demo">
+                      <MoveDemo op={step.op} />
+                    </div>
+                    <div className="move-text">
+                      <h3>{step.name}</h3>
+                      <p className="how">{step.how}</p>
+                      <p className="ability">
+                        <span className="mark good" aria-label="Strength">
+                          ▲
+                        </span>
+                        {step.good}
+                      </p>
+                      <p className="ability">
+                        <span className="mark bad" aria-label="Weakness">
+                          ▼
+                        </span>
+                        {step.bad}
+                      </p>
+                    </div>
+                  </article>
                 ))}
               </div>
-              <MoveTable readings={CHARTS} />
-            </div>
-          </div>
-        </section>
 
-        <section className="realm" id="combine">
-          <div className="wrap">
-            <h2>Chance and force</h2>
-            <p className="intro">Why the routines combine moves instead of repeating the best one.</p>
-            <div className="duel">
-              <div className="side chance">
-                <ChanceGlyph />
-                <h3>A mash is a gamble</h3>
-                <p>
-                  A mash mixes by chance, and its effect doubles with each repeat. Each mash halves the order left across the whole deck: 0.50 after one, then
-                  0.25, 0.12 and 0.06. But no mash is certain to move any particular card. After six mashes of a played deck, the old top card is still in the
-                  top five in 9% of games, and the old bottom card is in the bottom five in 10%. A random deck gives 5%.
+              <div className="tome">
+                <h3>What&rsquo;s left after each repeat</h3>
+                <p className="tome-intro">
+                  Each line starts from a sorted deck and repeats one move ten times. The readings show how much of its order, proximity and position is left:
+                  100% for the sorted deck, 0% for a random one.
                 </p>
-              </div>
-              <div className="versus" aria-hidden="true">
-                and
-              </div>
-              <div className="side force">
-                <ForceGlyph />
-                <h3>A forced move is certain</h3>
-                <p>
-                  The half overhand and the pile don&rsquo;t depend on chance. Each does its job in one move, every time. A half overhand buries the top card. In
-                  20,000 shuffles of a sorted deck it never stayed in the top five, and in 99 games out of 100 it ended up 31st or deeper. A pile separates every
-                  pair of old neighbours. In 20,000 deals, no pair ended up within three places of each other. Neither move mixes, though. The half overhand
-                  leaves the other half in its old order, and the pile puts each card in the same place every time.
-                </p>
-              </div>
-            </div>
-            <div className="together">
-              <h3>Together</h3>
-              <p>
-                Combining them covers each move&rsquo;s weakness. Mashes before the forced move mean it works on an order nobody knows, and mashes after it
-                scatter its fixed result. From a played deck, the between-games routine left the old top card in the top five in 5% of games, as often as a
-                random deck. The half overhand doesn&rsquo;t touch the bottom half, so the old bottom card stayed in the bottom five in 15%.
-              </p>
-              <p>
-                Overhanding both halves fixes that. With 2 mashes, a half overhand of each half and 3 mashes, both end cards stayed near their ends no more
-                often than in a random deck. That routine passed every test in 127 of 200 runs, and seven plain mashes passed in 3.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="realm" id="simulator">
-          <div className="wrap">
-            <div className="table">
-              <div className="table-head">
-                <h2>Test your own routine</h2>
-                <div className="teaser" aria-hidden="true">
-                  {TEASER.map((pip, index) => (
-                    <span key={index} className={`pip ${PIP_CLASS[pip]}`} style={{ animationDelay: `${index * 0.45}s` }}>
-                      {pip}
+                <div className="oplegend" aria-hidden="true">
+                  {CHART_MOVES.map(({ op, name, color }) => (
+                    <span key={op}>
+                      <i style={{ background: color }} />
+                      {name}
                     </span>
                   ))}
                 </div>
+                <div className="opsgrid">
+                  {CHARTS.map((chart) => (
+                    <MoveChart key={chart.reading} {...chart} />
+                  ))}
+                </div>
+                <MoveTable readings={CHARTS} />
               </div>
-              <p>
-                The simulator lets you build a routine from these moves, run it many times, and see which tests it passes. Where the deck starts changes how
-                much shuffling it needs, so the simulator can start from either of these two decks. The left edge of each strip is the top of the deck, and
-                the colours show each card&rsquo;s original position.
-              </p>
-              <div className="startdecks">
-                {DATA.startDecks.map((startDeck, index) => (
-                  <div key={startDeck.name} className="startdeck">
-                    <h3>{startDeck.name}</h3>
-                    <div className="deckstrip">
-                      {startDeck.fills.map((fill, slot) => (
-                        <i key={slot} style={{ background: fill }} />
-                      ))}
-                    </div>
-                    <p>{START_DECK_TEXT[index]}</p>
-                  </div>
-                ))}
-              </div>
-              <Link className="btn-gold big" to="/simulator">
-                Open the simulator
-              </Link>
             </div>
-          </div>
-        </section>
+          </section>
+
+          <section className="realm" id="combine">
+            <Vista {...VISTAS.combine} />
+            <div className="wrap">
+              <h2>Chance and force</h2>
+              <p className="intro">Why the routines combine moves instead of repeating the best one.</p>
+              <div className="duel">
+                <div className="side chance">
+                  <ChanceGlyph />
+                  <h3>A mash is a gamble</h3>
+                  <p>
+                    A mash mixes by chance, and its effect doubles with each repeat. Each mash halves the order left across the whole deck: 0.50 after one, then
+                    0.25, 0.12 and 0.06. But no mash is certain to move any particular card. After six mashes of a played deck, the old top card is still in the
+                    top five in 9% of games, and the old bottom card is in the bottom five in 10%. A random deck gives 5%.
+                  </p>
+                </div>
+                <div className="versus" aria-hidden="true">
+                  and
+                </div>
+                <div className="side force">
+                  <ForceGlyph />
+                  <h3>A forced move is certain</h3>
+                  <p>
+                    The half overhand and the pile don&rsquo;t depend on chance. Each does its job in one move, every time. A half overhand buries the top card. In
+                    20,000 shuffles of a sorted deck it never stayed in the top five, and in 99 games out of 100 it ended up 31st or deeper. A pile separates every
+                    pair of old neighbours. In 20,000 deals, no pair ended up within three places of each other. Neither move mixes, though. The half overhand
+                    leaves the other half in its old order, and the pile puts each card in the same place every time.
+                  </p>
+                </div>
+              </div>
+              <div className="together">
+                <h3>Together</h3>
+                <p>
+                  Combining them covers each move&rsquo;s weakness. Mashes before the forced move mean it works on an order nobody knows, and mashes after it
+                  scatter its fixed result. From a played deck, the between-games routine left the old top card in the top five in 5% of games, as often as a
+                  random deck. The half overhand doesn&rsquo;t touch the bottom half, so the old bottom card stayed in the bottom five in 15%.
+                </p>
+                <p>
+                  Overhanding both halves fixes that. With 2 mashes, a half overhand of each half and 3 mashes, both end cards stayed near their ends no more
+                  often than in a random deck. That routine passed every test in 127 of 200 runs, and seven plain mashes passed in 3.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="realm" id="simulator">
+            <div className="vista lamp" aria-hidden="true" />
+            <div className="wrap">
+              <div className="table">
+                <div className="table-head">
+                  <h2>Test your own routine</h2>
+                  <div className="teaser" aria-hidden="true">
+                    {TEASER.map((pip, index) => (
+                      <span key={index} className={`pip ${PIP_CLASS[pip]}`} style={{ animationDelay: `${index * 0.45}s` }}>
+                        {pip}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <p>
+                  The simulator lets you build a routine from these moves, run it many times, and see which tests it passes. Where the deck starts changes how
+                  much shuffling it needs, so the simulator can start from either of these two decks. The left edge of each strip is the top of the deck, and
+                  the colours show each card&rsquo;s original position.
+                </p>
+                <div className="startdecks">
+                  {DATA.startDecks.map((startDeck, index) => (
+                    <div key={startDeck.name} className="startdeck">
+                      <h3>{startDeck.name}</h3>
+                      <div className="deckstrip">
+                        {startDeck.fills.map((fill, slot) => (
+                          <i key={slot} style={{ background: fill }} />
+                        ))}
+                      </div>
+                      <p>{START_DECK_TEXT[index]}</p>
+                    </div>
+                  ))}
+                </div>
+                <Link className="btn-gold big" to="/simulator">
+                  Open the simulator
+                </Link>
+              </div>
+            </div>
+          </section>
+        </div>
 
         <footer className="realm coda">
           <div className="wrap">

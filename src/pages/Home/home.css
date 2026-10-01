@@ -327,25 +327,59 @@
   margin: 0.7rem 0 2.6rem;
 }
 
-.home #routines {
-  background:
-    radial-gradient(ellipse 60% 50% at 50% 0%, rgba(240, 162, 74, 0.12), transparent 70%),
-    var(--deep);
+/* Below the hero: one stacking context, so each section's vista (z -2) sits under the sparks (z -1), and both sit
+   under the content. */
+.home .world {
+  position: relative;
+  isolation: isolate;
 }
 
-.home #moves {
-  background: linear-gradient(var(--deep), #1b1432 30%, #1b1432 70%, #1a1226);
+.home .world-embers {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
 }
 
-.home #combine {
-  background:
-    radial-gradient(ellipse 50% 60% at 15% 40%, rgba(26, 107, 58, 0.16), transparent 70%),
-    radial-gradient(ellipse 50% 60% at 85% 40%, rgba(58, 95, 158, 0.18), transparent 70%),
-    #1a1226;
+/* One screen of sparks that stays put while the sections scroll past behind it. */
+.home .world-embers-canvas {
+  position: sticky;
+  top: 0;
+  display: block;
+  width: 100%;
+  height: 100vh;
+}
+
+.home .vista {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+}
+
+.home .vista-stars {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.home .vista-ridges {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: block;
+  width: 100%;
+  height: clamp(160px, 22vw, 320px);
+}
+
+/* The lamp-lit table at the foot of the night. */
+.home .vista.lamp {
+  background: linear-gradient(#22182f, #2c1a14 45%, #3a2416);
 }
 
 .home #simulator {
-  background: linear-gradient(#1a1226, #2c1a14 45%, #3a2416);
   padding-bottom: 3rem;
 }
 

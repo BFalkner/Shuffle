@@ -29,7 +29,7 @@ export default function Hero({ children }: { children: ReactNode }) {
   return (
     <header className="hero">
       <Landscape className="hero-sky" seed={7} palette={NIGHT} />
-      <Embers />
+      <Embers count={70} className="embers" />
       <div className="hero-inner">
         <div className="hero-copy">{children}</div>
         <div className="bridge-spot" ref={spot}>

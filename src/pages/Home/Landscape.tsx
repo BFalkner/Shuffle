@@ -111,3 +111,55 @@ function Keep({ fill, x, y, scale }: { fill: string; x: number; y: number; scale
   )
 }
 
+const BAND_HEIGHT = 360
+const STAR_FIELD = { width: 1600, height: 1000 }
+
+/**
+ * A section's stretch of the night below the hero: a sky behind the whole section, a few stars, and ridges along its
+ * bottom edge. The nearest ridge is the colour the next section's sky starts with, so the sections join without a
+ * seam. It sits behind the section's content.
+ */
+export function Vista({ seed, palette }: { seed: number; palette: Palette }) {
+  const id = useId().replace(/:/g, '')
+  const scene = useMemo(() => {
+    const random = rng(seed)
+    const layers = palette.ridges.length
+    const ridges = palette.ridges.map((fill, layer) => {
+      const depth = layer / Math.max(1, layers - 1)
+      return { fill, d: ridge(random, W, BAND_HEIGHT, BAND_HEIGHT * (0.38 + depth * 0.32), BAND_HEIGHT * (0.5 - depth * 0.2), 0.5 + depth * 0.06) }
+    })
+    return { ridges, stars: stars(random, palette.starCount, STAR_FIELD.width, STAR_FIELD.height * 0.7) }
+  }, [seed, palette])
+  const [top, upper, lower, horizon] = palette.sky
+
+  return (
+    <div className="vista" style={{ background: `linear-gradient(${top}, ${upper} 40%, ${lower} 75%, ${horizon})` }} aria-hidden="true">
+      <svg className="vista-stars" viewBox={`0 0 ${STAR_FIELD.width} ${STAR_FIELD.height}`} preserveAspectRatio="xMidYMin slice">
+        {scene.stars.map((star, index) => (
+          <circle key={index} className={index % 5 === 0 ? 'twinkle' : undefined} cx={star.x} cy={star.y} r={star.r} fill="#fff6e0" opacity={star.opacity * 0.8} style={{ animationDelay: `${(index % 11) * 0.41}s` }} />
+        ))}
+      </svg>
+      <svg className="vista-ridges" viewBox={`0 0 ${W} ${BAND_HEIGHT}`} preserveAspectRatio="xMidYMax slice">
+        <defs>
+          <radialGradient id={`vglow${id}`} cx="0.5" cy="1" r="0.75">
+            <stop offset="0" stopColor={palette.glow} stopOpacity="0.5" />
+            <stop offset="1" stopColor={palette.glow} stopOpacity="0" />
+          </radialGradient>
+          <filter id={`vmist${id}`} x="-20%" y="-100%" width="140%" height="300%">
+            <feGaussianBlur stdDeviation="22" />
+          </filter>
+        </defs>
+        <rect width={W} height={BAND_HEIGHT} fill={`url(#vglow${id})`} />
+        {scene.ridges.map((layer, index) => (
+          <g key={index}>
+            <path d={layer.d} fill={layer.fill} />
+            {index < scene.ridges.length - 1 && (
+              <ellipse cx={W * (0.25 + (0.5 * ((index * 37 + seed) % 10)) / 10)} cy={BAND_HEIGHT * (0.55 + index * 0.14)} rx={W * 0.45} ry={22} fill={palette.glow} opacity="0.2" filter={`url(#vmist${id})`} />
+            )}
+            {palette.keep && index === scene.ridges.length - 2 && <Keep fill={layer.fill} {...palette.keep} />}
+          </g>
+        ))}
+      </svg>
+    </div>
+  )
+}
