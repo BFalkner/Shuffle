@@ -14,6 +14,7 @@ const MOVE_BUTTONS: { op: OpKey; label: string; key: string }[] = [
   { op: 'ohb', label: 'Bottom half', key: 'B' },
   { op: 'overhand', label: 'Overhand', key: 'O' },
   { op: 'pile', label: 'Pile', key: 'P' },
+  { op: 'cut', label: 'Cut', key: 'C' },
 ]
 
 interface Props {
@@ -93,7 +94,7 @@ export default function RoutineEditor({ method, editor, onRename, onDuplicate, o
       </Group>
       <p className="editor-keys">
         Drag a move to reorder it, or off the strip to remove it. Keys work anywhere outside a text box: <kbd>M</kbd> <kbd>T</kbd> <kbd>B</kbd> <kbd>O</kbd>{' '}
-        <kbd>P</kbd> add a move at the caret, <kbd>Backspace</kbd> deletes the one before it, the arrow keys move the caret, and <kbd>Ctrl</kbd>{' '}
+        <kbd>P</kbd> <kbd>C</kbd> add a move at the caret, <kbd>Backspace</kbd> deletes the one before it, the arrow keys move the caret, and <kbd>Ctrl</kbd>{' '}
         <kbd>Z</kbd> undoes.
       </p>
 

@@ -27,12 +27,13 @@
 }
 
 .sim {
-  /* The five moves, one mana colour each: top half white, bottom half black. */
+  /* The moves, one mana colour each: top half white, bottom half black. The cut is colourless, a stone grey. */
   --mash: #2d6a45;
   --pile: #2c5f93;
   --overhand: #b0422f;
   --ohr: #ede1bd;
   --ohb: #2e2824;
+  --cut: #8a8172;
   --focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--gold);
   /* A light gilded frame for panels: an inner gold hairline inside the border, and a soft shadow. */
   --gilt: inset 0 0 0 3px var(--surface), inset 0 0 0 4px rgba(176, 138, 62, 0.35), 0 3px 10px -6px var(--shadow);
@@ -643,6 +644,11 @@ body:has(.sim) {
 .sim .strip-token.ohb,
 .sim .movebtn.ohb .movebtn-token {
   --pip: var(--ohb);
+}
+
+.sim .strip-token.cut,
+.sim .movebtn.cut .movebtn-token {
+  --pip: var(--cut);
 }
 
 /* The caret: a line in the gap after the token it follows, or after Start. */

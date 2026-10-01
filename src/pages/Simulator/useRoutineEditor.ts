@@ -3,7 +3,7 @@ import type { OpKey } from '../../engine/moves'
 import type { Experiment } from './experiments'
 
 /** Keys that insert a move while the editor has focus. */
-export const MOVE_KEYS: Record<string, OpKey> = { m: 'mash', o: 'overhand', t: 'ohr', b: 'ohb', p: 'pile' }
+export const MOVE_KEYS: Record<string, OpKey> = { m: 'mash', o: 'overhand', t: 'ohr', b: 'ohb', p: 'pile', c: 'cut' }
 
 interface History {
   past: OpKey[][]

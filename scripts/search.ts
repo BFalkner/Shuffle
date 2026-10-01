@@ -43,7 +43,9 @@ const kinds = values.decks ? (values.decks.split(',').map((kind) => kind.trim())
 for (const kind of kinds) if (!allKinds.includes(kind)) throw new Error(`--decks takes a comma-separated list of: ${allKinds.join(', ')}`)
 const fromDecks = kinds.length === allKinds.length ? 'from each starting deck' : `from the ${kinds.join(' and ')} deck${kinds.length > 1 ? 's' : ''}`
 
-const moves = Object.keys(OPS) as OpKey[]
+// The cut isn't searched yet. At half a unit it multiplies the routines to score: up to 7 units, 169,175 instead of
+// 5,793, about 29 times as long. Name routines with C in them with --routine to test them.
+const moves = (Object.keys(OPS) as OpKey[]).filter((op) => op !== 'cut')
 const costOf = (seq: OpKey[]) => seq.reduce((total, op) => total + OP_COST[op], 0)
 const label = (seq: OpKey[]) => `${compressSeq(seq)} (${costOf(seq)}u)`
 

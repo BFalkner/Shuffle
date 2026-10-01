@@ -76,6 +76,7 @@ const EXPECTED: Record<string, string> = {
   'move pile': 'be2e6955',
   'move ohr': '488b7903',
   'move ohb': '9b6eeb47',
+  'move cut': 'cdf74e9f',
   'calibrate 52 cards, 20 batches': '74690c09',
   'M×8 from sorted': '497e1775',
   'M×8 from played': 'd558fd1d',
