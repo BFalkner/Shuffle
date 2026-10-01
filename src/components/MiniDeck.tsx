@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { posOf } from '../engine/decks'
 import type { Deck } from '../engine/moves'
-import { useElementWidth } from '../hooks/useElementWidth'
+import { useElementSize } from '../hooks/useElementSize'
 import { colorFor } from './deckColors'
+import { LEATHER_DENSITY, LEATHER_SIZE, leatherTexture } from './leather'
 import { TRACK_COLORS } from './tracking'
 import './MiniDeck.css'
 
@@ -22,6 +23,8 @@ const LAMP_DIRECTION = 18.4
 const LAMP_DISTANCE = 15
 /** how high the lamp is above the table, in deck widths: the lower it is, the brighter the deck's near side than its far side */
 const LAMP_HEIGHT = 15
+/** how high the lamp stands above the deck, degrees up from the table; the cards' leather is lit from it too */
+const LAMP_ELEVATION = (Math.atan2(LAMP_HEIGHT, LAMP_DISTANCE) * 180) / Math.PI
 /** half the beam's width at the deck's centre, px: the light is half as bright this far from the middle of the beam */
 const BEAM_WIDTH = 45
 /** how bright the beam is at the deck's centre */
@@ -141,6 +144,25 @@ function lampBeam(stageW: number, stageH: number): LampBeam {
   }
 }
 
+/**
+ * The cards' leather texture, lit from the lamp. Drawing it takes a few hundred milliseconds the first time, so the
+ * deck shows its plain colours first and the leather is drawn once the browser is idle. After that it comes from the
+ * texture's cache.
+ */
+function useLeather(): string | null {
+  const [texture, setTexture] = useState<string | null>(null)
+  useEffect(() => {
+    const draw = () => setTexture(leatherTexture(LAMP_DIRECTION, LAMP_ELEVATION))
+    if (!window.requestIdleCallback) {
+      const timer = window.setTimeout(draw, 200)
+      return () => window.clearTimeout(timer)
+    }
+    const idle = window.requestIdleCallback(draw, { timeout: 2000 })
+    return () => window.cancelIdleCallback(idle)
+  }, [])
+  return texture
+}
+
 /** One sweep of the shine's beam. It swings once on mount, and `onEnd` runs when it has finished. */
 function ShineBeam({ beam, onEnd }: { beam: LampBeam; onEnd: () => void }) {
   const beamRef = useRef<HTMLDivElement>(null)
@@ -160,14 +182,24 @@ function ShineBeam({ beam, onEnd }: { beam: LampBeam; onEnd: () => void }) {
   return <div ref={beamRef} className="minideck-shine-beam" style={beam.style} />
 }
 
-function gridFor(deckSize: number, width: number) {
+/** how many columns each deck size is laid out in: 52 cards make 13 by 4, 60 make 10 by 6, and 99 make 11 by 9 */
+const COLUMNS: Record<number, number> = { 52: 13, 60: 10, 99: 11 }
+/** the columns for a deck size not listed above */
+const DEFAULT_COLUMNS = 11
+
+/**
+ * The grid for a deck in `width` by `height`: its COLUMNS across, as many rows as it needs, and cards as big as both
+ * the width and the height allow, capped at MAX_TILE. In a wide space the height decides, and the deck is centred
+ * with room either side.
+ */
+function gridFor(deckSize: number, width: number, height: number) {
   const gap = GAP
-  const usableWidth = width - STRIP
-  // Cap the tile size: wide screens get more columns, not giant tiles.
-  const cols = Math.min(deckSize, Math.max(10, Math.ceil(deckSize / 6), Math.floor((usableWidth + gap) / (MAX_TILE + gap))))
-  const cardWidth = Math.max(6, Math.floor((usableWidth - (cols - 1) * gap) / cols))
-  const cardHeight = Math.round(cardWidth * CARD_RATIO)
+  const cols = Math.min(COLUMNS[deckSize] ?? DEFAULT_COLUMNS, deckSize)
   const rows = Math.ceil(deckSize / cols)
+  const byWidth = (width - STRIP - (cols - 1) * gap) / cols
+  const byHeight = (height - (rows - 1) * gap) / rows / CARD_RATIO
+  const cardWidth = Math.max(6, Math.floor(Math.min(MAX_TILE, byWidth, byHeight)))
+  const cardHeight = Math.round(cardWidth * CARD_RATIO)
   return { cols, rows, cardWidth, cardHeight, gap, stageW: cols * cardWidth + (cols - 1) * gap, stageH: rows * cardHeight + (rows - 1) * gap }
 }
 
@@ -185,9 +217,10 @@ interface Props {
 
 /** A deck laid out as a grid of colour-coded tiles that slide to their new places after each move. */
 export default function MiniDeck({ deck, step, tracked, animate, speed, onCardClick }: Props) {
-  const [wrapRef, width] = useElementWidth<HTMLDivElement>(320)
+  // The deck fits itself into the box it is given, so its wrapper is sized by the page, not by the cards.
+  const [wrapRef, box] = useElementSize<HTMLDivElement>({ width: 320, height: 240 })
   const deckSize = deck.length
-  const grid = gridFor(deckSize, width)
+  const grid = gridFor(deckSize, box.width, box.height)
 
   // Remember what was shown before the current deck, so each card knows where it's coming from.
   // (React's "store information from previous renders" pattern.)
@@ -195,6 +228,7 @@ export default function MiniDeck({ deck, step, tracked, animate, speed, onCardCl
   if (shown.deck !== deck) setShown({ deck, step, from: { deck: shown.deck, step: shown.step } })
   const last = shown.from && shown.from.deck.length === deckSize ? shown.from : null
   const [shining, endShine] = useShine(animate)
+  const leather = useLeather()
 
   const pos = posOf(deck)
   const startPos = posOf(last ? last.deck : deck)
@@ -205,6 +239,9 @@ export default function MiniDeck({ deck, step, tracked, animate, speed, onCardCl
     width: grid.stageW,
     height: grid.stageH,
     '--dur': `${(DUR / speed).toFixed(3)}s`,
+    // Every card wears the same leather, lit from the lamp, each from its own patch of it.
+    '--leather': leather ? `url(${leather})` : 'none',
+    '--leather-size': `${LEATHER_SIZE / LEATHER_DENSITY}px`,
   } as CSSProperties
 
   // The shine's mask covers each card's slot. A short last row leaves empty slots at its end, cut off by the clip.
@@ -238,7 +275,9 @@ export default function MiniDeck({ deck, step, tracked, animate, speed, onCardCl
           const style: CSSProperties = {
             width: grid.cardWidth,
             height: grid.cardHeight,
-            background: colorFor(card, deckSize),
+            backgroundColor: colorFor(card, deckSize),
+            // a different patch of the leather for each card, so no two look alike
+            backgroundPosition: `${-((card * 53) % (LEATHER_SIZE / LEATHER_DENSITY))}px ${-((card * 97) % (LEATHER_SIZE / LEATHER_DENSITY))}px`,
             transform: `translate(${column * (grid.cardWidth + grid.gap)}px,${row * (grid.cardHeight + grid.gap)}px)`,
             transitionDelay: `${animate ? (key * delayPer).toFixed(0) : 0}ms`,
             // tracked on top; movers above stationary; longer trips higher
