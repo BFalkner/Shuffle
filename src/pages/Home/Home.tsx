@@ -171,7 +171,7 @@ export default function Home() {
   }, [])
   return (
     <div className="home">
-      <Hero>
+      <Hero next="routines">
         <h1>The Shuffle Lab</h1>
         <p className="tagline">Your deck remembers the last game.</p>
         <p className="lede">
@@ -186,9 +186,6 @@ export default function Home() {
           <Link className="btn-gold" to="/simulator">
             Open the simulator
           </Link>
-          <a className="btn-ghost" href="#routines">
-            See the two routines
-          </a>
         </div>
       </Hero>
 

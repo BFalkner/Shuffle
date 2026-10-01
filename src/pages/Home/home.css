@@ -150,8 +150,7 @@
   margin-top: 1.8rem;
 }
 
-.home .btn-gold,
-.home .btn-ghost {
+.home .btn-gold {
   display: inline-flex;
   align-items: center;
   font-family: var(--display);
@@ -184,16 +183,76 @@
     0 0 44px rgba(240, 162, 74, 0.7);
 }
 
-.home .btn-ghost {
-  color: var(--gilt);
-  border: 1px solid rgba(243, 208, 143, 0.55);
-  background: rgba(15, 11, 34, 0.45);
-  backdrop-filter: blur(4px);
+/* The chevron near the foot of the first screen that scrolls down to the routines. It sits near the bottom of the
+   screen or of the hero, whichever comes first, and bobs gently to say there is more below. */
+.home .scroll-cue {
+  position: absolute;
+  left: 50%;
+  top: calc(min(100%, 100svh) - 5.5rem);
+  z-index: 2;
+  padding: 0.6rem;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  cursor: pointer;
+  opacity: 0.85;
+  transform: translateX(-50%);
+  animation: bob 5.4s ease-in-out infinite;
+  transition: opacity 0.2s;
 }
 
-.home .btn-ghost:hover {
-  transform: translateY(-2px);
-  background: rgba(243, 208, 143, 0.12);
+.home .scroll-cue svg {
+  position: relative;
+  display: block;
+  width: 112px;
+  height: 41px;
+  overflow: visible;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.4));
+}
+
+/* Gold light behind the clear chevron, so its bevel catches against it. It breathes slowly. */
+.home .scroll-cue::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 200px;
+  height: 100px;
+  margin: -50px 0 0 -100px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 196, 110, 0.28), rgba(240, 162, 74, 0.11) 55%, transparent);
+  animation: cue-glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes cue-glow {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.home .scroll-cue[data-hovered] {
+  opacity: 1;
+}
+
+.home .scroll-cue[data-focus-visible] {
+  opacity: 1;
+  outline: 2px solid var(--gilt);
+  outline-offset: 2px;
+}
+
+/* One bob takes 2.4s of the 5.4s, then the chevron rests for 3s. */
+@keyframes bob {
+  0%,
+  44%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  22% {
+    transform: translate(-50%, 6px);
+  }
 }
 
 .home .twinkle {
@@ -1151,6 +1210,12 @@
 }
 
 @media (max-width: 860px) {
+  /* The hero copy fills the width here, so the chevron goes below it, at the hero's foot. */
+  .home .scroll-cue {
+    top: auto;
+    bottom: 1.2rem;
+  }
+
   .home .hero-inner {
     grid-template-columns: 1fr;
     padding-top: 3rem;
@@ -1204,6 +1269,8 @@
   .home .twinkle,
   .home .window,
   .home .teaser .pip,
+  .home .scroll-cue,
+  .home .scroll-cue::before,
   .home .campfire-flame,
   .home .campfire-glow {
     animation: none;
