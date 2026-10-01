@@ -128,30 +128,51 @@ function ForceGlyph() {
   )
 }
 
-/** Two forearms clasped, each hand round the other's wrist: the two kinds of move joined. */
+/** Two forearms clasped, each hand closed round the other man's forearm: the two kinds of move joined. */
 function ReunionGlyph() {
-  // The arms come in from the sides, off the edge of the frame, and cross at the wrists in the middle. Each forearm
-  // narrows from elbow to wrist and has a bracer. The left arm lies on top: its fist closes over the crossing, thumb
-  // up. The right arm is its mirror, underneath, so its fist is tucked under the left wrist with only its edges showing.
+  // The arms rise from the lower corners and cross at the wrists, the left arm in front. Each hand lies in the other
+  // arm's frame (that arm runs along x, from its wrist toward its elbow): the back of the hand comes off the wrist,
+  // and four fingers wrap across the arm, their tips curling out past its lower edge. The right arm and hand mirror
+  // the left.
+  const dark = '#120c22'
   const arm = (
-    <g transform="translate(-52 26) rotate(-32)">
+    <g transform="translate(-60 16) rotate(-16.8)">
       {/* A solid backing, so the arm hides what is under it. */}
-      <path d="M0,-8 L58,-5.5 A5.5,5.5 0 0 1 58,5.5 L0,8 Z" fill="#120c22" />
-      <path d="M0,-8 L58,-5.5 A5.5,5.5 0 0 1 58,5.5 L0,8 Z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
-      <path d="M22,-7.3 L31,-6.9 L31,6.9 L22,7.3 Z" fill="currentColor" />
-      <rect x="54" y="-10" width="17" height="20" rx="6" fill="currentColor" />
-      <rect x="61" y="-14.5" width="13" height="6.5" rx="3.2" fill="currentColor" />
-      <g stroke="#120c22" strokeWidth="1.4" strokeLinecap="round">
-        <line x1="58.5" y1="-2" x2="58.5" y2="8" />
-        <line x1="62.5" y1="-2" x2="62.5" y2="8" />
-        <line x1="66.5" y1="-2" x2="66.5" y2="8" />
+      <path d="M0,-8 L76.2,-5 A5,5 0 0 1 76.2,5 L0,8 Z" fill={dark} />
+      <path d="M0,-8 L76.2,-5 A5,5 0 0 1 76.2,5 L0,8 Z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
+    </g>
+  )
+  const handShapes = (
+    <>
+      <circle cx="24.3" cy="-7.1" r="5" />
+      <path d="M24.3,-12.1 L37.5,-8.6 L37.5,-4.6 L24.3,-2.1 Z" />
+      <rect x="23.5" y="-8.6" width="16" height="4" rx="2" />
+      {[16.1, 16.7, 16.3, 15.3].map((height, finger) => (
+        <g key={finger}>
+          <rect x={23.5 + finger * 4} y="-8.6" width="4" height={height} rx="2" />
+          <circle cx={25.5 + finger * 4} cy="-8.6" r="1.9" />
+        </g>
+      ))}
+    </>
+  )
+  const hand = (
+    <g transform="translate(-13 -6) rotate(16.8)">
+      {/* A dark rim first, so the hand stands clear of the arm it grips. */}
+      <g fill={dark} stroke={dark} strokeWidth="2.2" strokeLinejoin="round">
+        {handShapes}
       </g>
+      <g fill="currentColor">{handShapes}</g>
+      <path d="M27.5,-7.4 V6.8 M31.5,-7.4 V7 M35.5,-7.4 V6" stroke={dark} strokeWidth="1.1" strokeLinecap="round" />
     </g>
   )
   return (
     <svg className="glyph" viewBox="-40 -40 80 80" aria-hidden="true">
-      <g transform="scale(-1 1)">{arm}</g>
-      {arm}
+      <g transform="scale(1.15)">
+        <g transform="scale(-1 1)">{arm}</g>
+        {arm}
+        <g transform="scale(-1 1)">{hand}</g>
+        {hand}
+      </g>
     </svg>
   )
 }
