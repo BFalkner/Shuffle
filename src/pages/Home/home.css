@@ -28,6 +28,9 @@
   /* how far below the footer's top edge the campfire's ground line sits, so the fire stands beside the footer text */
   --campfire-drop: 8rem;
 
+  /* One stacking context for the whole page, so the embers behind the content (z -1) sit over every backdrop (z -2
+     and below) in the hero and below it. */
+  isolation: isolate;
   background: var(--deep);
   color: var(--text-on-dark);
   font-family: var(--text);
@@ -59,9 +62,6 @@
   display: flex;
   align-items: center;
   overflow: hidden;
-  isolation: isolate;
-  /* above the sections, so the chevron, which is fixed on the screen but drawn in the hero, shows over them */
-  z-index: 1;
 }
 
 .home .hero-layer {
@@ -87,13 +87,15 @@
   inset: 0;
 }
 
-/* The embers behind the copy go over the fade at the hero's foot, so they carry on unbroken into the sections. */
+/* The embers: each canvas covers the screen and stays put. It is the large viewport's height, so it doesn't change
+   size, and need drawing again, as a phone's address bar comes and goes. */
 .home .embers {
-  position: absolute;
-  inset: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 100%;
-  z-index: 0;
+  height: 100lvh;
+  z-index: -1;
   pointer-events: none;
 }
 
@@ -201,6 +203,8 @@
    exit there, and then it is gone for good. It bobs gently to say there is more below. */
 .home .scroll-cue-dock {
   position: fixed;
+  /* over the sections, under the embers in front */
+  z-index: 1;
   left: 0;
   right: 0;
   top: calc(100svh - 5.5rem);
@@ -407,27 +411,9 @@
   margin: 0.7rem 0 2.6rem;
 }
 
-/* Below the hero: one stacking context, so the backdrop and the campfire (z -2) sit under the embers behind the
-   content (z -1), and all of them under the content. */
+/* Below the hero. The backdrop and the campfire (z -2) sit under the embers behind the content (z -1). */
 .home .world {
   position: relative;
-  isolation: isolate;
-}
-
-.home .world-embers {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-}
-
-/* One screen of embers that stays put while the sections scroll past behind it. */
-.home .world-embers-canvas {
-  position: sticky;
-  top: 0;
-  display: block;
-  width: 100%;
-  height: 100vh;
 }
 
 /* The backdrop is clipped to the world. Its strip slides slower than the sections (parallax.ts sets its transform and
@@ -612,11 +598,6 @@
   to {
     opacity: 0.75;
   }
-}
-
-/* The embers in front of the sections. */
-.home .world-embers.front {
-  z-index: 1;
 }
 
 /* ---------- text blocks ---------- */
