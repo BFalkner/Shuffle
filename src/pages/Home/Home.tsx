@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { useTitle } from '../../hooks/useTitle'
 import Campfire from './Campfire'
@@ -128,40 +128,36 @@ function ForceGlyph() {
   )
 }
 
-/** Two hands locked in an arm-wrestler's grip: the two kinds of move joined. */
+/** Two hands locked in an arm-wrestler's grip, as a line drawing: the two kinds of move joined. */
 function ReunionGlyph() {
-  // The forearms rise from the lower corners and each hand carries on in the line of its arm. We see the back of the
-  // left man's hand, its fingers curling over the far side of the grip. The right man's hand is behind it, palm to
-  // palm, and only his fingertips show, hooked over its top edge. His skin is a darker gold, so the hands read apart.
-  // The left man's hand is drawn in its own frame: x runs from his wrist toward his fingertips.
+  // Each arm and hand is one outline, drawn in the arm's frame: x runs from the elbow along the forearm, +y is the
+  // pinky side. Past the wrist the pinky edge turns up 10 degrees and the thumb edge 35, ending in a short thumb, and
+  // the fingers end in a rounded, curled tip. The right man's arm is the mirror image, drawn behind, and the left
+  // man's hand covers his palm. His curled fingertips are drawn a second time, clipped to a circle, so they hook over
+  // the left man's hand.
+  const clip = useId()
   const dark = '#120c22'
-  const tone = '#b8894e'
-  const edge = { stroke: dark, strokeWidth: 2.2, strokeLinejoin: 'round', paintOrder: 'stroke' } as const
-  const forearm = (transform: string, length: number, color: string) => {
-    const d = `M0,-8 L${length},-6 A6,6 0 0 1 ${length},6 L0,8 Z`
-    return (
-      <g transform={transform}>
-        {/* A solid backing, so the arm hides what is under it. */}
-        <path d={d} fill={dark} />
-        <path d={d} fill={color} fillOpacity="0.15" stroke={color} strokeWidth="2.4" strokeLinejoin="round" />
-      </g>
-    )
-  }
-  const hand = 'translate(-12 12) rotate(-60)'
+  const outline =
+    'M0,-8 L46,-6 L52.5,-14.2 A3,3 0 0 1 55.9,-9.3 Q58,-10.6 59,-9.4 L66.5,-10.7 A6.6,5.6 -10 0 1 65.7,2.5 L46,6 L0,8 Z'
+  const arm = (
+    <g transform="translate(-50 40) rotate(-33.7)">
+      {/* A solid backing, so the arm hides what is under it. */}
+      <path d={outline} fill={dark} />
+      <path d={outline} fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
+      {/* Where the curled fingers part. */}
+      <path d="M67.1,-1 L71.3,-1.7 M67.3,-4.3 L71.5,-5.1 M67.5,-7.6 L71.7,-8.4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </g>
+  )
   return (
     <svg className="glyph" viewBox="-40 -40 80 80" aria-hidden="true">
-      <g transform="scale(1.2)">
-        {forearm('translate(60 44) rotate(-147.4)', 59.4, tone)}
-        <rect x="-2" y="-12" width="26" height="30" rx="13" transform={hand} fill={tone} {...edge} />
-        {forearm('translate(-60 44) rotate(-33.7)', 57.7, 'currentColor')}
-        <g transform={hand}>
-          <rect x="-2" y="-11" width="23" height="22" rx="7" fill="currentColor" {...edge} />
-          {[12, 14, 13, 10].map((length, index) => (
-            <rect key={index} x="17" y={-11 + index * 5.5} width={length} height="5.5" rx="2.75" fill="currentColor" {...edge} />
-          ))}
-          {[8, 8.5, 8, 7].map((length, index) => (
-            <rect key={index} x={-1 + index * 4} y="-14" width="4" height={length} rx="2" fill={tone} {...edge} />
-          ))}
+      <g transform="scale(1.25)">
+        <clipPath id={clip}>
+          <circle cx="-5.6" cy="-2.8" r="7.5" />
+        </clipPath>
+        <g transform="scale(-1 1)">{arm}</g>
+        {arm}
+        <g clipPath={`url(#${clip})`}>
+          <g transform="scale(-1 1)">{arm}</g>
         </g>
       </g>
     </svg>
