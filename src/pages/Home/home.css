@@ -21,6 +21,8 @@
   --text: 'Crimson Pro', Georgia, 'Times New Roman', serif;
   --ohr: #ede1bd;
   --ohb: #2e2824;
+  /* the nearest ground of the night, and the footer standing on it */
+  --pitch: #07050a;
 
   background: var(--deep);
   color: var(--text-on-dark);
@@ -368,25 +370,15 @@
   overflow: hidden;
 }
 
-/* Blend the hero's foot above and the footer below into whichever part of the strips is behind the world's edges. */
-.home .world-backdrop::before,
-.home .world-backdrop::after {
+/* Blends the hero's foot into whichever part of the strips is behind the world's top edge. At the bottom edge, the
+   campfire's ridge covers the join with the footer. */
+.home .world-backdrop::before {
   content: '';
   position: absolute;
-  left: 0;
-  right: 0;
+  inset: 0 0 auto;
   height: 180px;
   z-index: 1;
-}
-
-.home .world-backdrop::before {
-  top: 0;
   background: linear-gradient(var(--deep), transparent);
-}
-
-.home .world-backdrop::after {
-  bottom: 0;
-  background: linear-gradient(transparent, #3a2416);
 }
 
 .home .world-strip {
@@ -428,7 +420,105 @@
 }
 
 .home #simulator {
-  padding-bottom: 3rem;
+  /* room above the footer for the campfire's knoll */
+  padding-bottom: clamp(8rem, 15vw, 13rem);
+}
+
+/* The campfire on its ridge, resting on the footer's top edge. parallax.ts lifts it while the footer comes up and sets
+   --reach, how far its foot goes down behind the footer. */
+.home .campfire {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(-1 * var(--reach, 120px));
+  z-index: -1;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.home .campfire > svg {
+  display: block;
+  width: 100%;
+  height: clamp(150px, 17vw, 240px);
+}
+
+/* Campfire.tsx places this over the fire. It is wider and taller than the fire, so the sparks have room to fly. */
+.home .campfire-sparks {
+  position: absolute;
+  width: 900px;
+  height: 900px;
+}
+
+.home .campfire-foot {
+  height: var(--reach, 120px);
+  background: var(--pitch);
+}
+
+.home .campfire-ridge {
+  fill: var(--pitch);
+}
+
+.home .campfire-logs rect {
+  fill: #2a160c;
+  stroke: #7a3412;
+  stroke-width: 1.5;
+}
+
+.home .campfire-coals {
+  fill: #ff7a2a;
+  opacity: 0.8;
+}
+
+.home .campfire-flame {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: flicker 0.9s ease-in-out infinite alternate;
+}
+
+.home .campfire-flame.outer {
+  fill: #e2561a;
+}
+
+.home .campfire-flame.side {
+  fill: #f07a22;
+  animation-duration: 0.75s;
+}
+
+.home .campfire-flame.middle {
+  fill: #ffa23a;
+  animation-duration: 0.65s;
+}
+
+.home .campfire-flame.inner {
+  fill: #ffe0a0;
+  animation-duration: 0.5s;
+}
+
+.home .campfire-glow {
+  animation: firelight 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes flicker {
+  0% {
+    transform: scale(1, 1) skewX(0deg);
+  }
+  33% {
+    transform: scale(0.94, 1.08) skewX(-4deg);
+  }
+  66% {
+    transform: scale(1.04, 0.95) skewX(3deg);
+  }
+  100% {
+    transform: scale(0.97, 1.1) skewX(-2deg);
+  }
+}
+
+@keyframes firelight {
+  to {
+    opacity: 0.75;
+  }
 }
 
 /* The embers in front of the sections. */
@@ -1034,7 +1124,10 @@
 /* ---------- coda ---------- */
 
 .home .coda {
-  background: #3a2416;
+  /* the fire's light on the ground at its foot; Campfire.tsx sets --fire-x */
+  background:
+    radial-gradient(ellipse 340px 90px at var(--fire-x, 75%) 0, rgba(255, 140, 60, 0.16), transparent 70%),
+    var(--pitch);
   padding: 2.5rem 0 4rem;
 }
 
@@ -1145,7 +1238,9 @@
 @media (prefers-reduced-motion: reduce) {
   .home .twinkle,
   .home .window,
-  .home .teaser .pip {
+  .home .teaser .pip,
+  .home .campfire-flame,
+  .home .campfire-glow {
     animation: none;
   }
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { useTitle } from '../../hooks/useTitle'
+import Campfire from './Campfire'
 import DATA from './data.json'
 import Cost, { PIP_CLASS, type Pip } from './Cost'
 import Embers from './Embers'
@@ -129,6 +130,7 @@ export default function Home() {
   const world = useRef<HTMLDivElement>(null)
   const skyStrip = useRef<HTMLDivElement>(null)
   const ridgeStrip = useRef<HTMLDivElement>(null)
+  const footer = useRef<HTMLElement>(null)
   useEffect(() => {
     const stopSky = startBackdropParallax(world.current!, skyStrip.current!, SPEED.sky)
     const stopRidges = startBackdropParallax(world.current!, ridgeStrip.current!, SPEED.ridges)
@@ -162,8 +164,9 @@ export default function Home() {
 
       <main>
         {/* The night goes on below the hero, one stretch of sky and ridges per section, with sparks drifting through
-            all of it, down to the lamp-lit table. Each layer moves at its own speed, for parallax: the sky, the
-            ridges, three sizes of ember, the sections, and a few large embers in front. */}
+            all of it, down to a campfire behind the footer. Each layer moves at its own speed, for parallax: the sky,
+            the ridges, three sizes of ember with the campfire among the largest, the sections, and a few large
+            embers in front. */}
         <div className="world" ref={world}>
           <div className="world-backdrop" aria-hidden="true">
             {/* Each strip has one panel per section, in the sections' order. */}
@@ -191,10 +194,11 @@ export default function Home() {
               <div className="world-panel">
                 <Vista {...VISTAS.combine} layer="ridges" />
               </div>
-              {/* The simulator's table has no ridges of its own. */}
+              {/* The simulator's table has no ridges of its own; the campfire's ridge is in front of it. */}
               <div className="world-panel" />
             </div>
           </div>
+          <Campfire footer={footer} />
           <div className="world-embers">
             <Embers count={44} bands={BACK_EMBERS} className="world-embers-canvas" />
           </div>
@@ -367,7 +371,7 @@ export default function Home() {
           </section>
         </div>
 
-        <footer className="realm coda">
+        <footer className="realm coda" ref={footer}>
           <div className="wrap">
             <nav className="writeups" aria-label="Write-ups">
               <h2>The write-ups</h2>

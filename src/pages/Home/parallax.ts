@@ -114,3 +114,20 @@ export function startHeroParallax(scene: HTMLElement, speed: number): () => void
   })
 }
 
+/**
+ * A layer that comes to rest on top of `footer` once the page is scrolled to the bottom, and moves at `speed` on the
+ * way there. Before then it sits higher than its rest, by (1 - speed) of the distance the footer still has to come
+ * up, so it sinks onto the footer as the footer rises. The layer reaches down behind the footer by at least the most
+ * it is ever lifted while the footer is in view, so its foot never shows.
+ */
+export function startFooterParallax(layer: HTMLElement, footer: HTMLElement, speed: number): () => void {
+  const lag = 1 - layerSpeed(speed)
+  return onScrollFrame(() => {
+    const footerHeight = footer.offsetHeight
+    // Where the footer's top is when the page is scrolled to the bottom.
+    const rest = window.innerHeight - footerHeight
+    const lift = lag * Math.max(0, footer.getBoundingClientRect().top - rest)
+    layer.style.setProperty('--reach', `${(lag * footerHeight + 24).toFixed(0)}px`)
+    layer.style.transform = `translate3d(0,${(-lift).toFixed(1)}px,0)`
+  })
+}
