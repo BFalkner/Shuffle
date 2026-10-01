@@ -130,9 +130,9 @@ function ForceGlyph() {
 
 /** Two hands locked in an arm-wrestler's grip: the two kinds of move joined. */
 function ReunionGlyph() {
-  // The forearms rise from the lower corners. The hands meet upright and palm to palm, tilted a little to the right.
-  // We see the back of the left man's hand: the right man's fingers come round its near edge and lie across it, its
-  // own fingers curl round the far edge, and its thumb points up with the right man's thumb hooked over its root.
+  // The forearms rise from the lower corners and the hands meet upright, palm to palm. We see the back of the left
+  // man's hand: the right man's fingers come round its near edge and lie across it, and its own fingers curl round
+  // the far edge. Each thumb wraps the other man's hand, so the two cross over the top, mirror images of each other.
   const dark = '#120c22'
   const solid = { fill: 'currentColor', stroke: dark, strokeWidth: 2.2, strokeLinejoin: 'round', paintOrder: 'stroke' } as const
   const forearm = (transform: string, length: number) => {
@@ -146,7 +146,7 @@ function ReunionGlyph() {
     )
   }
   const finger = (x: number, y: number, width: number) => <rect key={`${x},${y}`} x={x} y={y} width={width} height="6.2" rx="3.1" {...solid} />
-  const clasp = 'translate(0 -4) rotate(14)'
+  const clasp = 'translate(0 -4)'
   return (
     <svg className="glyph" viewBox="-40 -40 80 80" aria-hidden="true">
       <g transform="scale(1.12)">
@@ -155,10 +155,10 @@ function ReunionGlyph() {
         {forearm('translate(-60 44) rotate(-31.7)', 64.7)}
         <g transform={clasp}>
           <rect x="-12" y="-14" width="26" height="28" rx="8" {...solid} />
-          {[12, 11, 10, 9].map((width, index) => finger(8, -13 + index * 6.6, width))}
+          {[13, 12.5, 11.5, 10].map((width, index) => finger(8, -13 + index * 6.6, width))}
           {[15, 17, 15.5, 12].map((width, index) => finger(-16, -12 + index * 6.6, width))}
-          <rect x="-4" y="-29" width="7" height="16" rx="3.5" {...solid} />
-          <rect x="-4" y="-18" width="16" height="6.4" rx="3.2" transform="rotate(-8 -4 -14.8)" {...solid} />
+          <rect x="-11" y="-24" width="22" height="6.4" rx="3.2" transform="rotate(20 -11 -20.8)" {...solid} />
+          <rect x="-11" y="-17" width="22" height="6.4" rx="3.2" transform="rotate(-20 -11 -13.8)" {...solid} />
         </g>
       </g>
     </svg>
