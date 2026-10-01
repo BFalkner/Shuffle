@@ -128,6 +128,34 @@ function ForceGlyph() {
   )
 }
 
+/** Two forearms clasped, each hand round the other's wrist: the two kinds of move joined. */
+function ReunionGlyph() {
+  // The arms come in from the sides, off the edge of the frame, and cross at the wrists in the middle. Each forearm
+  // narrows from elbow to wrist and has a bracer. The left arm lies on top: its fist closes over the crossing, thumb
+  // up. The right arm is its mirror, underneath, so its fist is tucked under the left wrist with only its edges showing.
+  const arm = (
+    <g transform="translate(-52 26) rotate(-32)">
+      {/* A solid backing, so the arm hides what is under it. */}
+      <path d="M0,-8 L58,-5.5 A5.5,5.5 0 0 1 58,5.5 L0,8 Z" fill="#120c22" />
+      <path d="M0,-8 L58,-5.5 A5.5,5.5 0 0 1 58,5.5 L0,8 Z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
+      <path d="M22,-7.3 L31,-6.9 L31,6.9 L22,7.3 Z" fill="currentColor" />
+      <rect x="54" y="-10" width="17" height="20" rx="6" fill="currentColor" />
+      <rect x="61" y="-14.5" width="13" height="6.5" rx="3.2" fill="currentColor" />
+      <g stroke="#120c22" strokeWidth="1.4" strokeLinecap="round">
+        <line x1="58.5" y1="-2" x2="58.5" y2="8" />
+        <line x1="62.5" y1="-2" x2="62.5" y2="8" />
+        <line x1="66.5" y1="-2" x2="66.5" y2="8" />
+      </g>
+    </g>
+  )
+  return (
+    <svg className="glyph" viewBox="-40 -40 80 80" aria-hidden="true">
+      <g transform="scale(-1 1)">{arm}</g>
+      {arm}
+    </svg>
+  )
+}
+
 export default function Home() {
   useTitle('The Shuffle Lab — does your shuffle randomize the deck?')
   const world = useRef<HTMLDivElement>(null)
@@ -300,8 +328,10 @@ export default function Home() {
               <p className="intro">Why the routines combine moves instead of repeating the best one.</p>
               <div className="duel">
                 <div className="side chance">
-                  <ChanceGlyph />
-                  <h3>A mash is a gamble</h3>
+                  <div className="side-head">
+                    <h3>A mash is a gamble</h3>
+                    <ChanceGlyph />
+                  </div>
                   <p>
                     A mash mixes by chance, and its effect doubles with each repeat. Each mash halves the order left across the whole deck: 0.50 after one, then
                     0.25, 0.12 and 0.06. But no mash is certain to move any particular card. After six mashes of a played deck, the old top card is still in the
@@ -312,8 +342,10 @@ export default function Home() {
                   and
                 </div>
                 <div className="side force">
-                  <ForceGlyph />
-                  <h3>A forced move is certain</h3>
+                  <div className="side-head">
+                    <h3>A forced move is certain</h3>
+                    <ForceGlyph />
+                  </div>
                   <p>
                     The half overhand and the pile don&rsquo;t depend on chance. Each does its job in one move, every time. A half overhand buries the top card. In
                     20,000 shuffles of a sorted deck it never stayed in the top five, and in 99 games out of 100 it ended up 31st or deeper. A pile separates every
@@ -323,7 +355,10 @@ export default function Home() {
                 </div>
               </div>
               <div className="together">
-                <h3>Together</h3>
+                <div className="side-head">
+                  <h3>Together</h3>
+                  <ReunionGlyph />
+                </div>
                 <p>
                   Combining them covers each move&rsquo;s weakness. Mashes before the forced move mean it works on an order nobody knows, and mashes after it
                   scatter its fixed result. From a played deck, the between-games routine left the old top card in the top five in 5% of games, as often as a

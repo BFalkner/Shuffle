@@ -963,15 +963,34 @@
   border: 1px solid rgba(243, 208, 143, 0.18);
 }
 
+/* Each panel's heading, with its glyph across from it on the right. */
+.home .side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.home .side-head .glyph {
+  flex: none;
+}
+
 .home .side h3 {
   font-family: var(--display);
   font-weight: 700;
   font-size: 1.4rem;
-  margin: 0.8rem 0 0.6rem;
 }
 
 .home .side p {
   color: var(--text-on-dark);
+}
+
+/* The chance, force and together boxes are justified. Hyphenation keeps the narrow columns from opening wide gaps. */
+.home .side p,
+.home .together p {
+  text-align: justify;
+  hyphens: auto;
 }
 
 .home .chance {
@@ -1024,7 +1043,10 @@
   font-weight: 700;
   font-size: 1.5rem;
   color: var(--gilt);
-  margin-bottom: 0.6rem;
+}
+
+.home .together .glyph {
+  color: var(--gilt);
 }
 
 .home .together p + p {
