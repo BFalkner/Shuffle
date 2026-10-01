@@ -4,13 +4,13 @@ import { useTitle } from '../../hooks/useTitle'
 import Campfire from './Campfire'
 import DATA from './data.json'
 import Cost, { PIP_CLASS, type Pip } from './Cost'
-import Embers from './Embers'
+import EmberField from './embers/EmberField'
 import Hero from './Hero'
 import { Vista } from './Landscape'
 import MoveChart, { MoveTable } from './MoveChart'
 import { CHART_MOVES, MOVE_COLOR, type Reading } from './moveCharts'
 import { startMoveDemo, type DemoMove } from './moveDemo'
-import { BACK_EMBERS, FRONT_EMBERS, SPEED, startBackdropParallax } from './parallax'
+import { SPEED, startBackdropParallax } from './parallax'
 import { RECOMMENDATIONS } from './recommendations'
 import { VISTAS } from './vistas'
 import './home.css'
@@ -232,10 +232,10 @@ export default function Home() {
       </Hero>
 
       <main>
-        {/* The night goes on below the hero, one stretch of sky and ridges per section, with sparks drifting through
-            all of it, down to a campfire on the ground the footer stands on. Each layer moves at its own speed, for parallax: the sky,
-            the ridges, three sizes of ember with the campfire among the largest, the sections, and a few large
-            embers in front. */}
+        {/* The night goes on below the hero, one stretch of sky and ridges per section, down to a campfire on the
+            ground the footer stands on. Each layer moves at its own speed, for parallax: the sky, the ridges, the
+            campfire and the sections. The campfire's embers rise through all of it, each at its own distance, some
+            behind the sections and some in front. */}
         <div className="world" ref={world}>
           <div className="world-backdrop" aria-hidden="true">
             {/* Each strip has one panel per section and one for the footer, in their order. */}
@@ -272,10 +272,10 @@ export default function Home() {
             </div>
           </div>
           <div className="world-embers">
-            <Embers count={44} bands={BACK_EMBERS} className="world-embers-canvas" />
+            <EmberField side="back" className="world-embers-canvas" />
           </div>
           <div className="world-embers front">
-            <Embers count={5} bands={FRONT_EMBERS} className="world-embers-canvas" />
+            <EmberField side="front" className="world-embers-canvas" />
           </div>
           <section className="realm" id="routines">
             <div className="wrap">

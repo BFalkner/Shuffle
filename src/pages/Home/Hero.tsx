@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type AnimationEvent, type ReactNode } from 'react'
 import { Button } from 'react-aria-components'
-import Embers from './Embers'
+import EmberField from './embers/EmberField'
 import Landscape, { type Palette } from './Landscape'
-import { BACK_EMBERS, SPEED, onScrollFrame, startHeroParallax } from './parallax'
+import { SPEED, onScrollFrame, startHeroParallax } from './parallax'
 
 const NIGHT: Palette = {
   sky: ['#0d0a20', '#231a4a', '#5a2f5c', '#d9824a'],
@@ -153,8 +153,9 @@ function ScrollCue({ next }: { next: string }) {
 }
 
 /**
- * The top of the page: a night landscape in two layers, the sky and the ridges, with embers rising behind the copy. A
- * chevron near the bottom of the screen scrolls down to the section whose id is `next`.
+ * The top of the page: a night landscape in two layers, the sky and the ridges, with the campfire's embers rising
+ * behind the copy and in front of it. A chevron near the bottom of the screen scrolls down to the section whose id is
+ * `next`.
  */
 export default function Hero({ children, next }: { children: ReactNode; next: string }) {
   const sky = useRef<HTMLDivElement>(null)
@@ -176,10 +177,11 @@ export default function Hero({ children, next }: { children: ReactNode; next: st
       <div className="hero-layer" ref={ridges}>
         <Landscape seed={7} palette={NIGHT} layer="ridges" />
       </div>
-      <Embers count={70} bands={BACK_EMBERS} className="embers" />
+      <EmberField side="back" className="embers" />
       <div className="hero-inner">
         <div className="hero-copy">{children}</div>
       </div>
+      <EmberField side="front" className="embers front" />
       <ScrollCue next={next} />
     </header>
   )

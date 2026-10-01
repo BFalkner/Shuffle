@@ -2,45 +2,14 @@
 
 /**
  * How far each layer moves for each pixel the page scrolls: 1 moves with the content, 0 stays still. From back to
- * front: the sky, the ridges, three sizes of ember, the content, and a few large embers in front of it all.
+ * front: the sky, the ridges, the campfire and the content. The embers work out their own.
  */
 export const SPEED = {
   sky: 0.1,
   ridges: 0.3,
-  smallEmbers: 0.5,
-  mediumEmbers: 0.7,
-  largeEmbers: 0.85,
+  campfire: 0.85,
   content: 1,
-  foreground: 1.3,
 }
-
-/** One band of embers: how many of the canvas's sparks it gets, and how they look and move. */
-export interface EmberBand {
-  /** the band's share of the canvas's sparks, out of 1 */
-  share: number
-  /** the sparks' smallest and largest radius, px */
-  size: [number, number]
-  scrollSpeed: number
-  /** how far the glow reaches, in radii */
-  glow: number
-  /**
-   * where the bright core gives way to the glow, as a fraction of its reach. An ember in focus has a small core; an
-   * ember out of focus, too near or too far, is a soft disc.
-   */
-  core: number
-  /** the brightest the spark gets, out of 1 */
-  brightness: number
-}
-
-const SMALL: EmberBand = { share: 0.5, size: [0.5, 0.9], scrollSpeed: SPEED.smallEmbers, glow: 3.5, core: 0.3, brightness: 0.7 }
-const MEDIUM: EmberBand = { share: 0.33, size: [1.3, 2], scrollSpeed: SPEED.mediumEmbers, glow: 4, core: 0.3, brightness: 0.9 }
-const LARGE: EmberBand = { share: 0.17, size: [2.8, 4], scrollSpeed: SPEED.largeEmbers, glow: 3, core: 0.55, brightness: 0.7 }
-const NEAR: EmberBand = { share: 1, size: [7, 11], scrollSpeed: SPEED.foreground, glow: 2.2, core: 0.7, brightness: 0.28 }
-
-/** The embers behind the content, in three sizes, the larger ones nearer. */
-export const BACK_EMBERS = [SMALL, MEDIUM, LARGE]
-/** A few large, soft embers in front of the content, nearer still. */
-export const FRONT_EMBERS = [NEAR]
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
