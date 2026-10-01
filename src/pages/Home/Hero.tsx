@@ -1,8 +1,8 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type AnimationEvent, type ReactNode } from 'react'
 import { Button } from 'react-aria-components'
 import Embers from './Embers'
 import Landscape, { type Palette } from './Landscape'
-import { BACK_EMBERS, SPEED, startHeroParallax } from './parallax'
+import { BACK_EMBERS, SPEED, onScrollFrame, startHeroParallax } from './parallax'
 
 const NIGHT: Palette = {
   sky: ['#0d0a20', '#231a4a', '#5a2f5c', '#d9824a'],
@@ -42,71 +42,119 @@ const CHEVRON_WIDTH = 13.2
 
 /**
  * The chevron as an arrowhead: an outer edge from each tip down to the front point, and an inner edge from each tip up
- * to the notch above it. The front and the notch sit half the arms' thickness either side of the front's middle,
+ * to the notch above it. The front point and the notch sit half the arms' thickness either side of the front's middle,
  * measured upright, so the arms are CHEVRON_WIDTH thick across.
  */
-function arrowhead(): string {
+function arrowhead() {
   const { left, front, right } = CHEVRON
   const slope = Math.atan2(front.y - left.y, front.x - left.x)
   const half = CHEVRON_WIDTH / 2 / Math.cos(slope)
-  return `M${left.x},${left.y} L${front.x},${(front.y + half).toFixed(2)} L${right.x},${right.y} L${front.x},${(front.y - half).toFixed(2)} Z`
+  const point = `${front.x},${(front.y + half).toFixed(2)}`
+  const notch = `${front.x},${(front.y - half).toFixed(2)}`
+  const tips = { left: `${left.x},${left.y}`, right: `${right.x},${right.y}` }
+  return {
+    outline: `M${tips.left} L${point} L${tips.right} L${notch} Z`,
+    /** the two outer edges, from the tips to the front point */
+    front: `M${tips.left} L${point} L${tips.right}`,
+  }
 }
 
 /**
- * A clear glass chevron pointing down, shaped like an arrowhead: thickest at the front and sharp at both tips. Its top
- * is flat and clear, so the background shows through it, and only the bevel round its edges shows. The shape is lit
- * from above: the upper bevels catch a highlight, and the lower edges a dark rim. A lamp just above the front shines
- * on it too, so it glints.
+ * A clear glass chevron pointing down, shaped like an arrowhead: thickest at the front and sharp at both tips. Nothing
+ * fills it, so the background shows through clearly. A thin pale line marks its outline, and the front edge, the two
+ * outer edges that meet at the point, is brighter and thicker, with a soft glow under it. A faint second line just
+ * inside the front edge is the far side of the glass.
  */
 function Chevron() {
+  const { outline, front } = arrowhead()
   return (
     <svg viewBox="0 0 120 44" aria-hidden="true">
       <defs>
-        <filter id="chevron-glass" x="-20%" y="-30%" width="140%" height="170%">
-          {/* The shape's height for the light to fall on: it rises from nothing at the edge to full one blur width in,
-              then holds level, so the top is flat. Blurred, the edge is at 0.5 and one blur width in is at 0.84; the
-              transfer maps those to 0 and 1 and clamps everything past them. */}
-          <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blurred" />
-          <feComponentTransfer in="blurred" result="height">
-            <feFuncA type="linear" slope="2.94" intercept="-1.47" />
-          </feComponentTransfer>
-          <feSpecularLighting in="height" surfaceScale="1.6" specularConstant="1.5" specularExponent="10" lightingColor="#fff4d6" result="shine">
-            <feDistantLight azimuth="270" elevation="38" />
-          </feSpecularLighting>
-          {/* Light only on the bevel: the shape less its height, which is full on the flat top and falls off over the
-              bevel, so the band fades in smoothly from the top's edge. */}
-          <feComposite in="SourceAlpha" in2="height" operator="arithmetic" k2="1" k3="-1" result="bevel" />
-          <feComposite in="shine" in2="bevel" operator="in" result="highlight" />
-          {/* A lamp shining straight down onto it from just above the front: a glint on the bevel and a soft hotspot on
-              the flat top, where its reflection meets the eye. */}
-          <feSpecularLighting in="height" surfaceScale="1.6" specularConstant="1.1" specularExponent="22" lightingColor="#fff1d0" result="lamp">
-            <fePointLight x="60" y="-24" z="60" />
-          </feSpecularLighting>
-          <feComposite in="lamp" in2="SourceAlpha" operator="in" result="lit" />
-          {/* The lower rim: the part of the shape not covered by itself moved up a little. */}
-          <feOffset in="SourceAlpha" dy="-1.8" result="raised" />
-          <feComposite in="SourceAlpha" in2="raised" operator="out" result="rim" />
-          <feFlood floodColor="#0a0612" floodOpacity="0.6" />
-          <feComposite in2="rim" operator="in" result="shade" />
-          {/* A faint tint, so the glass reads as a surface. */}
-          <feFlood floodColor="#fff6e0" floodOpacity="0.07" />
-          <feComposite in2="SourceAlpha" operator="in" result="tint" />
-          <feMerge>
-            <feMergeNode in="tint" />
-            <feMergeNode in="shade" />
-            <feMergeNode in="highlight" />
-            <feMergeNode in="lit" />
-          </feMerge>
+        <clipPath id="chevron-inside">
+          <path d={outline} />
+        </clipPath>
+        <filter id="chevron-soft" x="-10%" y="-40%" width="120%" height="180%">
+          <feGaussianBlur stdDeviation="1.6" />
         </filter>
       </defs>
-      <path d={arrowhead()} filter="url(#chevron-glass)" />
+      <g fill="none" strokeLinejoin="miter" strokeLinecap="round">
+        <path d={front} stroke="rgba(255, 214, 150, 0.45)" strokeWidth="4" filter="url(#chevron-soft)" />
+        <path d={front} stroke="rgba(255, 246, 226, 0.35)" strokeWidth="1" transform="translate(0 -2.6)" clipPath="url(#chevron-inside)" />
+        <path d={outline} stroke="rgba(255, 246, 226, 0.6)" strokeWidth="0.9" />
+        <path d={front} stroke="#fffaf0" strokeWidth="1.7" />
+      </g>
     </svg>
   )
 }
 
 /**
+ * `showing` near the bottom of the screen; `landing` while it plays its exit on the heading; `gone` once that is over,
+ * for as long as the page is open.
+ */
+type CueState = 'showing' | 'landing' | 'gone'
+
+/**
+ * The chevron that scrolls down to the section whose id is `next`. It stays near the bottom of the screen as the page
+ * scrolls, past the hero, until the middle of the section's heading comes up to it. Then it lets go of the screen and
+ * stays on the heading, moving with the page, while a quick flash of light swallows it and the heading glows for a
+ * moment. So the flash goes off on the heading however far the page keeps scrolling. After that it doesn't come back,
+ * even if the page scrolls back up. If the heading is already above it when the page loads, as on a tall screen, it
+ * starts gone, and with reduced motion it goes without the show.
+ */
+function ScrollCue({ next }: { next: string }) {
+  const dock = useRef<HTMLDivElement>(null)
+  // The state is read in the scroll handler as well as rendered, so it is kept in a ref too.
+  const phase = useRef<CueState>('showing')
+  const [state, setState] = useState<CueState>('showing')
+  const move = (to: CueState) => {
+    phase.current = to
+    setState(to)
+  }
+  useEffect(() => {
+    const section = document.getElementById(next)!
+    const heading = section.querySelector('h2') ?? section
+    const middle = (box: DOMRect) => box.top + box.height / 2
+    let firstFrame = true
+    const stop = onScrollFrame(() => {
+      const element = dock.current!
+      // Where the dock sits on the screen when it isn't on the heading.
+      element.style.transform = ''
+      const resting = middle(element.getBoundingClientRect())
+      const headingMiddle = middle(heading.getBoundingClientRect())
+      const reached = headingMiddle <= resting
+      if (phase.current === 'showing' && reached) move(firstFrame || reducedMotion() ? 'gone' : 'landing')
+      // While it lands, it stays on the heading's middle line, moving with the page.
+      if (phase.current === 'landing') element.style.transform = `translateY(${(headingMiddle - resting).toFixed(1)}px)`
+      firstFrame = false
+    })
+    return stop
+  }, [next])
+  // The flash lights the heading as it goes off. The class comes off when the glow is over, so the next flash can light
+  // it again.
+  useEffect(() => {
+    if (state !== 'landing') return
+    const heading = document.getElementById(next)!.querySelector('h2')
+    if (!heading) return
+    heading.classList.add('lit')
+    const done = () => heading.classList.remove('lit')
+    heading.addEventListener('animationend', done, { once: true })
+  }, [state, next])
+  const landed = (event: AnimationEvent) => {
+    if (event.animationName === 'cue-flash') move('gone')
+  }
+
+  return (
+    <div className="scroll-cue-dock" ref={dock} data-state={state} onAnimationEnd={landed}>
+      <Button className="scroll-cue" aria-label="Scroll down to the two routines" isDisabled={state !== 'showing'} onPress={() => scrollDownTo(document.getElementById(next)!)}>
+        <Chevron />
+      </Button>
+    </div>
+  )
+}
+
+/**
  * The top of the page: a night landscape in two layers, the sky and the ridges, with embers rising behind the copy. A
- * chevron near the bottom scrolls down to the section whose id is `next`.
+ * chevron near the bottom of the screen scrolls down to the section whose id is `next`.
  */
 export default function Hero({ children, next }: { children: ReactNode; next: string }) {
   const sky = useRef<HTMLDivElement>(null)
@@ -132,9 +180,7 @@ export default function Hero({ children, next }: { children: ReactNode; next: st
       <div className="hero-inner">
         <div className="hero-copy">{children}</div>
       </div>
-      <Button className="scroll-cue" aria-label="Scroll down to the two routines" onPress={() => scrollDownTo(document.getElementById(next)!)}>
-        <Chevron />
-      </Button>
+      <ScrollCue next={next} />
     </header>
   )
 }
