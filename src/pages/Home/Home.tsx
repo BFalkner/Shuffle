@@ -130,35 +130,38 @@ function ForceGlyph() {
 
 /** Two hands locked in an arm-wrestler's grip: the two kinds of move joined. */
 function ReunionGlyph() {
-  // The forearms rise from the lower corners and the hands meet upright, palm to palm. We see the back of the left
-  // man's hand: the right man's fingers come round its near edge and lie across it, and its own fingers curl round
-  // the far edge. Each thumb wraps the other man's hand, so the two cross over the top, mirror images of each other.
+  // The forearms rise from the lower corners and each hand carries on in the line of its arm. We see the back of the
+  // left man's hand, its fingers curling over the far side of the grip. The right man's hand is behind it, palm to
+  // palm, and only his fingertips show, hooked over its top edge. His skin is a darker gold, so the hands read apart.
+  // The left man's hand is drawn in its own frame: x runs from his wrist toward his fingertips.
   const dark = '#120c22'
-  const solid = { fill: 'currentColor', stroke: dark, strokeWidth: 2.2, strokeLinejoin: 'round', paintOrder: 'stroke' } as const
-  const forearm = (transform: string, length: number) => {
+  const tone = '#b8894e'
+  const edge = { stroke: dark, strokeWidth: 2.2, strokeLinejoin: 'round', paintOrder: 'stroke' } as const
+  const forearm = (transform: string, length: number, color: string) => {
     const d = `M0,-8 L${length},-6 A6,6 0 0 1 ${length},6 L0,8 Z`
     return (
       <g transform={transform}>
         {/* A solid backing, so the arm hides what is under it. */}
         <path d={d} fill={dark} />
-        <path d={d} fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
+        <path d={d} fill={color} fillOpacity="0.15" stroke={color} strokeWidth="2.4" strokeLinejoin="round" />
       </g>
     )
   }
-  const finger = (x: number, y: number, width: number) => <rect key={`${x},${y}`} x={x} y={y} width={width} height="6.2" rx="3.1" {...solid} />
-  const clasp = 'translate(0 -4)'
+  const hand = 'translate(-12 12) rotate(-60)'
   return (
     <svg className="glyph" viewBox="-40 -40 80 80" aria-hidden="true">
-      <g transform="scale(1.12)">
-        {forearm('translate(60 44) rotate(-144.8)', 62.4)}
-        <rect x="-2" y="-12" width="18" height="26" rx="8" transform={clasp} {...solid} />
-        {forearm('translate(-60 44) rotate(-31.7)', 64.7)}
-        <g transform={clasp}>
-          <rect x="-12" y="-14" width="26" height="28" rx="8" {...solid} />
-          {[13, 12.5, 11.5, 10].map((width, index) => finger(8, -13 + index * 6.6, width))}
-          {[15, 17, 15.5, 12].map((width, index) => finger(-16, -12 + index * 6.6, width))}
-          <rect x="-11" y="-24" width="22" height="6.4" rx="3.2" transform="rotate(20 -11 -20.8)" {...solid} />
-          <rect x="-11" y="-17" width="22" height="6.4" rx="3.2" transform="rotate(-20 -11 -13.8)" {...solid} />
+      <g transform="scale(1.2)">
+        {forearm('translate(60 44) rotate(-147.4)', 59.4, tone)}
+        <rect x="-2" y="-12" width="26" height="30" rx="13" transform={hand} fill={tone} {...edge} />
+        {forearm('translate(-60 44) rotate(-33.7)', 57.7, 'currentColor')}
+        <g transform={hand}>
+          <rect x="-2" y="-11" width="23" height="22" rx="7" fill="currentColor" {...edge} />
+          {[12, 14, 13, 10].map((length, index) => (
+            <rect key={index} x="17" y={-11 + index * 5.5} width={length} height="5.5" rx="2.75" fill="currentColor" {...edge} />
+          ))}
+          {[8, 8.5, 8, 7].map((length, index) => (
+            <rect key={index} x={-1 + index * 4} y="-14" width="4" height={length} rx="2" fill={tone} {...edge} />
+          ))}
         </g>
       </g>
     </svg>
