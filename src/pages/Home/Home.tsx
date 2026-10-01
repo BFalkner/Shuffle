@@ -68,6 +68,9 @@ const START_DECK_TEXT: ReactNode[] = [
   'This deck had seven mashes, and then its top thirty cards were sorted, as happens when you gather your cards after a game. It looks random at a glance, but the sorted block is real structure.',
 ]
 
+/** the colour at the top of the lamp-lit sky behind the simulator's table, which the sky above fades into */
+const LAMP_TOP = '#22182f'
+
 const WRITEUPS = [
   { to: '/order-tests', title: 'Tests for leftover order' },
   { to: '/global-tests', title: 'Tests across many shuffles' },
@@ -130,7 +133,6 @@ export default function Home() {
   const world = useRef<HTMLDivElement>(null)
   const skyStrip = useRef<HTMLDivElement>(null)
   const ridgeStrip = useRef<HTMLDivElement>(null)
-  const footer = useRef<HTMLElement>(null)
   useEffect(() => {
     const stopSky = startBackdropParallax(world.current!, skyStrip.current!, SPEED.sky)
     const stopRidges = startBackdropParallax(world.current!, ridgeStrip.current!, SPEED.ridges)
@@ -164,24 +166,27 @@ export default function Home() {
 
       <main>
         {/* The night goes on below the hero, one stretch of sky and ridges per section, with sparks drifting through
-            all of it, down to a campfire behind the footer. Each layer moves at its own speed, for parallax: the sky,
+            all of it, down to a campfire on the ground the footer stands on. Each layer moves at its own speed, for parallax: the sky,
             the ridges, three sizes of ember with the campfire among the largest, the sections, and a few large
             embers in front. */}
         <div className="world" ref={world}>
           <div className="world-backdrop" aria-hidden="true">
-            {/* Each strip has one panel per section, in the sections' order. */}
+            {/* Each strip has one panel per section and one for the footer, in their order. */}
             <div className="world-strip" ref={skyStrip}>
               <div className="world-panel">
-                <Vista {...VISTAS.routines} layer="sky" />
+                <Vista {...VISTAS.routines} layer="sky" fadeTo={VISTAS.moves.palette.sky[0]} />
               </div>
               <div className="world-panel">
-                <Vista {...VISTAS.moves} layer="sky" />
+                <Vista {...VISTAS.moves} layer="sky" fadeTo={VISTAS.combine.palette.sky[0]} />
               </div>
               <div className="world-panel">
-                <Vista {...VISTAS.combine} layer="sky" />
+                <Vista {...VISTAS.combine} layer="sky" fadeTo={LAMP_TOP} />
               </div>
               <div className="world-panel">
                 <div className="vista lamp" />
+              </div>
+              <div className="world-panel">
+                <div className="vista lamp-foot" />
               </div>
             </div>
             <div className="world-strip" ref={ridgeStrip}>
@@ -194,11 +199,11 @@ export default function Home() {
               <div className="world-panel">
                 <Vista {...VISTAS.combine} layer="ridges" />
               </div>
-              {/* The simulator's table has no ridges of its own; the campfire's ridge is in front of it. */}
+              {/* The simulator's table and the footer have no ridges of their own; the campfire's ridge is in front. */}
+              <div className="world-panel" />
               <div className="world-panel" />
             </div>
           </div>
-          <Campfire footer={footer} />
           <div className="world-embers">
             <Embers count={44} bands={BACK_EMBERS} className="world-embers-canvas" />
           </div>
@@ -369,29 +374,30 @@ export default function Home() {
               </div>
             </div>
           </section>
-        </div>
 
-        <footer className="realm coda" ref={footer}>
-          <div className="wrap">
-            <nav className="writeups" aria-label="Write-ups">
-              <h2>The write-ups</h2>
-              <ul>
-                {WRITEUPS.map((writeup) => (
-                  <li key={writeup.to}>
-                    <Link to={writeup.to}>{writeup.title}</Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-            <p className="foot-note">
-              We picked these routines because the pile and the half overhand break up order by force, not by chance. A mash and a half overhand cost 1 unit
-              each, a full overhand costs 2, and a pile costs 4. The pile&rsquo;s cost is a guess until we time it. We ran each routine 200 times from a sorted
-              deck and from a played deck. A run counts as a pass only when it clears every test, and a test passes when the deck is within three standard
-              deviations of a random deck. From a played deck, 3 mashes, a half overhand and 2 mashes passed none of 200 runs. Most of what the tests found
-              was position: where a card started still hints at where it ends up. Seven plain mashes, one move more, passed 3.
-            </p>
-          </div>
-        </footer>
+          <footer className="realm coda">
+            <Campfire />
+            <div className="wrap">
+              <nav className="writeups" aria-label="Write-ups">
+                <h2>The write-ups</h2>
+                <ul>
+                  {WRITEUPS.map((writeup) => (
+                    <li key={writeup.to}>
+                      <Link to={writeup.to}>{writeup.title}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <p className="foot-note">
+                We picked these routines because the pile and the half overhand break up order by force, not by chance. A mash and a half overhand cost 1 unit
+                each, a full overhand costs 2, and a pile costs 4. The pile&rsquo;s cost is a guess until we time it. We ran each routine 200 times from a sorted
+                deck and from a played deck. A run counts as a pass only when it clears every test, and a test passes when the deck is within three standard
+                deviations of a random deck. From a played deck, 3 mashes, a half overhand and 2 mashes passed none of 200 runs. Most of what the tests found
+                was position: where a card started still hints at where it ends up. Seven plain mashes, one move more, passed 3.
+              </p>
+            </div>
+          </footer>
+        </div>
       </main>
     </div>
   )

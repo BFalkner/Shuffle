@@ -21,8 +21,12 @@
   --text: 'Crimson Pro', Georgia, 'Times New Roman', serif;
   --ohr: #ede1bd;
   --ohb: #2e2824;
-  /* the nearest ground of the night, and the footer standing on it */
+  /* the nearest ground of the night, which the footer stands on */
   --pitch: #07050a;
+  /* how tall the campfire's ridge and fire are */
+  --campfire-height: clamp(150px, 17vw, 240px);
+  /* how far below the footer's top edge the campfire's ground line sits, so the fire stands beside the footer text */
+  --campfire-drop: 8rem;
 
   background: var(--deep);
   color: var(--text-on-dark);
@@ -30,7 +34,8 @@
   font-size: 1.12rem;
   line-height: 1.6;
   font-variant-numeric: lining-nums;
-  overflow-x: clip;
+  /* Clips the campfire's ground where it is lifted past the bottom of the page, without making a scroll container. */
+  overflow: clip;
 }
 
 .home p,
@@ -414,23 +419,30 @@
   height: clamp(160px, 22vw, 320px);
 }
 
-/* The lamp-lit table at the foot of the night. */
+/* The lamp-lit table at the foot of the night, and the same light carried on behind the footer. */
 .home .vista.lamp {
+  /* starts with LAMP_TOP in Home.tsx */
   background: linear-gradient(#22182f, #2c1a14 45%, #3a2416);
 }
 
-.home #simulator {
-  /* room above the footer for the campfire's knoll */
-  padding-bottom: clamp(8rem, 15vw, 13rem);
+.home .vista.lamp-foot {
+  background: #3a2416;
 }
 
-/* The campfire on its ridge, resting on the footer's top edge. parallax.ts lifts it while the footer comes up and sets
-   --reach, how far its foot goes down behind the footer. */
+.home #simulator {
+  /* Room above the footer for the top of the fire, which stands beside the footer text. The fire is lifted by up to
+     about 60px while it comes into view, and this keeps it clear of the table. */
+  padding-bottom: 5rem;
+}
+
+/* The campfire on its ridge, standing on the footer's top edge, with its ground filling the footer. parallax.ts lifts
+   it while the footer comes up. */
 .home .campfire {
   position: absolute;
+  top: calc(var(--campfire-drop) - var(--campfire-height));
+  bottom: 0;
   left: 0;
   right: 0;
-  bottom: calc(-1 * var(--reach, 120px));
   z-index: -1;
   display: flex;
   flex-direction: column;
@@ -438,21 +450,31 @@
   will-change: transform;
 }
 
+/* The fire, its logs and its light reach past the picture's edges, onto the ground below and into the sky above, so
+   the picture draws past its edges and sits in front of the ground. Otherwise they would stop at a straight line. */
 .home .campfire > svg {
+  position: relative;
+  z-index: 1;
   display: block;
+  flex: none;
   width: 100%;
-  height: clamp(150px, 17vw, 240px);
+  height: var(--campfire-height);
+  overflow: visible;
 }
 
 /* Campfire.tsx places this over the fire. It is wider and taller than the fire, so the sparks have room to fly. */
 .home .campfire-sparks {
   position: absolute;
+  z-index: 2;
   width: 900px;
   height: 900px;
 }
 
+/* The ridge carried on down to the bottom of the page, the same black, so the footer stands on one piece of ground.
+   The fire's light on the ground is drawn around the fire, in the picture above. */
 .home .campfire-foot {
-  height: var(--reach, 120px);
+  flex: 1;
+  margin-top: -1px;
   background: var(--pitch);
 }
 
@@ -1124,11 +1146,13 @@
 /* ---------- coda ---------- */
 
 .home .coda {
-  /* the fire's light on the ground at its foot; Campfire.tsx sets --fire-x */
-  background:
-    radial-gradient(ellipse 340px 90px at var(--fire-x, 75%) 0, rgba(255, 140, 60, 0.16), transparent 70%),
-    var(--pitch);
+  /* No background: the footer stands on the campfire's ground, with the embers drifting over it. */
   padding: 2.5rem 0 4rem;
+}
+
+/* The footer text keeps to the left, and the fire burns to its right. */
+.home .coda .wrap > * {
+  max-width: 62%;
 }
 
 .home .writeups h2 {
@@ -1178,6 +1202,21 @@
 
   .home .versus {
     justify-self: center;
+  }
+}
+
+/* On a narrow screen the footer text needs the whole width, so the fire goes back above it. */
+@media (max-width: 720px) {
+  .home {
+    --campfire-drop: 0px;
+  }
+
+  .home #simulator {
+    padding-bottom: calc(var(--campfire-height) + 5rem);
+  }
+
+  .home .coda .wrap > * {
+    max-width: none;
   }
 }
 

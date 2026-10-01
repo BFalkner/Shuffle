@@ -1,5 +1,5 @@
-import { useEffect, useRef, type RefObject } from 'react'
-import { SPEED, onScrollFrame, startFooterParallax } from './parallax'
+import { useEffect, useRef } from 'react'
+import { SPEED, startFooterParallax } from './parallax'
 
 const W = 1600
 const H = 220
@@ -22,27 +22,19 @@ const TONGUES = [
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /**
- * A campfire on a black ridge behind the footer. The ridge is the nearest ground of the night, the same black as the
- * footer, which hides its foot. The pair moves at the large embers' speed, nearer than everything but the content, so
- * as the footer comes up the fire sinks onto it. The fire throws sparks that rise into the embers above.
+ * A campfire on a black ridge just above the footer, and the dark ground below it that the footer stands on. It goes
+ * inside the footer, behind its text. It moves at the large embers' speed, nearer than everything but the content, so
+ * as the footer comes up the fire sinks into place. The fire throws sparks that rise into the embers above, and its
+ * light falls on the ground around it.
  */
-export default function Campfire({ footer }: { footer: RefObject<HTMLElement | null> }) {
+export default function Campfire() {
   const layer = useRef<HTMLDivElement>(null)
   const sparks = useRef<HTMLCanvasElement>(null)
-  useEffect(() => startFooterParallax(layer.current!, footer.current!, SPEED.largeEmbers), [footer])
-  // The fire's light falls on the footer's top edge, under wherever the fire is drawn.
-  useEffect(() => {
-    const fire = layer.current!.querySelector<SVGElement>('.campfire-fire')!
-    return onScrollFrame(() => {
-      const box = fire.getBoundingClientRect()
-      footer.current!.style.setProperty('--fire-x', `${(box.left + box.width / 2).toFixed(0)}px`)
-    })
-  }, [footer])
+  useEffect(() => startFooterParallax(layer.current!, layer.current!.parentElement!, SPEED.largeEmbers), [])
   useEffect(() => (reducedMotion() ? undefined : startSparks(sparks.current!, layer.current!)), [])
 
   return (
     <div className="campfire" ref={layer} aria-hidden="true">
-      <canvas className="campfire-sparks" ref={sparks} />
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMaxYMax slice">
         <defs>
           <radialGradient id="campfire-sky" cx={FIRE.x} cy={FIRE.y - 30} r="560" gradientUnits="userSpaceOnUse">
@@ -58,7 +50,9 @@ export default function Campfire({ footer }: { footer: RefObject<HTMLElement | n
             <feGaussianBlur stdDeviation="6" />
           </filter>
         </defs>
-        <rect className="campfire-glow" width={W} height={H} fill="url(#campfire-sky)" />
+        {/* Wider and taller than the glow, so it fades out before any edge. The picture lets it spill past its own
+            edges. */}
+        <rect className="campfire-glow" x={FIRE.x - 600} y={FIRE.y - 660} width="1200" height={H - FIRE.y + 660} fill="url(#campfire-sky)" />
         <path className="campfire-ridge" d={`M0,196 Q300,184 600,190 T1000,176 Q1100,160 1170,151 Q${FIRE.x},144 1290,152 Q1380,164 1460,180 Q1530,190 ${W},186 L${W},${H} L0,${H} Z`} />
         <ellipse className="campfire-glow" cx={FIRE.x} cy={FIRE.y + 8} rx="320" ry="44" fill="url(#campfire-ground)" />
         <g className="campfire-fire" transform={`translate(${FIRE.x},${FIRE.y})`}>
@@ -74,6 +68,8 @@ export default function Campfire({ footer }: { footer: RefObject<HTMLElement | n
         </g>
       </svg>
       <div className="campfire-foot" />
+      {/* After the fire, so the sparks fly in front of the flames. */}
+      <canvas className="campfire-sparks" ref={sparks} />
     </div>
   )
 }

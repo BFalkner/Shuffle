@@ -144,10 +144,11 @@ const STAR_FIELD = { width: 1600, height: 1000 }
 
 /**
  * A section's stretch of the night below the hero. The sky layer is a sky behind the whole section with a few stars.
- * The ridges layer is ridges along its bottom edge, with the horizon's glow behind them. The nearest ridge is the colour
- * the next section's sky starts with, so the sections join without a seam. It sits behind the section's content.
+ * It ends in `fadeTo`, the colour the next section's sky starts with, so the skies join without a seam. The ridges
+ * layer is ridges along the section's bottom edge, with the horizon's glow behind them. It sits behind the section's
+ * content.
  */
-export function Vista({ seed, palette, layer }: { seed: number; palette: Palette; layer: SceneLayer }) {
+export function Vista({ seed, palette, layer, fadeTo }: { seed: number; palette: Palette; layer: SceneLayer; fadeTo?: string }) {
   const id = useId().replace(/:/g, '')
   const scene = useMemo(() => {
     const random = rng(seed)
@@ -162,7 +163,7 @@ export function Vista({ seed, palette, layer }: { seed: number; palette: Palette
 
   if (layer === 'sky') {
     return (
-      <div className="vista" style={{ background: `linear-gradient(${top}, ${upper} 40%, ${lower} 75%, ${horizon})` }}>
+      <div className="vista" style={{ background: `linear-gradient(${top}, ${upper} 35%, ${lower} 62%, ${horizon} 82%, ${fadeTo ?? horizon})` }}>
         <svg className="vista-stars" viewBox={`0 0 ${STAR_FIELD.width} ${STAR_FIELD.height}`} preserveAspectRatio="xMidYMin slice">
           {scene.stars.map((star, index) => (
             <circle key={index} className={index % 5 === 0 ? 'twinkle' : undefined} cx={star.x} cy={star.y} r={star.r} fill="#fff6e0" opacity={star.opacity * 0.8} style={{ animationDelay: `${(index % 11) * 0.41}s` }} />
