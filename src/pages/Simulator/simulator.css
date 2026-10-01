@@ -1037,21 +1037,35 @@ body:has(.sim) {
   font-size: 0.9rem;
 }
 
+/* Each category in noise lines on a log scale, 0.1 to 1,000 (ScoreCard.tsx). The mark a quarter of the way along is the
+   edge of random, 1 noise line: a bar that stops before it is clear. */
 .sim .levels-bar {
+  position: relative;
   height: 8px;
   border-radius: 4px;
   background: #e6d7b6;
-  overflow: hidden;
 }
 
 .sim .levels-bar span {
   display: block;
   height: 100%;
-  width: calc(var(--level) * 100%);
+  width: calc(var(--reach) * 100%);
   min-width: 2px;
   border-radius: 4px;
   background: var(--bad);
   transition: width 0.3s;
+}
+
+.sim .levels-bar::after {
+  content: '';
+  position: absolute;
+  left: 25%;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--ink);
 }
 
 .sim .levels li.clean .levels-bar span {

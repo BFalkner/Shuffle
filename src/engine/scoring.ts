@@ -53,6 +53,15 @@ export function categoryReadings(avg: Averages, base: Base, step: number): Categ
   })
 }
 
+/**
+ * How far a category sits from random in noise lines, at one step: its worst metric's level divided by that metric's
+ * noise line. Under 1, every metric in the category is within the noise of random decks, so it's clear; 1 is the edge
+ * of random. For display: it isn't part of a category's reading, so the scores the engine gives don't change.
+ */
+export function noiseLines(category: Category, avg: Averages, base: Base, step: number): number {
+  return Math.max(...metricsIn(category).map((metric) => level(metric, avg[metric.key][step], base) / noiseLevel(metric, base)))
+}
+
 /** A routine's total: the sum of its categories' levels. 0 is random, and an unshuffled sorted deck reads about 3. */
 export function totalLevel(readings: CategoryReading[]): number {
   return readings.reduce((total, reading) => total + reading.level, 0)
