@@ -238,7 +238,6 @@ export default function Home() {
           <section className="realm" id="routines">
             <div className="wrap">
               <h2>Two routines worth learning</h2>
-              <p className="intro">Use the first after every game. Use the second when a deck is new or sorted, or when you don&rsquo;t know where it&rsquo;s been.</p>
               <div className="rec-grid">
                 {RECOMMENDATIONS.map((card) => (
                   <article key={card.name} className="block rec">
@@ -247,11 +246,6 @@ export default function Home() {
                       <Cost moves={card.moves} />
                     </div>
                     <p className="block-sub">{card.name}</p>
-                    {card.when && (
-                      <p className="when">
-                        <b>Use on</b> {card.when}
-                      </p>
-                    )}
                     <p>{card.blurb}</p>
                     <Link className="card-cta" to="/simulator">
                       Test it in the simulator

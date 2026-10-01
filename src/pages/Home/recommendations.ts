@@ -8,8 +8,6 @@ export interface Recommendation {
   crown: string
   /** the routine as move pips, with repeat counts */
   moves: [Pip, number][]
-  /** optional "Use on:" line */
-  when?: string
   blurb: string
 }
 
@@ -32,7 +30,6 @@ export const RECOMMENDATIONS: Recommendation[] = [
       ['P', 1],
       ['M', 5],
     ],
-    when: 'a freshly built or sorted deck, or any deck you’re unsure about.',
     blurb: 'A new deck starts with every card next to the cards it was sorted with. Five mashes break up the long runs. Then deal the deck into six piles and stack them, which always puts cards that sat together into different piles. Five more mashes weave the piles back together. It’s slower than mashing alone, but a new deck only needs it once. From every starting deck we tried, it cleared every test as often as a perfectly random deck.',
   },
 ]
