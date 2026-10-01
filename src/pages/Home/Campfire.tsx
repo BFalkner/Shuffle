@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import { kindle } from './embers/field'
 import { SPEED, startFooterParallax } from './parallax'
 
@@ -13,11 +13,11 @@ const flame = (height: number, width: number) =>
 
 /** The tongues of flame, back to front: where each stands, how tall and wide it is, and its colour. */
 const TONGUES = [
-  { x: 0, height: 112, width: 30, className: 'outer' },
-  { x: -24, height: 70, width: 18, className: 'side' },
-  { x: 22, height: 82, width: 20, className: 'side' },
-  { x: 2, height: 66, width: 17, className: 'middle' },
-  { x: -2, height: 40, width: 10, className: 'inner' },
+  { x: 0, height: 112, width: 30, className: 'tongue-outer' },
+  { x: -24, height: 70, width: 18, className: 'tongue-side' },
+  { x: 22, height: 82, width: 20, className: 'tongue-side' },
+  { x: 2, height: 66, width: 17, className: 'tongue-middle' },
+  { x: -2, height: 40, width: 10, className: 'tongue-inner' },
 ]
 
 /**
@@ -45,40 +45,76 @@ export default function Campfire() {
     [],
   )
 
+  // Each part is a picture of its own, all in the same units and stacked in the same box, so the parts that change can
+  // change on the compositor without the rest being painted again: the light fades as a whole picture, and each tongue
+  // of flame moves as a whole picture.
+  const picture = { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'xMaxYMax slice' }
   return (
     <div className="campfire" ref={layer} aria-hidden="true">
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMaxYMax slice">
-        <defs>
-          <radialGradient id="campfire-sky" cx={FIRE.x} cy={FIRE.y - 30} r="560" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#ffb35c" stopOpacity="0.55" />
-            <stop offset="0.3" stopColor="#f07a2a" stopOpacity="0.2" />
-            <stop offset="1" stopColor="#f07a2a" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="campfire-ground">
-            <stop offset="0" stopColor="#ff9a40" stopOpacity="0.6" />
-            <stop offset="1" stopColor="#ff9a40" stopOpacity="0" />
-          </radialGradient>
-          <filter id="campfire-blur" x="-50%" y="-200%" width="200%" height="500%">
-            <feGaussianBlur stdDeviation="6" />
-          </filter>
-        </defs>
+      <div className="campfire-scene">
         {/* Wider and taller than the glow, so it fades out before any edge. The picture lets it spill past its own
             edges. */}
-        <rect className="campfire-glow" x={FIRE.x - 600} y={FIRE.y - 660} width="1200" height={H - FIRE.y + 660} fill="url(#campfire-sky)" />
-        <path className="campfire-ridge" d={`M0,196 Q300,184 600,190 T1000,176 Q1100,160 1170,151 Q${FIRE.x},144 1290,152 Q1380,164 1460,180 Q1530,190 ${W},186 L${W},${H} L0,${H} Z`} />
-        <ellipse className="campfire-glow" cx={FIRE.x} cy={FIRE.y + 8} rx="320" ry="44" fill="url(#campfire-ground)" />
-        <g className="campfire-fire" transform={`translate(${FIRE.x},${FIRE.y})`}>
-          <ellipse className="campfire-coals" ref={coals} cx="0" cy="2" rx="52" ry="9" filter="url(#campfire-blur)" />
-          <g className="campfire-logs">
-            <rect x="-56" y="-9" width="112" height="16" rx="7" transform="rotate(-13)" />
-            <rect x="-56" y="-9" width="112" height="16" rx="7" transform="rotate(15)" />
-            <rect x="-40" y="-4" width="80" height="13" rx="6" />
+        <svg className="campfire-glow" {...picture}>
+          <defs>
+            <radialGradient id="campfire-sky" cx={FIRE.x} cy={FIRE.y - 30} r="560" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor="#ffb35c" stopOpacity="0.55" />
+              <stop offset="0.3" stopColor="#f07a2a" stopOpacity="0.2" />
+              <stop offset="1" stopColor="#f07a2a" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <rect x={FIRE.x - 600} y={FIRE.y - 660} width="1200" height={H - FIRE.y + 660} fill="url(#campfire-sky)" />
+        </svg>
+        {/* The ridge reaches a little below the picture, so it covers the edge of the glow behind it. */}
+        <svg {...picture}>
+          <path className="campfire-ridge" d={`M0,196 Q300,184 600,190 T1000,176 Q1100,160 1170,151 Q${FIRE.x},144 1290,152 Q1380,164 1460,180 Q1530,190 ${W},186 L${W},${H + 2} L0,${H + 2} Z`} />
+        </svg>
+        <svg className="campfire-glow" {...picture}>
+          <defs>
+            <radialGradient id="campfire-ground">
+              <stop offset="0" stopColor="#ff9a40" stopOpacity="0.6" />
+              <stop offset="1" stopColor="#ff9a40" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <ellipse cx={FIRE.x} cy={FIRE.y + 8} rx="320" ry="44" fill="url(#campfire-ground)" />
+        </svg>
+        <svg {...picture}>
+          <defs>
+            <filter id="campfire-blur" x="-50%" y="-200%" width="200%" height="500%">
+              <feGaussianBlur stdDeviation="6" />
+            </filter>
+          </defs>
+          <g transform={`translate(${FIRE.x},${FIRE.y})`}>
+            <ellipse className="campfire-coals" ref={coals} cx="0" cy="2" rx="52" ry="9" filter="url(#campfire-blur)" />
+            <g className="campfire-logs">
+              <rect x="-56" y="-9" width="112" height="16" rx="7" transform="rotate(-13)" />
+              <rect x="-56" y="-9" width="112" height="16" rx="7" transform="rotate(15)" />
+              <rect x="-40" y="-4" width="80" height="13" rx="6" />
+            </g>
           </g>
+        </svg>
+        {/* The tongues stand on the fire's base, 4 units above its middle. `--s` is the pictures' scale, px a unit: the
+            pictures cover the box and keep their bottom right corner, as `xMaxYMax slice` does. */}
+        <div
+          className="campfire-flames"
+          style={{ '--s': `max(var(--campfire-height) / ${H}, 100cqw / ${W})`, left: `calc(100% - ${W - FIRE.x} * var(--s))`, top: `calc(100% - ${H - FIRE.y + 4} * var(--s))` } as CSSProperties}
+        >
           {TONGUES.map((tongue, index) => (
-            <path key={index} className={`campfire-flame ${tongue.className}`} transform={`translate(${tongue.x},-4)`} d={flame(tongue.height, tongue.width)} style={{ animationDelay: `${-index * 0.17}s` }} />
+            <svg
+              key={index}
+              className={`campfire-flame ${tongue.className}`}
+              viewBox={`${-1.2 * tongue.width} ${-tongue.height} ${2.4 * tongue.width} ${tongue.height}`}
+              style={{
+                left: `calc(${tongue.x - 1.2 * tongue.width} * var(--s))`,
+                width: `calc(${2.4 * tongue.width} * var(--s))`,
+                height: `calc(${tongue.height} * var(--s))`,
+                animationDelay: `${-index * 0.17}s`,
+              }}
+            >
+              <path d={flame(tongue.height, tongue.width)} />
+            </svg>
           ))}
-        </g>
-      </svg>
+        </div>
+      </div>
       <div className="campfire-foot" />
     </div>
   )

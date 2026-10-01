@@ -1,4 +1,9 @@
 // Parallax on the home page: each layer moves with the page at its own speed, so the slower ones look farther away.
+//
+// Where the browser has scroll-driven animations, each layer's movement is an animation tied to the scroll. The
+// compositor runs it in step with the scroll itself, so the layers hold still relative to each other even while the
+// page's own thread is busy. Elsewhere, script moves the layers once a frame after each scroll, which trails the
+// scroll by a frame or more on a phone.
 
 /**
  * How far each layer moves for each pixel the page scrolls: 1 moves with the content, 0 stays still. From back to
@@ -15,6 +20,34 @@ const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)'
 
 /** The speed a layer gets: with reduced motion, every layer moves with the content. */
 export const layerSpeed = (speed: number) => (reducedMotion() ? 1 : speed)
+
+/** Whether the browser can tie animations to the scroll. */
+const scrollDriven = () => typeof ScrollTimeline === 'function' && typeof ViewTimeline === 'function'
+
+/** The page's scroll from top to bottom, for the layers' animations. */
+const pageScroll = () => new ScrollTimeline({ source: document.documentElement })
+
+const lift = (y: number) => ({ transform: `translate3d(0,${y.toFixed(1)}px,0)` })
+
+/** How far the page can scroll, px. */
+const scrollRange = () => Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
+
+/**
+ * Keeps an animation of `layer` against the page's scroll, with keyframes from `keyframes`, which are worked out again
+ * whenever the page changes size. Returns a function that stops it.
+ */
+function followScroll(layer: HTMLElement, keyframes: () => Keyframe[]): () => void {
+  const animation = layer.animate(keyframes(), { timeline: pageScroll(), fill: 'both', easing: 'linear' })
+  const refit = () => (animation.effect as KeyframeEffect).setKeyframes(keyframes())
+  const resize = new ResizeObserver(refit)
+  resize.observe(document.documentElement)
+  window.addEventListener('resize', refit)
+  return () => {
+    resize.disconnect()
+    window.removeEventListener('resize', refit)
+    animation.cancel()
+  }
+}
 
 /** Runs `update` now, then once per frame while the page scrolls or resizes. Returns a function that stops it. */
 export function onScrollFrame(update: () => void): () => void {
@@ -65,7 +98,14 @@ export function startBackdropParallax(world: HTMLElement, strip: HTMLElement, sp
   resize.observe(world)
   window.addEventListener('resize', size)
   size()
-  const stop = onScrollFrame(place)
+  // The same movement as `place`, from the top of the page to the bottom: (1 - layer) px down for each px scrolled,
+  // starting from 0 when the world's top reaches the top of the screen.
+  const stop = scrollDriven()
+    ? followScroll(strip, () => {
+        const worldTop = world.getBoundingClientRect().top + window.scrollY
+        return [lift((1 - layer) * -worldTop), lift((1 - layer) * (scrollRange() - worldTop))]
+      })
+    : onScrollFrame(place)
   return () => {
     stop()
     resize.disconnect()
@@ -77,6 +117,18 @@ export function startBackdropParallax(world: HTMLElement, strip: HTMLElement, sp
 export function startHeroParallax(scene: HTMLElement, speed: number): () => void {
   const layer = layerSpeed(speed)
   const hero = scene.parentElement!
+  if (scrollDriven()) {
+    // From the hero's top reaching the top of the screen to its bottom doing so. The scene fills the hero, so a
+    // percentage of the scene's height is the same share of the hero's.
+    const animation = scene.animate([{ transform: 'translate3d(0,0,0)' }, { transform: `translate3d(0,${(100 * (1 - layer)).toFixed(1)}%,0)` }], {
+      timeline: new ViewTimeline({ subject: hero }),
+      rangeStart: 'exit-crossing 0%',
+      rangeEnd: 'exit-crossing 100%',
+      fill: 'both',
+      easing: 'linear',
+    })
+    return () => animation.cancel()
+  }
   return onScrollFrame(() => {
     const scrolled = Math.min(Math.max(-hero.getBoundingClientRect().top, 0), hero.offsetHeight)
     scene.style.transform = `translate3d(0,${(scrolled * (1 - layer)).toFixed(1)}px,0)`
@@ -91,6 +143,17 @@ export function startHeroParallax(scene: HTMLElement, speed: number): () => void
  */
 export function startFooterParallax(layer: HTMLElement, footer: HTMLElement, speed: number): () => void {
   const lag = 1 - layerSpeed(speed)
+  if (scrollDriven())
+    return followScroll(layer, () => {
+      // The scroll at which the footer's bottom reaches the bottom of the screen. Before it, the lift shrinks by `lag`
+      // px for each px scrolled; after it, there is none.
+      const range = scrollRange()
+      const rest = footer.getBoundingClientRect().bottom + window.scrollY - window.innerHeight
+      const keyframes: Keyframe[] = [{ ...lift(-lag * Math.max(0, rest)), offset: 0 }]
+      if (rest > 0 && rest < range) keyframes.push({ ...lift(0), offset: rest / range })
+      keyframes.push({ ...lift(-lag * Math.max(0, rest - range)), offset: 1 })
+      return keyframes
+    })
   return onScrollFrame(() => {
     const footerHeight = footer.offsetHeight
     // Where the footer's top is when the page is scrolled to the bottom.
