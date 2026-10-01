@@ -3,6 +3,7 @@ import { posOf } from '../engine/decks'
 import type { Deck } from '../engine/moves'
 import { useElementWidth } from '../hooks/useElementWidth'
 import { colorFor } from './deckColors'
+import { LEATHER_DENSITY, LEATHER_SIZE, leatherTexture } from './leather'
 import { TRACK_COLORS } from './tracking'
 import './MiniDeck.css'
 
@@ -22,6 +23,8 @@ const LAMP_DIRECTION = 18.4
 const LAMP_DISTANCE = 15
 /** how high the lamp is above the table, in deck widths: the lower it is, the brighter the deck's near side than its far side */
 const LAMP_HEIGHT = 15
+/** how high the lamp stands above the deck, degrees up from the table; the cards' leather is lit from it too */
+const LAMP_ELEVATION = (Math.atan2(LAMP_HEIGHT, LAMP_DISTANCE) * 180) / Math.PI
 /** half the beam's width at the deck's centre, px: the light is half as bright this far from the middle of the beam */
 const BEAM_WIDTH = 45
 /** how bright the beam is at the deck's centre */
@@ -141,6 +144,25 @@ function lampBeam(stageW: number, stageH: number): LampBeam {
   }
 }
 
+/**
+ * The cards' leather texture, lit from the lamp. Drawing it takes a few hundred milliseconds the first time, so the
+ * deck shows its plain colours first and the leather is drawn once the browser is idle. After that it comes from the
+ * texture's cache.
+ */
+function useLeather(): string | null {
+  const [texture, setTexture] = useState<string | null>(null)
+  useEffect(() => {
+    const draw = () => setTexture(leatherTexture(LAMP_DIRECTION, LAMP_ELEVATION))
+    if (!window.requestIdleCallback) {
+      const timer = window.setTimeout(draw, 200)
+      return () => window.clearTimeout(timer)
+    }
+    const idle = window.requestIdleCallback(draw, { timeout: 2000 })
+    return () => window.cancelIdleCallback(idle)
+  }, [])
+  return texture
+}
+
 /** One sweep of the shine's beam. It swings once on mount, and `onEnd` runs when it has finished. */
 function ShineBeam({ beam, onEnd }: { beam: LampBeam; onEnd: () => void }) {
   const beamRef = useRef<HTMLDivElement>(null)
@@ -195,6 +217,7 @@ export default function MiniDeck({ deck, step, tracked, animate, speed, onCardCl
   if (shown.deck !== deck) setShown({ deck, step, from: { deck: shown.deck, step: shown.step } })
   const last = shown.from && shown.from.deck.length === deckSize ? shown.from : null
   const [shining, endShine] = useShine(animate)
+  const leather = useLeather()
 
   const pos = posOf(deck)
   const startPos = posOf(last ? last.deck : deck)
@@ -205,6 +228,9 @@ export default function MiniDeck({ deck, step, tracked, animate, speed, onCardCl
     width: grid.stageW,
     height: grid.stageH,
     '--dur': `${(DUR / speed).toFixed(3)}s`,
+    // Every card wears the same leather, lit from the lamp, each from its own patch of it.
+    '--leather': leather ? `url(${leather})` : 'none',
+    '--leather-size': `${LEATHER_SIZE / LEATHER_DENSITY}px`,
   } as CSSProperties
 
   // The shine's mask covers each card's slot. A short last row leaves empty slots at its end, cut off by the clip.
@@ -238,7 +264,9 @@ export default function MiniDeck({ deck, step, tracked, animate, speed, onCardCl
           const style: CSSProperties = {
             width: grid.cardWidth,
             height: grid.cardHeight,
-            background: colorFor(card, deckSize),
+            backgroundColor: colorFor(card, deckSize),
+            // a different patch of the leather for each card, so no two look alike
+            backgroundPosition: `${-((card * 53) % (LEATHER_SIZE / LEATHER_DENSITY))}px ${-((card * 97) % (LEATHER_SIZE / LEATHER_DENSITY))}px`,
             transform: `translate(${column * (grid.cardWidth + grid.gap)}px,${row * (grid.cardHeight + grid.gap)}px)`,
             transitionDelay: `${animate ? (key * delayPer).toFixed(0) : 0}ms`,
             // tracked on top; movers above stationary; longer trips higher

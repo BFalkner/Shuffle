@@ -18,10 +18,15 @@
   border: 1px solid rgba(0, 0, 0, 0.12);
 }
 
+/* Each card is its colour under a lit leather grain. Soft-light leaves the colour as it is where the leather is flat,
+   so the grain never changes which colour a card reads as. MiniDeck sets the texture and each card's patch of it. */
 .minideck-card {
   position: absolute;
   top: 0;
   left: 0;
+  background-image: var(--leather);
+  background-size: var(--leather-size) var(--leather-size);
+  background-blend-mode: soft-light;
   transition: transform var(--dur) cubic-bezier(0.5, 0.05, 0.25, 1);
   will-change: transform;
   outline: 0 solid transparent;
