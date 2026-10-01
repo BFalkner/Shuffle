@@ -24,20 +24,46 @@ export const layerSpeed = (speed: number) => (reducedMotion() ? 1 : speed)
 /** Whether the browser can tie animations to the scroll. */
 const scrollDriven = () => typeof ScrollTimeline === 'function' && typeof ViewTimeline === 'function'
 
-/** The page's scroll from top to bottom, for the layers' animations. */
-const pageScroll = () => new ScrollTimeline({ source: document.documentElement })
+let cachedScreen = 0
+addEventListener('resize', () => (cachedScreen = 0))
+
+/**
+ * The screen's height with a phone's address bar hidden, px. The bar comes and goes as the page scrolls, and the
+ * visible height (`innerHeight`) changes with it, often just after a scroll ends. Measuring the layers against this
+ * height instead keeps them from moving when the bar does.
+ */
+export function screenHeight(): number {
+  if (!cachedScreen) {
+    const probe = document.createElement('div')
+    probe.style.cssText = 'position:fixed;top:0;height:100lvh;visibility:hidden;pointer-events:none'
+    document.body.append(probe)
+    cachedScreen = probe.offsetHeight || window.innerHeight
+    probe.remove()
+  }
+  return cachedScreen
+}
 
 const lift = (y: number) => ({ transform: `translate3d(0,${y.toFixed(1)}px,0)` })
 
-/** How far the page can scroll, px. */
-const scrollRange = () => Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
+/**
+ * The stretch of scroll each layer's animation spans, px, from the top of the page. It is longer than any page could
+ * scroll, so the animation is a fixed function of the scroll and doesn't depend on how far the page can scroll, which
+ * changes with the address bar.
+ */
+const SPAN = 100000
 
 /**
- * Keeps an animation of `layer` against the page's scroll, with keyframes from `keyframes`, which are worked out again
- * whenever the page changes size. Returns a function that stops it.
+ * Keeps an animation of `layer` against the page's scroll, from 0 to SPAN px, with keyframes from `keyframes`, which
+ * are worked out again whenever the page changes size. Returns a function that stops it.
  */
 function followScroll(layer: HTMLElement, keyframes: () => Keyframe[]): () => void {
-  const animation = layer.animate(keyframes(), { timeline: pageScroll(), fill: 'both', easing: 'linear' })
+  const animation = layer.animate(keyframes(), {
+    timeline: new ScrollTimeline({ source: document.documentElement }),
+    rangeStart: '0px',
+    rangeEnd: `${SPAN}px`,
+    fill: 'both',
+    easing: 'linear',
+  })
   const refit = () => (animation.effect as KeyframeEffect).setKeyframes(keyframes())
   const resize = new ResizeObserver(refit)
   resize.observe(document.documentElement)
@@ -84,7 +110,7 @@ export function startBackdropParallax(world: HTMLElement, strip: HTMLElement, sp
 
   const size = () => {
     const worldHeight = world.offsetHeight
-    const scale = (window.innerHeight * (1 - layer) + worldHeight * layer) / worldHeight
+    const scale = (screenHeight() * (1 - layer) + worldHeight * layer) / worldHeight
     sections.forEach((section, index) => (panels[index].style.height = `${(section.offsetHeight * scale).toFixed(1)}px`))
   }
   // The strip's top sits at `layer` of the world's distance from the top of the screen, so the strip moves `layer` px
@@ -103,7 +129,7 @@ export function startBackdropParallax(world: HTMLElement, strip: HTMLElement, sp
   const stop = scrollDriven()
     ? followScroll(strip, () => {
         const worldTop = world.getBoundingClientRect().top + window.scrollY
-        return [lift((1 - layer) * -worldTop), lift((1 - layer) * (scrollRange() - worldTop))]
+        return [lift((1 - layer) * -worldTop), lift((1 - layer) * (SPAN - worldTop))]
       })
     : onScrollFrame(place)
   return () => {
@@ -145,19 +171,19 @@ export function startFooterParallax(layer: HTMLElement, footer: HTMLElement, spe
   const lag = 1 - layerSpeed(speed)
   if (scrollDriven())
     return followScroll(layer, () => {
-      // The scroll at which the footer's bottom reaches the bottom of the screen. Before it, the lift shrinks by `lag`
-      // px for each px scrolled; after it, there is none.
-      const range = scrollRange()
-      const rest = footer.getBoundingClientRect().bottom + window.scrollY - window.innerHeight
+      // The scroll at which the footer's bottom reaches the bottom of the screen with the address bar hidden. Before
+      // it, the lift shrinks by `lag` px for each px scrolled; after it, there is none, so the layer is at rest at the
+      // bottom of the page whether the bar is showing or not.
+      const rest = footer.getBoundingClientRect().bottom + window.scrollY - screenHeight()
       const keyframes: Keyframe[] = [{ ...lift(-lag * Math.max(0, rest)), offset: 0 }]
-      if (rest > 0 && rest < range) keyframes.push({ ...lift(0), offset: rest / range })
-      keyframes.push({ ...lift(-lag * Math.max(0, rest - range)), offset: 1 })
+      if (rest > 0) keyframes.push({ ...lift(0), offset: rest / SPAN })
+      keyframes.push({ ...lift(0), offset: 1 })
       return keyframes
     })
   return onScrollFrame(() => {
     const footerHeight = footer.offsetHeight
     // Where the footer's top is when the page is scrolled to the bottom.
-    const rest = window.innerHeight - footerHeight
+    const rest = screenHeight() - footerHeight
     const lift = lag * Math.max(0, footer.getBoundingClientRect().top - rest)
     layer.style.transform = `translate3d(0,${(-lift).toFixed(1)}px,0)`
   })

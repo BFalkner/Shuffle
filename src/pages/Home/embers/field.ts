@@ -3,6 +3,7 @@
 // measures the page and tells the worker where the fire is, how big each canvas is and how far the page has scrolled.
 // Each canvas covers the screen, fixed in place, so its own px are the screen's.
 
+import { screenHeight } from '../parallax'
 import type { Span } from './plume'
 import type { Message, Side, View } from './worker'
 
@@ -35,7 +36,9 @@ function measure() {
   if (!fire) return
   const root = document.documentElement
   const width = root.clientWidth
-  const height = root.clientHeight
+  // The screen's height with the address bar hidden, as the parallax uses, so the embers stay put as the bar comes and
+  // goes, and the canvases, which are that tall, are drawn to their foot.
+  const height = screenHeight()
   const bottom = Math.max(0, root.scrollHeight - height)
   const base = fire.base()
   const cx = width / 2
