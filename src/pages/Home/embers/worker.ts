@@ -11,14 +11,6 @@ const LOOK: Look = { exposure: 3, flare: 0.6 }
 /** Behind the page's content, or in front of it. */
 export type Side = 'back' | 'front'
 
-/** Where a canvas is on the screen, px. */
-export interface Box {
-  left: number
-  top: number
-  width: number
-  height: number
-}
-
 /**
  * The world the embers live in, as the page measures it. A point at (x, y) on the page and at scale `depth` shows on
  * the screen scaled about the screen's centre, so it scrolls `depth` px for each px the page does. The fire's own
@@ -38,16 +30,17 @@ export type Message =
   | { type: 'watch'; id: number; side: Side; canvas?: OffscreenCanvas }
   | { type: 'unwatch'; id: number }
   | { type: 'size'; id: number; width: number; height: number; scale: number }
-  | { type: 'visible'; id: number; visible: boolean }
-  | { type: 'scroll'; scroll: number; boxes: [number, Box][] }
+  | { type: 'scroll'; scroll: number }
 
+/** A canvas that covers the screen, so its own px are the screen's. */
 interface Canvas {
   canvas: OffscreenCanvas
   context: OffscreenCanvasRenderingContext2D
   side: Side
-  visible: boolean
   watched: boolean
-  box: Box
+  /** its size on the screen, px */
+  width: number
+  height: number
 }
 
 /**
@@ -109,24 +102,21 @@ function draw(now: number) {
   // Farther ones first.
   sightings.sort((a, b) => a.depth - b.depth)
   for (const item of canvases.values()) {
-    if (!item.watched || !item.visible) continue
-    const { context, side, box } = item
-    context.clearRect(0, 0, box.width, box.height)
+    if (!item.watched) continue
+    const { context, side } = item
+    context.clearRect(0, 0, item.width, item.height)
     context.globalCompositeOperation = 'lighter'
     for (const sighting of sightings) {
       if (side === 'front' ? sighting.depth <= 1 : sighting.depth > 1) continue
-      const x = sighting.x - box.left
-      const y = sighting.y - box.top
-      if (y < -REACH || y > box.height + REACH || x < -REACH || x > box.width + REACH) continue
-      drawEmber(context, sighting, x, y, time, LOOK)
+      drawEmber(context, sighting, sighting.x, sighting.y, time, LOOK)
     }
   }
   if (++frames % 120 === 0) stream.forget(time)
 }
 
-/** Runs the loop while there is a fire and a canvas on the screen to draw it in. */
+/** Runs the loop while there is a fire and a canvas to draw it in. */
 function update() {
-  const wanted = stream !== null && [...canvases.values()].some((item) => item.watched && item.visible)
+  const wanted = stream !== null && [...canvases.values()].some((item) => item.watched)
   if (wanted && !frame) frame = nextFrame(draw)
   else if (!wanted && frame) {
     stopFrame(frame)
@@ -149,7 +139,7 @@ onmessage = ({ data }: MessageEvent<Message>) => {
       if (known) Object.assign(known, { side: data.side, watched: true })
       else if (data.canvas) {
         const context = data.canvas.getContext('2d')!
-        canvases.set(data.id, { canvas: data.canvas, context, side: data.side, visible: false, watched: true, box: { left: 0, top: 0, width: 0, height: 0 } })
+        canvases.set(data.id, { canvas: data.canvas, context, side: data.side, watched: true, width: 0, height: 0 })
       }
       break
     }
@@ -165,23 +155,16 @@ onmessage = ({ data }: MessageEvent<Message>) => {
     case 'size': {
       const item = canvases.get(data.id)
       if (item) {
+        item.width = data.width
+        item.height = data.height
         item.canvas.width = Math.round(data.width * data.scale)
         item.canvas.height = Math.round(data.height * data.scale)
         item.context.setTransform(data.scale, 0, 0, data.scale, 0, 0)
       }
       break
     }
-    case 'visible': {
-      const item = canvases.get(data.id)
-      if (item) item.visible = data.visible
-      break
-    }
     case 'scroll':
       scroll = data.scroll
-      for (const [id, box] of data.boxes) {
-        const item = canvases.get(id)
-        if (item) item.box = box
-      }
       break
   }
   update()

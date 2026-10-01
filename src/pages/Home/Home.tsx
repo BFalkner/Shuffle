@@ -271,12 +271,6 @@ export default function Home() {
               <div className="world-panel" />
             </div>
           </div>
-          <div className="world-embers">
-            <EmberField side="back" className="world-embers-canvas" />
-          </div>
-          <div className="world-embers front">
-            <EmberField side="front" className="world-embers-canvas" />
-          </div>
           <section className="realm" id="routines">
             <div className="wrap">
               <h2>Two routines worth learning</h2>
@@ -467,6 +461,11 @@ export default function Home() {
           </footer>
         </div>
       </main>
+
+      {/* The campfire's embers, over the whole page: one screen of them behind the content and one in front. They come
+          after the hero, so the ones behind go over the fade at its foot. */}
+      <EmberField side="back" className="embers" />
+      <EmberField side="front" className="embers front" />
     </div>
   )
 }

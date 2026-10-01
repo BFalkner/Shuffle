@@ -1,5 +1,5 @@
 import { useId, useMemo } from 'react'
-import { ridge, rng, stars } from './scene'
+import { ridge, rng, stars, type Star } from './scene'
 
 export interface Palette {
   /** sky from top to horizon */
@@ -50,40 +50,41 @@ export default function Landscape({ seed, palette, layer }: { seed: number; pale
 
   if (layer === 'sky') {
     return (
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-        <defs>
-          <linearGradient id={`sky${id}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={palette.sky[0]} />
-            <stop offset="0.45" stopColor={palette.sky[1]} />
-            <stop offset="0.72" stopColor={palette.sky[2]} />
-            <stop offset="0.9" stopColor={palette.sky[3]} />
-          </linearGradient>
-          <radialGradient id={`glow${id}`} cx="0.5" cy="1" r="0.7">
-            <stop offset="0" stopColor={palette.glow} stopOpacity="0.8" />
-            <stop offset="1" stopColor={palette.glow} stopOpacity="0" />
-          </radialGradient>
-          {palette.orb && (
-            <radialGradient id={`orb${id}`}>
-              <stop offset="0" stopColor={palette.orb.color} stopOpacity="0.55" />
-              <stop offset="0.25" stopColor={palette.orb.color} stopOpacity="0.18" />
-              <stop offset="1" stopColor={palette.orb.color} stopOpacity="0" />
+      <>
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+          <defs>
+            <linearGradient id={`sky${id}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor={palette.sky[0]} />
+              <stop offset="0.45" stopColor={palette.sky[1]} />
+              <stop offset="0.72" stopColor={palette.sky[2]} />
+              <stop offset="0.9" stopColor={palette.sky[3]} />
+            </linearGradient>
+            <radialGradient id={`glow${id}`} cx="0.5" cy="1" r="0.7">
+              <stop offset="0" stopColor={palette.glow} stopOpacity="0.8" />
+              <stop offset="1" stopColor={palette.glow} stopOpacity="0" />
             </radialGradient>
+            {palette.orb && (
+              <radialGradient id={`orb${id}`}>
+                <stop offset="0" stopColor={palette.orb.color} stopOpacity="0.55" />
+                <stop offset="0.25" stopColor={palette.orb.color} stopOpacity="0.18" />
+                <stop offset="1" stopColor={palette.orb.color} stopOpacity="0" />
+              </radialGradient>
+            )}
+            {grain}
+          </defs>
+          <rect width={W} height={H} fill={`url(#sky${id})`} />
+          <rect width={W} height={H} fill={`url(#glow${id})`} />
+          {scene.stars.map((star, index) => index % 7 !== 0 && <circle key={index} cx={star.x} cy={star.y} r={star.r} fill="#fff6e0" opacity={star.opacity} />)}
+          {palette.orb && (
+            <g>
+              <circle cx={palette.orb.x} cy={palette.orb.y} r={palette.orb.r * 5} fill={`url(#orb${id})`} />
+              <circle cx={palette.orb.x} cy={palette.orb.y} r={palette.orb.r} fill={palette.orb.color} />
+            </g>
           )}
-          {grain}
-        </defs>
-        <rect width={W} height={H} fill={`url(#sky${id})`} />
-        <rect width={W} height={H} fill={`url(#glow${id})`} />
-        {scene.stars.map((star, index) => (
-          <circle key={index} className={index % 7 === 0 ? 'twinkle' : undefined} cx={star.x} cy={star.y} r={star.r} fill="#fff6e0" opacity={star.opacity} style={{ animationDelay: `${(index % 13) * 0.37}s` }} />
-        ))}
-        {palette.orb && (
-          <g>
-            <circle cx={palette.orb.x} cy={palette.orb.y} r={palette.orb.r * 5} fill={`url(#orb${id})`} />
-            <circle cx={palette.orb.x} cy={palette.orb.y} r={palette.orb.r} fill={palette.orb.color} />
-          </g>
-        )}
-        <rect width={W} height={H} filter={`url(#grain${id})`} opacity="0.35" style={{ mixBlendMode: 'overlay' }} />
-      </svg>
+          <rect width={W} height={H} filter={`url(#grain${id})`} opacity="0.35" style={{ mixBlendMode: 'overlay' }} />
+        </svg>
+        <Twinkles stars={scene.stars.filter((_, index) => index % 7 === 0)} viewBox={`0 0 ${W} ${H}`} fit="xMidYMax slice" className="twinkles" />
+      </>
     )
   }
 
@@ -165,10 +166,14 @@ export function Vista({ seed, palette, layer, fadeTo }: { seed: number; palette:
     return (
       <div className="vista" style={{ background: `linear-gradient(${top}, ${upper} 35%, ${lower} 62%, ${horizon} 82%, ${fadeTo ?? horizon})` }}>
         <svg className="vista-stars" viewBox={`0 0 ${STAR_FIELD.width} ${STAR_FIELD.height}`} preserveAspectRatio="xMidYMin slice">
-          {scene.stars.map((star, index) => (
-            <circle key={index} className={index % 5 === 0 ? 'twinkle' : undefined} cx={star.x} cy={star.y} r={star.r} fill="#fff6e0" opacity={star.opacity * 0.8} style={{ animationDelay: `${(index % 11) * 0.41}s` }} />
-          ))}
+          {scene.stars.map((star, index) => index % 5 !== 0 && <circle key={index} cx={star.x} cy={star.y} r={star.r} fill="#fff6e0" opacity={star.opacity * 0.8} />)}
         </svg>
+        <Twinkles
+          stars={scene.stars.filter((_, index) => index % 5 === 0).map((star) => ({ ...star, opacity: star.opacity * 0.8 }))}
+          viewBox={`0 0 ${STAR_FIELD.width} ${STAR_FIELD.height}`}
+          fit="xMidYMin slice"
+          className="vista-stars"
+        />
       </div>
     )
   }
@@ -198,4 +203,20 @@ export function Vista({ seed, palette, layer, fadeTo }: { seed: number; palette:
       </svg>
     </div>
   )
+}
+
+/** How many groups the twinkling stars are dealt into, each twinkling at its own moment. */
+const TWINKLE_GROUPS = 4
+
+/**
+ * The stars that twinkle, over the rest of a sky with the same `viewBox` and `fit`. Each group is its own picture,
+ * and the whole picture fades. A browser fades a whole picture on the compositor, without painting anything again,
+ * where a fading star inside a picture would make it paint the whole picture each frame.
+ */
+function Twinkles({ stars, viewBox, fit, className }: { stars: Star[]; viewBox: string; fit: string; className: string }) {
+  return Array.from({ length: TWINKLE_GROUPS }, (_, group) => (
+    <svg key={group} className={`${className} twinkle`} viewBox={viewBox} preserveAspectRatio={fit} aria-hidden="true" style={{ animationDelay: `${-group * 0.8}s` }}>
+      {stars.map((star, index) => index % TWINKLE_GROUPS === group && <circle key={index} cx={star.x} cy={star.y} r={star.r} fill="#fff6e0" opacity={star.opacity} />)}
+    </svg>
+  ))
 }
