@@ -66,8 +66,8 @@ function Flames({ front }: { front: boolean }) {
  * as the footer comes up the fire sinks into place. Its light falls on the ground around it, and it throws the embers
  * that rise up the whole page.
  *
- * The embers rise from the middle of the coals. The logs, the coals and the inner tongues are a second layer in front
- * of the embers, so the embers first show between the tongues instead of at one point.
+ * The embers rise from the middle of the coals. The inner tongues and the log across the front are a second layer in
+ * front of the embers, so the embers first show between the tongues instead of at one point.
  */
 export default function Campfire() {
   const layer = useRef<HTMLDivElement>(null)
@@ -83,7 +83,7 @@ export default function Campfire() {
         depth: SPEED.campfire,
         base: () => {
           const box = coals.current!.getBoundingClientRect()
-          const lift = new DOMMatrixReadOnly(getComputedStyle(front.current!).transform).m42
+          const lift = new DOMMatrixReadOnly(getComputedStyle(layer.current!).transform).m42
           return {
             x: box.left + box.width / 2 + window.scrollX,
             y: box.top + box.height / 2 - lift + window.scrollY,
@@ -96,10 +96,7 @@ export default function Campfire() {
   // Each part is a picture of its own, all in the same units and stacked in the same box, so the parts that change can
   // change on the compositor without the rest being painted again: the light fades as a whole picture, and each tongue
   // of flame moves as a whole picture.
-  const picture = {
-    viewBox: `0 0 ${W} ${H}`,
-    preserveAspectRatio: 'xMaxYMax slice',
-  }
+  const picture = { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'xMaxYMax slice' }
   return (
     <>
       <div className="campfire" ref={layer} aria-hidden="true">
@@ -132,12 +129,7 @@ export default function Campfire() {
             </defs>
             <ellipse cx={FIRE.x} cy={FIRE.y + 8} rx="320" ry="44" fill="url(#campfire-ground)" />
           </svg>
-          <Flames front={false} />
-        </div>
-        <div className="campfire-foot" />
-      </div>
-      <div className="campfire front" ref={front} aria-hidden="true">
-        <div className="campfire-scene">
+          {/* The coals and the two crossed logs, behind the tongues. */}
           <svg {...picture}>
             <defs>
               <filter id="campfire-blur" x="-50%" y="-200%" width="200%" height="500%">
@@ -149,11 +141,22 @@ export default function Campfire() {
               <g className="campfire-logs">
                 <rect x="-56" y="-9" width="112" height="16" rx="7" transform="rotate(-13)" />
                 <rect x="-56" y="-9" width="112" height="16" rx="7" transform="rotate(15)" />
-                <rect x="-40" y="-4" width="80" height="13" rx="6" />
               </g>
             </g>
           </svg>
+          <Flames front={false} />
+        </div>
+        <div className="campfire-foot" />
+      </div>
+      <div className="campfire front" ref={front} aria-hidden="true">
+        <div className="campfire-scene">
           <Flames front />
+          {/* The log across the front, in front of everything. */}
+          <svg {...picture}>
+            <g className="campfire-logs" transform={`translate(${FIRE.x},${FIRE.y})`}>
+              <rect x="-40" y="-4" width="80" height="13" rx="6" />
+            </g>
+          </svg>
         </div>
       </div>
     </>
