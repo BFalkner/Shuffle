@@ -20,13 +20,14 @@ interface MoveData {
 const DEMO = DATA.moveDemo as unknown as { M: number } & Record<DemoMove, MoveData>
 const CARD_COUNT = DEMO.M
 
-// Each move gets its own hue so the four demos read as different moves.
+// Each move gets its own hue so the four demos read as different moves. The page is dark, so even the top card,
+// the darkest, stays well above the background.
 const MOVE_HUE: Record<DemoMove, [number, number]> = { mash: [150, 38], overhand: [24, 42], pile: [218, 40], ohr: [175, 30] }
 
 function cardColor(op: DemoMove, card: number) {
   const [hue, sat] = MOVE_HUE[op]
   const depth = card / (CARD_COUNT - 1)
-  return `hsl(${(hue + (depth - 0.5) * 30).toFixed(0)},${(sat + 8).toFixed(0)}%,${(26 + depth * 58).toFixed(0)}%)`
+  return `hsl(${(hue + (depth - 0.5) * 30).toFixed(0)},${(sat + 14).toFixed(0)}%,${(40 + depth * 46).toFixed(0)}%)`
 }
 
 const ranks = (state: number[]) => {
@@ -66,7 +67,7 @@ export function startMoveDemo(host: HTMLElement, caption: HTMLElement, op: DemoM
   const COLS = 4
   const colGap = 8
   const colW = (innerW - (COLS - 1) * colGap) / COLS
-  const cardW = Math.min(colW, 20)
+  const cardW = Math.min(colW, 30)
   const rowStep = innerH / CARD_COUNT
   const cardH = Math.max(2, rowStep - 1)
   const data = DEMO[op]
