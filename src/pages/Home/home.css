@@ -500,6 +500,11 @@
   will-change: transform;
 }
 
+/* The logs, the coals and the inner tongues, in front of the embers, so the embers first show between the tongues. */
+.home .campfire.front {
+  z-index: 3;
+}
+
 /* The fire, its logs and its light reach past the picture's edges, onto the ground below and into the sky above, so
    the picture draws past its edges and sits in front of the ground. Otherwise they would stop at a straight line. */
 .home .campfire-scene {
