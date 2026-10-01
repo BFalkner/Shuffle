@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Button, FieldError, Group, Input, Label, Separator, TextField } from 'react-aria-components'
+import { Button, Dialog, DialogTrigger, FieldError, Group, Heading, Input, Label, Popover, Separator, TextField } from 'react-aria-components'
 import type { OpKey } from '../../engine/moves'
 import { OP_COST, compressSeq, parseRoutine } from '../../engine/routines'
 import ConfirmButton from './ConfirmButton'
@@ -16,6 +16,60 @@ const MOVE_BUTTONS: { op: OpKey; label: string; key: string }[] = [
   { op: 'pile', label: 'Pile', key: 'P' },
   { op: 'cut', label: 'Cut', key: 'C' },
 ]
+
+/** The editing keys, as the key help lists them. */
+const EDIT_KEYS: { keys: string[]; does: string }[] = [
+  { keys: ['Backspace'], does: 'Delete the move before the caret' },
+  { keys: ['Delete'], does: 'Delete the move after the caret' },
+  { keys: ['←', '→'], does: 'Move the caret' },
+  { keys: ['Ctrl', 'Z'], does: 'Undo' },
+  { keys: ['Ctrl', 'Shift', 'Z'], does: 'Redo' },
+]
+
+/** A small keyboard drawn in outline, for the key help's button. */
+function KeyboardIcon() {
+  const keys = [4, 8, 12, 16].map((x) => ({ x, y: 4 })).concat([6, 10, 14, 18].map((x) => ({ x, y: 7.5 })))
+  return (
+    <svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true">
+      <rect x="1" y="1" width="22" height="14" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      {keys.map(({ x, y }) => (
+        <rect key={`${x},${y}`} x={x} y={y} width="2" height="2" rx="0.4" fill="currentColor" />
+      ))}
+      <rect x="7" y="11" width="10" height="1.8" rx="0.6" fill="currentColor" />
+    </svg>
+  )
+}
+
+/** The keys that edit the routine, behind a keyboard button: they work anywhere on the page outside a text box. */
+function KeyHelp() {
+  const row = (keys: string[], does: string) => (
+    <div key={keys.join('+')} className="keyhelp-row">
+      <dt>
+        {keys.map((key) => (
+          <kbd key={key}>{key}</kbd>
+        ))}
+      </dt>
+      <dd>{does}</dd>
+    </div>
+  )
+  return (
+    <DialogTrigger>
+      <Button className="toolbtn keyhelp-button" aria-label="Keyboard shortcuts">
+        <KeyboardIcon />
+      </Button>
+      <Popover className="keyhelp-popover" placement="bottom end" offset={6}>
+        <Dialog className="keyhelp" aria-label="Keyboard shortcuts">
+          <Heading slot="title">Keys</Heading>
+          <p className="keyhelp-note">They work anywhere on the page outside a text box. On a Mac, use ⌘ for Ctrl.</p>
+          <h3>Add a move at the caret</h3>
+          <dl>{MOVE_BUTTONS.map(({ key, label }) => row([key], label))}</dl>
+          <h3>Edit</h3>
+          <dl>{EDIT_KEYS.map(({ keys, does }) => row(keys, does))}</dl>
+        </Dialog>
+      </Popover>
+    </DialogTrigger>
+  )
+}
 
 interface Props {
   method: Experiment
@@ -91,13 +145,11 @@ export default function RoutineEditor({ method, editor, onRename, onDuplicate, o
             ↷
           </Button>
         </Group>
+        <KeyHelp />
       </Group>
-      <p className="editor-keys">
-        Drag a move to reorder it, or off the strip to remove it. Keys work anywhere outside a text box: <kbd>M</kbd> <kbd>T</kbd> <kbd>B</kbd> <kbd>O</kbd>{' '}
-        <kbd>P</kbd> <kbd>C</kbd> add a move at the caret, <kbd>Backspace</kbd> deletes the one before it, the arrow keys move the caret, and <kbd>Ctrl</kbd>{' '}
-        <kbd>Z</kbd> undoes.
-      </p>
+      <p className="editor-keys">Drag a move to reorder it.</p>
 
+      {/* The notation, quiet because it's useful only now and then, with the routine's size across from it. */}
       <div className="editor-foot">
         <NotationField seq={seq} onCommit={editor.replace} />
         <p className="editor-stats">
