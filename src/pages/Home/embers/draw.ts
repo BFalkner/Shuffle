@@ -36,8 +36,8 @@ const GLARE_SIZE = 44
  * Glare: the eye's or lens's own scatter round a bright light, as a soft bloom with fine radial streaks. One sprite for
  * each of 10 heats, from a fixed seed so every visit looks the same. Made the first time an ember needs one.
  */
-let glare: HTMLCanvasElement[] | null = null
-function makeGlare(): HTMLCanvasElement[] {
+let glare: OffscreenCanvas[] | null = null
+function makeGlare(): OffscreenCanvas[] {
   const size = 128
   const half = size / 2
   const next = stream(20241)
@@ -58,8 +58,7 @@ function makeGlare(): HTMLCanvasElement[] {
   }
   return Array.from({ length: 10 }, (_, n) => {
     const tint = heatColour(0.15 + (0.85 * n) / 9)
-    const canvas = document.createElement('canvas')
-    canvas.width = canvas.height = size
+    const canvas = new OffscreenCanvas(size, size)
     const context = canvas.getContext('2d')!
     const image = context.createImageData(size, size)
     for (let y = 0; y < size; y++) {
@@ -98,7 +97,7 @@ const FALLOFF = Array.from({ length: 13 }, (_, i) => {
  * size, heat and flicker, dimmed by the inverse square of its distance, then shared over the area it is drawn on, so a
  * streak spreads the same light thinner instead of adding more.
  */
-export function drawEmber(context: CanvasRenderingContext2D, sighting: Sighting, x: number, y: number, time: number, look: Look) {
+export function drawEmber(context: OffscreenCanvasRenderingContext2D, sighting: Sighting, x: number, y: number, time: number, look: Look) {
   const { ember, age, life, depth, vx, vy } = sighting
   const heat = heatAt(ember, age, life)
   if (heat < 0.03) return
