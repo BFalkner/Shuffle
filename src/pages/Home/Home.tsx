@@ -116,10 +116,13 @@ function ChanceGlyph() {
 
 /** A sword: a move that does its job by force. */
 function ForceGlyph() {
+  // The score runs from the tip to 1/φ of the way down the blade (tip at y=-38, crossguard at y=15) and ends in a
+  // sharp point.
   return (
     <svg className="glyph" viewBox="-40 -40 80 80" aria-hidden="true">
       <g transform="rotate(40)" fill="currentColor">
-        <path d="M-4,-36 L4,-36 L5,14 L0,20 L-5,14 Z" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinejoin="round" />
+        <path d="M0,-38 L4,-31 L5,14 L0,20 L-5,14 L-4,-31 Z" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinejoin="miter" strokeMiterlimit="8" />
+        <path d="M-0.6,-38 L0.6,-38 L0.6,-9.24 L0,-5.24 L-0.6,-9.24 Z" />
         <rect x="-16" y="15" width="32" height="5" rx="2.5" />
         <rect x="-3" y="20" width="6" height="12" />
         <circle cy="35" r="4.5" />
