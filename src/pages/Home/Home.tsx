@@ -9,6 +9,7 @@ import { Vista } from './Landscape'
 import MoveChart, { MoveTable } from './MoveChart'
 import { CHART_MOVES, MOVE_COLOR, type Reading } from './moveCharts'
 import { startMoveDemo, type DemoMove } from './moveDemo'
+import { BACK_EMBERS, FRONT_EMBERS, SPEED, startBackdropParallax } from './parallax'
 import { RECOMMENDATIONS } from './recommendations'
 import { VISTAS } from './vistas'
 import './home.css'
@@ -125,6 +126,17 @@ function ForceGlyph() {
 
 export default function Home() {
   useTitle('The Shuffle Lab — does your shuffle randomize the deck?')
+  const world = useRef<HTMLDivElement>(null)
+  const skyStrip = useRef<HTMLDivElement>(null)
+  const ridgeStrip = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const stopSky = startBackdropParallax(world.current!, skyStrip.current!, SPEED.sky)
+    const stopRidges = startBackdropParallax(world.current!, ridgeStrip.current!, SPEED.ridges)
+    return () => {
+      stopSky()
+      stopRidges()
+    }
+  }, [])
   return (
     <div className="home">
       <Hero>
@@ -150,13 +162,46 @@ export default function Home() {
 
       <main>
         {/* The night goes on below the hero, one stretch of sky and ridges per section, with sparks drifting through
-            all of it, down to the lamp-lit table. */}
-        <div className="world">
+            all of it, down to the lamp-lit table. Each layer moves at its own speed, for parallax: the sky, the
+            ridges, three sizes of ember, the sections, and a few large embers in front. */}
+        <div className="world" ref={world}>
+          <div className="world-backdrop" aria-hidden="true">
+            {/* Each strip has one panel per section, in the sections' order. */}
+            <div className="world-strip" ref={skyStrip}>
+              <div className="world-panel">
+                <Vista {...VISTAS.routines} layer="sky" />
+              </div>
+              <div className="world-panel">
+                <Vista {...VISTAS.moves} layer="sky" />
+              </div>
+              <div className="world-panel">
+                <Vista {...VISTAS.combine} layer="sky" />
+              </div>
+              <div className="world-panel">
+                <div className="vista lamp" />
+              </div>
+            </div>
+            <div className="world-strip" ref={ridgeStrip}>
+              <div className="world-panel">
+                <Vista {...VISTAS.routines} layer="ridges" />
+              </div>
+              <div className="world-panel">
+                <Vista {...VISTAS.moves} layer="ridges" />
+              </div>
+              <div className="world-panel">
+                <Vista {...VISTAS.combine} layer="ridges" />
+              </div>
+              {/* The simulator's table has no ridges of its own. */}
+              <div className="world-panel" />
+            </div>
+          </div>
           <div className="world-embers">
-            <Embers count={36} className="world-embers-canvas" />
+            <Embers count={44} bands={BACK_EMBERS} className="world-embers-canvas" />
+          </div>
+          <div className="world-embers front">
+            <Embers count={5} bands={FRONT_EMBERS} className="world-embers-canvas" />
           </div>
           <section className="realm" id="routines">
-            <Vista {...VISTAS.routines} />
             <div className="wrap">
               <h2>Two routines worth learning</h2>
               <p className="intro">Use the first after every game. Use the second when a deck is new or sorted, or when you don&rsquo;t know where it&rsquo;s been.</p>
@@ -184,7 +229,6 @@ export default function Home() {
           </section>
 
           <section className="realm" id="moves">
-            <Vista {...VISTAS.moves} />
             <div className="wrap">
               <h2>Three moves, three weaknesses</h2>
               <p className="intro">
@@ -242,7 +286,6 @@ export default function Home() {
           </section>
 
           <section className="realm" id="combine">
-            <Vista {...VISTAS.combine} />
             <div className="wrap">
               <h2>Chance and force</h2>
               <p className="intro">Why the routines combine moves instead of repeating the best one.</p>
@@ -286,7 +329,6 @@ export default function Home() {
           </section>
 
           <section className="realm" id="simulator">
-            <div className="vista lamp" aria-hidden="true" />
             <div className="wrap">
               <div className="table">
                 <div className="table-head">

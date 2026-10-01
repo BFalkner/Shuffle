@@ -18,8 +18,15 @@ export interface Palette {
 const W = 1600
 const H = 900
 
-/** A seeded mountain scene that fills its box. The ridges get closer and darker toward the bottom, like painted depth. */
-export default function Landscape({ seed, palette, className }: { seed: number; palette: Palette; className?: string }) {
+/** Which part of a scene to draw: the sky and everything in it, or the ridges in front of it. */
+export type SceneLayer = 'sky' | 'ridges'
+
+/**
+ * A seeded mountain scene that fills its box. The ridges get closer and darker toward the bottom, like painted depth.
+ * `layer` draws only the sky or only the ridges, so the two can move at different speeds. Drawn from the same seed,
+ * the two layers stacked make the whole scene.
+ */
+export default function Landscape({ seed, palette, layer }: { seed: number; palette: Palette; layer: SceneLayer }) {
   const id = useId().replace(/:/g, '')
   const scene = useMemo(() => {
     const random = rng(seed)
@@ -31,47 +38,68 @@ export default function Landscape({ seed, palette, className }: { seed: number; 
     return { ridges, stars: stars(random, palette.starCount, W, H * 0.6) }
   }, [seed, palette])
 
-  return (
-    <svg className={className} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-      <defs>
-        <linearGradient id={`sky${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={palette.sky[0]} />
-          <stop offset="0.45" stopColor={palette.sky[1]} />
-          <stop offset="0.72" stopColor={palette.sky[2]} />
-          <stop offset="0.9" stopColor={palette.sky[3]} />
-        </linearGradient>
-        <radialGradient id={`glow${id}`} cx="0.5" cy="1" r="0.7">
-          <stop offset="0" stopColor={palette.glow} stopOpacity="0.8" />
-          <stop offset="1" stopColor={palette.glow} stopOpacity="0" />
-        </radialGradient>
-        {palette.orb && (
-          <radialGradient id={`orb${id}`}>
-            <stop offset="0" stopColor={palette.orb.color} stopOpacity="0.55" />
-            <stop offset="0.25" stopColor={palette.orb.color} stopOpacity="0.18" />
-            <stop offset="1" stopColor={palette.orb.color} stopOpacity="0" />
+  // Canvas grain, so the flat fills read as paint. On the ridges it is masked to their shapes, because overlay grain
+  // over the ridge layer's empty sky would show as grey noise instead of blending with the sky below.
+  const grain = (
+    <filter id={`grain${id}`}>
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed={seed % 97} />
+      <feColorMatrix values="0 0 0 0 0.5  0 0 0 0 0.45  0 0 0 0 0.4  0 0 0 0.55 0" />
+      <feComposite in2="SourceGraphic" operator="in" />
+    </filter>
+  )
+
+  if (layer === 'sky') {
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+        <defs>
+          <linearGradient id={`sky${id}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={palette.sky[0]} />
+            <stop offset="0.45" stopColor={palette.sky[1]} />
+            <stop offset="0.72" stopColor={palette.sky[2]} />
+            <stop offset="0.9" stopColor={palette.sky[3]} />
+          </linearGradient>
+          <radialGradient id={`glow${id}`} cx="0.5" cy="1" r="0.7">
+            <stop offset="0" stopColor={palette.glow} stopOpacity="0.8" />
+            <stop offset="1" stopColor={palette.glow} stopOpacity="0" />
           </radialGradient>
+          {palette.orb && (
+            <radialGradient id={`orb${id}`}>
+              <stop offset="0" stopColor={palette.orb.color} stopOpacity="0.55" />
+              <stop offset="0.25" stopColor={palette.orb.color} stopOpacity="0.18" />
+              <stop offset="1" stopColor={palette.orb.color} stopOpacity="0" />
+            </radialGradient>
+          )}
+          {grain}
+        </defs>
+        <rect width={W} height={H} fill={`url(#sky${id})`} />
+        <rect width={W} height={H} fill={`url(#glow${id})`} />
+        {scene.stars.map((star, index) => (
+          <circle key={index} className={index % 7 === 0 ? 'twinkle' : undefined} cx={star.x} cy={star.y} r={star.r} fill="#fff6e0" opacity={star.opacity} style={{ animationDelay: `${(index % 13) * 0.37}s` }} />
+        ))}
+        {palette.orb && (
+          <g>
+            <circle cx={palette.orb.x} cy={palette.orb.y} r={palette.orb.r * 5} fill={`url(#orb${id})`} />
+            <circle cx={palette.orb.x} cy={palette.orb.y} r={palette.orb.r} fill={palette.orb.color} />
+          </g>
         )}
+        <rect width={W} height={H} filter={`url(#grain${id})`} opacity="0.35" style={{ mixBlendMode: 'overlay' }} />
+      </svg>
+    )
+  }
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+      <defs>
         <filter id={`mist${id}`} x="-20%" y="-50%" width="140%" height="200%">
           <feGaussianBlur stdDeviation="28" />
         </filter>
-        {/* Canvas grain, so the flat fills read as paint. */}
-        <filter id={`grain${id}`}>
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed={seed % 97} />
-          <feColorMatrix values="0 0 0 0 0.5  0 0 0 0 0.45  0 0 0 0 0.4  0 0 0 0.55 0" />
-          <feComposite in2="SourceGraphic" operator="in" />
-        </filter>
+        {grain}
+        <mask id={`land${id}`}>
+          {scene.ridges.map((layer, index) => (
+            <path key={index} d={layer.d} fill="#fff" />
+          ))}
+        </mask>
       </defs>
-      <rect width={W} height={H} fill={`url(#sky${id})`} />
-      <rect width={W} height={H} fill={`url(#glow${id})`} />
-      {scene.stars.map((star, index) => (
-        <circle key={index} className={index % 7 === 0 ? 'twinkle' : undefined} cx={star.x} cy={star.y} r={star.r} fill="#fff6e0" opacity={star.opacity} style={{ animationDelay: `${(index % 13) * 0.37}s` }} />
-      ))}
-      {palette.orb && (
-        <g>
-          <circle cx={palette.orb.x} cy={palette.orb.y} r={palette.orb.r * 5} fill={`url(#orb${id})`} />
-          <circle cx={palette.orb.x} cy={palette.orb.y} r={palette.orb.r} fill={palette.orb.color} />
-        </g>
-      )}
       {scene.ridges.map((layer, index) => (
         <g key={index}>
           <path d={layer.d} fill={layer.fill} />
@@ -81,7 +109,7 @@ export default function Landscape({ seed, palette, className }: { seed: number; 
           {palette.keep && index === scene.ridges.length - 2 && <Keep fill={layer.fill} {...palette.keep} />}
         </g>
       ))}
-      <rect width={W} height={H} filter={`url(#grain${id})`} opacity="0.35" style={{ mixBlendMode: 'overlay' }} />
+      <rect width={W} height={H} filter={`url(#grain${id})`} opacity="0.35" mask={`url(#land${id})`} style={{ mixBlendMode: 'overlay' }} />
     </svg>
   )
 }
@@ -115,11 +143,11 @@ const BAND_HEIGHT = 360
 const STAR_FIELD = { width: 1600, height: 1000 }
 
 /**
- * A section's stretch of the night below the hero: a sky behind the whole section, a few stars, and ridges along its
- * bottom edge. The nearest ridge is the colour the next section's sky starts with, so the sections join without a
- * seam. It sits behind the section's content.
+ * A section's stretch of the night below the hero. The sky layer is a sky behind the whole section with a few stars.
+ * The ridges layer is ridges along its bottom edge, with the horizon's glow behind them. The nearest ridge is the colour
+ * the next section's sky starts with, so the sections join without a seam. It sits behind the section's content.
  */
-export function Vista({ seed, palette }: { seed: number; palette: Palette }) {
+export function Vista({ seed, palette, layer }: { seed: number; palette: Palette; layer: SceneLayer }) {
   const id = useId().replace(/:/g, '')
   const scene = useMemo(() => {
     const random = rng(seed)
@@ -132,13 +160,20 @@ export function Vista({ seed, palette }: { seed: number; palette: Palette }) {
   }, [seed, palette])
   const [top, upper, lower, horizon] = palette.sky
 
+  if (layer === 'sky') {
+    return (
+      <div className="vista" style={{ background: `linear-gradient(${top}, ${upper} 40%, ${lower} 75%, ${horizon})` }}>
+        <svg className="vista-stars" viewBox={`0 0 ${STAR_FIELD.width} ${STAR_FIELD.height}`} preserveAspectRatio="xMidYMin slice">
+          {scene.stars.map((star, index) => (
+            <circle key={index} className={index % 5 === 0 ? 'twinkle' : undefined} cx={star.x} cy={star.y} r={star.r} fill="#fff6e0" opacity={star.opacity * 0.8} style={{ animationDelay: `${(index % 11) * 0.41}s` }} />
+          ))}
+        </svg>
+      </div>
+    )
+  }
+
   return (
-    <div className="vista" style={{ background: `linear-gradient(${top}, ${upper} 40%, ${lower} 75%, ${horizon})` }} aria-hidden="true">
-      <svg className="vista-stars" viewBox={`0 0 ${STAR_FIELD.width} ${STAR_FIELD.height}`} preserveAspectRatio="xMidYMin slice">
-        {scene.stars.map((star, index) => (
-          <circle key={index} className={index % 5 === 0 ? 'twinkle' : undefined} cx={star.x} cy={star.y} r={star.r} fill="#fff6e0" opacity={star.opacity * 0.8} style={{ animationDelay: `${(index % 11) * 0.41}s` }} />
-        ))}
-      </svg>
+    <div className="vista">
       <svg className="vista-ridges" viewBox={`0 0 ${W} ${BAND_HEIGHT}`} preserveAspectRatio="xMidYMax slice">
         <defs>
           <radialGradient id={`vglow${id}`} cx="0.5" cy="1" r="0.75">
