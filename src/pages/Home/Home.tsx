@@ -130,35 +130,66 @@ function ForceGlyph() {
 
 /** Two hands locked in an arm-wrestler's grip, as a line drawing: the two kinds of move joined. */
 function ReunionGlyph() {
-  // Each arm and hand is one outline, drawn in the arm's frame: x runs from the elbow along the forearm, +y is the
-  // pinky side. Past the wrist the pinky edge turns up 10 degrees and the thumb edge 35, ending in a short thumb, and
-  // the fingers end in a rounded, curled tip. The right man's arm is the mirror image, drawn behind, and the left
-  // man's hand covers his palm. His curled fingertips are drawn a second time, clipped to a circle, so they hook over
-  // the left man's hand.
-  const clip = useId()
-  const dark = '#120c22'
-  const outline =
-    'M0,-8 L46,-6 L52.5,-14.2 A3,3 0 0 1 55.9,-9.3 Q58,-10.6 59,-9.4 L66.5,-10.7 A6.6,5.6 -10 0 1 65.7,2.5 L46,6 L0,8 Z'
-  const arm = (
-    <g transform="translate(-50 40) rotate(-33.7)">
-      {/* A solid backing, so the arm hides what is under it. */}
-      <path d={outline} fill={dark} />
-      <path d={outline} fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
-      {/* Where the curled fingers part. */}
-      <path d="M67.1,-1 L71.3,-1.7 M67.3,-4.3 L71.5,-5.1 M67.5,-7.6 L71.7,-8.4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </g>
+  // Drawn in the left man's frame: x runs up his forearm from the elbow, +y is his little-finger side. We see the back
+  // of his hand, with three slits where his fingers start before they turn away behind the grip. The right man's hand
+  // is behind it: only his fingers show, coming round the far edge with their tips on the back of the left man's hand,
+  // and his thumb, folded over the left man's thumb and lying across his own fingers. His forearm passes behind the
+  // left man's. Hidden lines are cut out with masks, leaving a small gap, so nothing needs a fill.
+  const id = useId().replace(/:/g, '')
+  const frame = 'translate(0 16) rotate(-62)'
+  const hand = 'M-60,-7.5 L0,-6 Q3,-7.5 8.2,-11.7 L22,-16.5 Q24.6,-15.3 25.5,-8.7 Q25.1,1 22.7,2 L0,6 L-60,7.5'
+  const fingers =
+    'M18.5,-13.6 L18.5,-17.8 Q18.5,-20.8 15.5,-20.8 L6,-13.6 Q3,-13.6 3,-10.6 L3,-6.4 ' +
+    'A1.94,1.94 0 0 0 6.9,-9.2 A1.94,1.94 0 0 0 10.8,-11 A1.94,1.94 0 0 0 14.6,-12.3 A1.94,1.94 0 0 0 18.5,-13.6 Z'
+  const thumb =
+    'M22.8,-17.2 Q22.8,-18.4 21.6,-18.4 L20.6,-18.4 A2.13,2.13 0 0 0 20.6,-14.1 L21.6,-14.1 Q22.8,-14.1 22.8,-15.3 Z'
+  const line = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.86, strokeLinejoin: 'round', strokeLinecap: 'round' } as const
+  // A mask cut is the shape plus a stroke wide enough to leave a gap round the line in front.
+  const cut = { fill: 'black', stroke: 'black', strokeWidth: 4.14, strokeLinejoin: 'round' } as const
+  const mask = (name: string, shapes: ReactNode) => (
+    <mask id={`${id}-${name}`} maskUnits="userSpaceOnUse" x="-60" y="-60" width="120" height="120">
+      <rect x="-60" y="-60" width="120" height="120" fill="white" />
+      <g transform={frame}>{shapes}</g>
+    </mask>
   )
   return (
     <svg className="glyph" viewBox="-40 -40 80 80" aria-hidden="true">
-      <g transform="scale(1.25)">
-        <clipPath id={clip}>
-          <circle cx="-5.6" cy="-2.8" r="7.5" />
-        </clipPath>
-        <g transform="scale(-1 1)">{arm}</g>
-        {arm}
-        <g clipPath={`url(#${clip})`}>
-          <g transform="scale(-1 1)">{arm}</g>
+      <g transform="scale(1.4)">
+        {mask(
+          'front',
+          <g {...cut}>
+            <path d={`${hand} Z`} />
+            <path d={fingers} />
+            <path d={thumb} />
+          </g>,
+        )}
+        {mask(
+          'grip',
+          <g {...cut}>
+            <path d={fingers} />
+            <path d={thumb} />
+          </g>,
+        )}
+        {mask('thumb', <path d={thumb} fill="black" />)}
+        {/* The right man's forearm, behind everything else. */}
+        <g mask={`url(#${id}-front)`}>
+          <path d="M-60,-7.5 L8,-6 M8,6 L-60,7.5" transform={`translate(7 0) scale(-1 1) ${frame}`} {...line} />
         </g>
+        {/* The left man's arm and the back of his hand, with the slits where his fingers start. */}
+        <g mask={`url(#${id}-grip)`}>
+          <g transform={frame} {...line}>
+            <path d={hand} />
+            <path d="M23.4,-8.7 l-3.2,0 M23.4,-4.7 l-3.2,0 M22.4,-0.6 l-3.2,0" />
+          </g>
+        </g>
+        {/* The right man's fingers, and his thumb lying over them. */}
+        <g mask={`url(#${id}-thumb)`}>
+          <g transform={frame} {...line}>
+            <path d={fingers} />
+            <path d="M6.9,-13.8 L6.9,-9.6 M10.8,-15.6 L10.8,-11.4 M14.6,-17 L14.6,-12.7" />
+          </g>
+        </g>
+        <path d={thumb} transform={frame} {...line} />
       </g>
     </svg>
   )
