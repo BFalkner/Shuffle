@@ -443,6 +443,9 @@ body:has(.sim) {
   flex-direction: column;
   gap: 1.1rem;
   min-width: 0;
+  /* Its own width decides whether the deck and the score share a row, not the screen's, so the zoom and the method
+     list beside it don't matter. */
+  container: workbench / inline-size;
 }
 
 .sim .workbench-empty {
@@ -938,8 +941,14 @@ body:has(.sim) {
   line-height: 1;
 }
 
+/* The deck fills the space its panel has. The panel stretches to the score's height, and contain: size keeps the
+   cards from adding to it, so MiniDeck fits them into what is left. The floor is for while the score is short, as when
+   it is still being worked out. */
 .sim .deckview-deck {
+  flex: 1;
+  min-height: 220px;
   padding-left: 16px;
+  contain: size;
 }
 
 .sim .deckview-foot {
@@ -1282,9 +1291,17 @@ body:has(.sim) {
 
 /* ---------- narrower screens ---------- */
 
-@media (max-width: 1100px) {
+/* The deck and the score share a row while the workbench has room for both, and stack when it doesn't. */
+@container workbench (max-width: 599px) {
   .sim .workbench-pair {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Stacked, the deck has no score beside it to take its height from, so it takes a 4:3 box from its width. */
+  .sim .deckview-deck {
+    flex: none;
+    min-height: 0;
+    aspect-ratio: 4 / 3;
   }
 }
 

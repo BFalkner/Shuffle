@@ -1,5 +1,10 @@
+/* MiniDeck fits its cards into this box, both ways, and centres them in it. */
 .minideck {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   width: 100%;
+  height: 100%;
 }
 
 .minideck-stage {
