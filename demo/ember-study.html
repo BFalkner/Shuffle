@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ember Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+  /* Layout: header, then the page view beside its height profile, then controls and notes.
+     Single dark theme on purpose: it is the site's night, and the embers only read against it. */
+  :root {
+    --night: #0f0b22;
+    --deep: #150f25;
+    --line: #3a2f5e;
+    --gilt: #f3d08f;
+    --ember: #f0a24a;
+    --text: #eadfc6;
+    --soft: #b9ab92;
+    --pitch: #07050a;
+    --display: 'Cinzel', 'Trajan Pro', Georgia, serif;
+    --body: 'Crimson Pro', Georgia, 'Times New Roman', serif;
+    color-scheme: dark;
+  }
+  body { background: var(--deep); color: var(--text); font-family: var(--body); font-size: 1.12rem; line-height: 1.5; }
+  .page { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 48px; display: grid; gap: 20px; }
+  h1 { font-family: var(--display); color: var(--gilt); font-size: clamp(1.6rem, 3.4vw, 2.3rem); margin: 0; letter-spacing: 0.04em; text-wrap: balance; }
+  h2 { margin: 0; font-family: var(--display); font-size: 1rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gilt); }
+  .lede { margin: 0; max-width: 70ch; color: var(--soft); }
+  .stage { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 16px; align-items: start; }
+  @media (max-width: 700px) { .stage { grid-template-columns: minmax(0, 1fr) 96px; gap: 10px; } }
+  .viewport { display: grid; gap: 6px; min-width: 0; justify-items: center; }
+  #view { display: block; max-width: 100%; border-radius: 6px; border: 1px solid var(--line); background: var(--night); touch-action: none; cursor: ns-resize; }
+  #profile { display: block; width: 100%; border-radius: 6px; border: 1px solid var(--line); background: rgba(42, 31, 77, 0.3); }
+  .caption { color: var(--soft); font-style: italic; font-size: 0.95rem; text-align: center; }
+  .readout { display: flex; flex-wrap: wrap; gap: 6px 22px; color: var(--soft); font-size: 1rem; }
+  .readout b { color: var(--gilt); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px 28px; padding: 18px 20px;
+    border: 1px solid var(--line); border-radius: 6px; background: rgba(42, 31, 77, 0.35); }
+  .controls h2 { grid-column: 1 / -1; }
+  .control { display: grid; gap: 4px; min-width: 0; }
+  .control label { display: flex; justify-content: space-between; gap: 10px; }
+  .control output { font-variant-numeric: tabular-nums; color: var(--gilt); }
+  .control small { color: var(--soft); font-size: 0.92rem; line-height: 1.35; }
+  input[type=range] { width: 100%; accent-color: var(--ember); }
+  select { font: inherit; color: var(--text); background: var(--deep); border: 1px solid var(--line); border-radius: 4px; padding: 3px 6px; }
+  .buttons { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px; }
+  button { font: inherit; font-family: var(--display); font-size: 0.85rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--deep);
+    background: var(--gilt); border: 0; border-radius: 999px; padding: 7px 16px; cursor: pointer; }
+  button.quiet { background: transparent; color: var(--gilt); border: 1px solid var(--gilt); }
+  button:focus-visible, input:focus-visible, select:focus-visible, #view:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+  .notes { display: grid; gap: 6px; max-width: 74ch; color: var(--soft); }
+  .notes ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+  .warning { color: var(--ember); }
+</style>
+</head>
+<body>
+
+<main class="page">
+  <h1>Ember Study</h1>
+  <p class="lede">A window onto the whole home page, with its campfire where the real one is. Every ember comes from the fire. Scroll the window with the mouse wheel, by dragging, or with the slider, and the embers you see are the ones that would be there.</p>
+  <p class="warning" id="motionNote" hidden>Your system asks for reduced motion, so the embers are paused. Press Play to run them.</p>
+
+  <div class="stage">
+    <div class="viewport">
+      <canvas id="view" tabindex="0" aria-label="A window onto the home page with its embers. Scroll it with the wheel, by dragging, or with the arrow keys."></canvas>
+      <div class="caption" id="where"></div>
+    </div>
+    <canvas id="profile" aria-label="Embers per screen at each height of the page, with the window's position marked"></canvas>
+  </div>
+
+  <div class="readout" aria-live="off">
+    <span>Fire output <b id="outRate"></b> embers a second</span>
+    <span>Longest life <b id="outLife"></b> s</span>
+    <span>Alive anywhere <b id="outAlive"></b></span>
+    <span>In view <b id="outShown"></b></span>
+  </div>
+  <p class="warning" id="solveNote" hidden></p>
+
+  <section class="controls" aria-label="Controls">
+    <h2>Fire and embers</h2>
+    <div class="control">
+      <label for="preset">Page</label>
+      <select id="preset">
+        <option value="desktop">Desktop, 1280 × 800 window</option>
+        <option value="phone">Phone, 390 × 844 window</option>
+      </select>
+      <small>Page height, and the campfire's position when scrolled to it, measured from the live site.</small>
+    </div>
+    <div class="control">
+      <label for="scroll">Scroll position <output id="scrollOut"></output></label>
+      <input id="scroll" type="range" min="0" max="1000" step="1" value="1000">
+      <small>0 is the top of the page.</small>
+    </div>
+    <div class="control">
+      <label for="atFire">Embers per screen at the fire <output id="atFireOut"></output></label>
+      <input id="atFire" type="range" min="10" max="120" step="1" value="40">
+      <small>Sets the fire's output.</small>
+    </div>
+    <div class="control">
+      <label for="atTop">Embers per screen at the top <output id="atTopOut"></output></label>
+      <input id="atTop" type="range" min="1" max="30" step="1" value="6">
+      <small>Sets how long embers live, so enough reach the top.</small>
+    </div>
+    <div class="control">
+      <label for="bursts">Bursts per minute <output id="burstsOut"></output></label>
+      <input id="bursts" type="range" min="0" max="20" step="1" value="5">
+      <small>A log popping throws 5 to 12 embers at once.</small>
+    </div>
+    <div class="control">
+      <label for="rise">Rise speed <output id="riseOut"></output></label>
+      <input id="rise" type="range" min="0.5" max="2" step="0.1" value="1">
+      <small>How hard the hot air throws them up, and how fast they drift after.</small>
+    </div>
+    <div class="control">
+      <label for="exposure">Exposure <output id="exposureOut"></output></label>
+      <input id="exposure" type="range" min="1" max="8" step="0.5" value="3">
+      <small>How bright the screen shows their light before it reaches white.</small>
+    </div>
+    <div class="control">
+      <label for="flare">Glare <output id="flareOut"></output></label>
+      <input id="flare" type="range" min="0" max="1.5" step="0.1" value="0.6">
+      <small>The eye's or lens's own scatter round a bright ember. 0 turns it off.</small>
+    </div>
+    <div class="buttons">
+      <button id="toTop" type="button" class="quiet">Top of page</button>
+      <button id="toFire" type="button" class="quiet">The fire</button>
+      <button id="fly" type="button" class="quiet" aria-pressed="false">Glide up the page</button>
+      <button id="play" type="button">Pause</button>
+      <button id="slow" type="button" class="quiet" aria-pressed="false">Slow motion</button>
+    </div>
+  </section>
+
+  <section class="notes">
+    <h2>How it works</h2>
+    <ul>
+      <li>The fire throws out embers at a steady rate. Ember number <i>n</i> is born at a fixed time, and everything about it comes from a random generator seeded by <i>n</i>: its size, heat, lifespan, launch speed, path and flicker.</li>
+      <li>Its height after <i>t</i> seconds is a formula: launched fast, then settling to a slow drift as the hot air's lift fades. Turbulence and a shared wind are smooth random noise, also seeded, so they are erratic but known at any moment.</li>
+      <li>The hot air spreads as a cone, about a tenth as wide as it is high, sideways and toward or away from you. Each ember's own distance comes from that cone, and sets its size, speed on screen, scroll parallax and brightness (inverse square, shared over the area it is drawn on).</li>
+      <li>So for any moment and scroll position the embers in view are known exactly. Each frame checks the embers alive anywhere with a few lines of arithmetic and draws the ones in view. Nothing off screen is simulated.</li>
+      <li>The two density figures are met by working out the fire's output and how long embers live, from 1,500 sample embers, whenever a setting changes.</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+  // ======================= random: seeded numbers and smooth noise =======================
+  /** A repeatable random number in [0, 1) for the pair (a, b). */
+  function hash(a, b) {
+    let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul((b | 0) + 0x632be5ab, 0xc2b2ae35)
+    h ^= h >>> 13
+    h = Math.imul(h, 0x27d4eb2f)
+    h ^= h >>> 16
+    return (h >>> 0) / 4294967296
+  }
+  /** A repeatable stream of random numbers in [0, 1). */
+  function stream(seed) {
+    let a = seed | 0
+    return () => {
+      a = (a + 0x6d2b79f5) | 0
+      let t = Math.imul(a ^ (a >>> 15), 1 | a)
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    }
+  }
+  const gaussianFrom = (next) => Math.sqrt(-2 * Math.log(1 - next())) * Math.cos(2 * Math.PI * next())
+  /** Smooth random noise in [-1, 1]: random values at whole numbers of x, eased between. Not periodic. */
+  function noise(id, x) {
+    const i = Math.floor(x)
+    const f = x - i
+    const a = hash(id, i) * 2 - 1
+    const b = hash(id, i + 1) * 2 - 1
+    return a + (b - a) * f * f * (3 - 2 * f)
+  }
+
+  // ======================= ember: one ember's own properties and how it burns =======================
+  /** Everything about an ember that belongs to it. Nothing here depends on where it is drawn. */
+  function emberProperties(id, rise, burst) {
+    const next = stream(id * 7919 + 13)
+    const u = next()
+    const size = 0.6 + 1.7 * u * u // radius, px at depth 1; mostly small
+    const heavy = (size - 0.6) / 1.7
+    const drift = (60 + 60 * next()) * rise * (1.1 - 0.3 * heavy)
+    return {
+      id,
+      size,
+      heat0: 0.78 + 0.22 * next(),
+      // lifespan before scaling: most short, a long tail of a few that last much longer, larger ones longer
+      lifeBase: Math.min(LIFE_TAIL, Math.exp(1.15 * gaussianFrom(next))) * (0.7 + 0.6 * heavy),
+      launch: (300 + 300 * next()) * (1.15 - 0.35 * heavy) * rise * (burst ? 1.3 : 1),
+      drift,
+      // where in the plume's cone it travels: sideways and in depth, in cone widths
+      coneX: gaussianFrom(next),
+      coneZ: gaussianFrom(next),
+      push: 22 / Math.sqrt(size), // how far turbulence moves it about, px
+      flick: [6 + 8 * next(), 9 + 10 * next(), 6.3 * next(), 6.3 * next()],
+    }
+  }
+  /**
+   * How hot it is at an age, from 1 (yellow-white) to 0 (out). It cools slowly for most of its life, so a long-lived
+   * ember still glows high above the fire, then fades quickly at the end.
+   */
+  const heatAt = (e, age, life) => {
+    const lived = age / life
+    return e.heat0 * (1 - 0.35 * lived) * Math.pow(Math.max(0, 1 - Math.pow(lived, 4)), 0.7)
+  }
+
+  /** Heat to colour. */
+  const RAMP = [[0, [90, 12, 6]], [0.25, [170, 40, 16]], [0.45, [232, 86, 26]], [0.65, [255, 146, 52]], [0.85, [255, 204, 122]], [1, [255, 240, 212]]]
+  function heatColour(heat) {
+    for (let i = 1; i < RAMP.length; i++) {
+      if (heat <= RAMP[i][0]) {
+        const [h0, c0] = RAMP[i - 1]
+        const [h1, c1] = RAMP[i]
+        const t = (heat - h0) / (h1 - h0)
+        return c0.map((c, k) => Math.round(c + (c1[k] - c) * t))
+      }
+    }
+    return RAMP[RAMP.length - 1][1]
+  }
+
+  // ======================= plume: the fire's output and where each ember is =======================
+  /** The longest lifespan before scaling, as a multiple of the typical one. */
+  const LIFE_TAIL = 30
+  /** How fast the hot air's lift fades, per second. */
+  const LIFT_FADE = 1.2
+  /** How wide the plume's cone spreads, sideways and in depth, per unit of height. */
+  const CONE = 0.1
+  /** The fire's depth, the campfire layer's parallax speed. */
+  const FIRE_DEPTH = 0.85
+  /** The distance from the viewer to the fire, world px, which turns depth in the cone into scale. */
+  const VIEW_DISTANCE = 2000
+
+  /** Height above the fire after t seconds. */
+  const heightAt = (e, t) => e.drift * t + ((e.launch - e.drift) / LIFT_FADE) * (1 - Math.exp(-LIFT_FADE * t))
+  /** Seconds to reach a height. */
+  function timeToHeight(e, h) {
+    let lo = 0
+    let hi = h / e.drift + 1
+    for (let i = 0; i < 40; i++) {
+      const mid = (lo + hi) / 2
+      if (heightAt(e, mid) < h) lo = mid
+      else hi = mid
+    }
+    return (lo + hi) / 2
+  }
+  /** The wind shared by every ember: smooth random, px per second. */
+  const windAt = (time) => 45 * noise(424242, time * 0.12)
+
+  /**
+   * Where an ember is, relative to the fire, at an age and a moment: up, across and toward or away from the viewer, in
+   * world px, plus the scale its distance gives it.
+   */
+  function placeAt(e, age, time) {
+    const h = heightAt(e, age)
+    const settle = Math.min(1, age / 0.6) // turbulence builds up after it leaves the fire
+    const across = e.coneX * CONE * h + e.push * settle * (noise(e.id, age * 0.9) + 0.5 * noise(e.id + 1e6, age * 2.4)) + windAt(time) * Math.min(age, 4)
+    const up = h + 0.5 * e.push * settle * noise(e.id + 2e6, age * 1.1)
+    const toward = e.coneZ * CONE * h
+    const depth = (FIRE_DEPTH * VIEW_DISTANCE) / (VIEW_DISTANCE + Math.max(toward, -0.6 * VIEW_DISTANCE))
+    return { across, up, depth }
+  }
+
+  /**
+   * The fire. Ember n is born at a fixed time near n / rate; bursts come at fixed times too. `alive` lists every ember
+   * alive at a moment with its age, without keeping any state.
+   */
+  const cache = new Map()
+  function ember(id, burst) {
+    let e = cache.get(id)
+    if (!e) {
+      e = emberProperties(id, settings.rise, burst)
+      cache.set(id, e)
+    }
+    return e
+  }
+  const BURST_IDS = 1 << 28
+  function alive(time, visit) {
+    const { rate, lifeScale, maxLife } = fire
+    const first = Math.max(0, Math.floor((time - maxLife) * rate))
+    const last = Math.floor(time * rate)
+    for (let n = first; n <= last; n++) {
+      const born = (n + hash(n, 99)) / rate
+      const age = time - born
+      if (age < 0) continue
+      const e = ember(n, false)
+      const life = e.lifeBase * lifeScale
+      if (age < life) visit(e, age, life)
+    }
+    // bursts: in each whole second, a chance of one
+    const chance = settings.bursts / 60
+    for (let second = Math.max(0, Math.floor(time - maxLife)); second <= Math.floor(time); second++) {
+      if (hash(second, 7) >= chance) continue
+      const born = second + hash(second, 8)
+      const age = time - born
+      if (age < 0) continue
+      const count = 5 + Math.floor(hash(second, 9) * 8)
+      for (let m = 0; m < count; m++) {
+        const e = ember(BURST_IDS + second * 16 + m, true)
+        const life = e.lifeBase * lifeScale
+        if (age < life) visit(e, age, life)
+      }
+    }
+  }
+
+  /**
+   * Works out the fire's output and the lifespan scale that give the asked-for embers per screen at the fire and at the
+   * top of the page, from sample embers. Returns the profile of embers per screen at each height too.
+   */
+  function solve() {
+    const samples = Array.from({ length: 1500 }, (_, i) => emberProperties(5e8 + i, settings.rise, false))
+    const screen = page.viewH / FIRE_DEPTH // one screen, in world px at the fire's depth
+    const fireBand = [0, page.fireRow * page.viewH / FIRE_DEPTH]
+    const topBand = [page.topHeight - screen, page.topHeight]
+    const edges = (band) => samples.map((e) => [timeToHeight(e, Math.max(0, band[0])), timeToHeight(e, band[1])])
+    const atFire = edges(fireBand)
+    const atTop = edges(topBand)
+    // average seconds an ember spends in a band while alive, at a lifespan scale
+    const dwell = (times, scale) => times.reduce((sum, [a, b], i) => {
+      const life = samples[i].lifeBase * scale
+      return sum + Math.max(0, Math.min(b, life) - Math.min(a, life))
+    }, 0) / samples.length
+    // embers per screen at the top over those at the fire grows with the lifespan scale; find the scale that matches
+    const want = settings.atTop / settings.atFire
+    const ratio = (scale) => dwell(atTop, scale) / (dwell(atFire, scale) || 1e-9)
+    let lo = 0.2
+    let hi = 400
+    let reached = true
+    if (ratio(hi) < want) reached = false
+    for (let i = 0; i < 50; i++) {
+      const mid = Math.sqrt(lo * hi)
+      if (ratio(mid) < want) lo = mid
+      else hi = mid
+    }
+    const lifeScale = reached ? hi : 400
+    // the screen showing the fire holds the band from the fire to the screen's top, so it shows rate × time in that band
+    const rate = settings.atFire / Math.max(1e-6, dwell(atFire, lifeScale))
+    // profile: embers per screen at each height
+    const bins = 60
+    const profile = Array.from({ length: bins }, (_, k) => {
+      const a = (page.topHeight * k) / bins
+      const b = (page.topHeight * (k + 1)) / bins
+      const times = samples.map((e) => [timeToHeight(e, a), timeToHeight(e, b)])
+      return (rate * dwell(times, lifeScale) * screen) / (b - a)
+    })
+    const meanLife = samples.reduce((s, e) => s + e.lifeBase, 0) / samples.length * lifeScale
+    cache.clear()
+    return { rate, lifeScale, maxLife: LIFE_TAIL * 1.3 * lifeScale, meanLife, profile, reached }
+  }
+
+  // ======================= view: the page window and scroll =======================
+  const PRESETS = {
+    desktop: { viewW: 1280, viewH: 800, pageH: 5143, fireX: 914, fireY: 4903 },
+    phone: { viewW: 390, viewH: 844, pageH: 8551, fireX: 138, fireY: 8013 },
+  }
+  const page = {}
+  function usePreset(name) {
+    Object.assign(page, PRESETS[name])
+    page.maxScroll = page.pageH - page.viewH
+    page.cx = page.viewW / 2
+    page.cy = page.viewH / 2
+    // the fire's place in the world, set so it sits where the page draws it when scrolled to the bottom
+    page.fireWX = page.cx + (page.fireX - page.cx) / FIRE_DEPTH
+    page.fireWY = page.cy + (page.fireY - page.maxScroll - page.cy) / FIRE_DEPTH + page.maxScroll
+    page.fireRow = (page.fireY - page.maxScroll) / page.viewH
+    // the height above the fire that shows at the very top of the page when scrolled to the top
+    page.topHeight = page.fireWY - (page.cy - page.cy / FIRE_DEPTH)
+  }
+  /** World point to screen, for a depth and a scroll position. */
+  const toScreen = (wx, wy, depth, scroll) => [page.cx + (wx - page.cx) * depth, page.cy + (wy - scroll - page.cy) * depth]
+
+  // ======================= draw: glare, embers, fire =======================
+  const GLARE_SIZE = 44
+  function makeGlare() {
+    const size = 128
+    const half = size / 2
+    const next = stream(20241)
+    const bins = 1440
+    const streak = new Float32Array(bins)
+    const reachAt = new Float32Array(bins)
+    for (let i = 0; i < 70; i++) {
+      const at = next() * bins
+      const width = 1.5 + 3.5 * next()
+      const amp = Math.pow(next(), 2) * 0.9 + 0.1
+      const reach = 0.25 + 0.75 * next()
+      for (let d = -12; d <= 12; d++) {
+        const k = ((Math.round(at) + d) % bins + bins) % bins
+        const w = Math.exp(-(d * d) / (width * width))
+        streak[k] += amp * w
+        reachAt[k] = Math.max(reachAt[k], reach * w)
+      }
+    }
+    return Array.from({ length: 10 }, (_, n) => {
+      const tint = heatColour(0.15 + (0.85 * n) / 9)
+      const canvas = document.createElement('canvas')
+      canvas.width = canvas.height = size
+      const context = canvas.getContext('2d')
+      const image = context.createImageData(size, size)
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const dx = (x + 0.5 - half) / half
+          const dy = (y + 0.5 - half) / half
+          const r = Math.hypot(dx, dy)
+          if (r >= 1) continue
+          const bin = Math.floor(((Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI)) * bins) % bins
+          const bloom = Math.pow(1 + (r / 0.035) ** 2, -1.3)
+          const fade = (1 - r * r) ** 2
+          const rays = streak[bin] * Math.exp(-r / (0.12 + 0.5 * reachAt[bin])) * Math.min(1, r / 0.04) * (0.8 + 0.4 * next())
+          const intensity = Math.min(1, (0.55 * bloom + 0.35 * rays) * fade)
+          const white = Math.min(1, intensity * 1.2) * 0.6
+          const i = (y * size + x) * 4
+          image.data[i] = Math.round(tint[0] + (255 - tint[0]) * white)
+          image.data[i + 1] = Math.round(tint[1] + (255 - tint[1]) * white)
+          image.data[i + 2] = Math.round(tint[2] + (255 - tint[2]) * white)
+          image.data[i + 3] = Math.round(255 * intensity)
+        }
+      }
+      context.putImageData(image, 0, 0)
+      return canvas
+    })
+  }
+  const GLARE = makeGlare()
+  const floor = Math.exp(-5)
+  const FALLOFF = Array.from({ length: 13 }, (_, i) => { const at = i / 12; return [at, (Math.exp(-5 * at * at) - floor) / (1 - floor)] })
+
+  const view = document.getElementById('view')
+  const context = view.getContext('2d')
+  let pixel = 1 // canvas px per page px
+  function sizeView() {
+    const box = view.parentElement.clientWidth
+    const maxH = Math.min(window.innerHeight * 0.72, 640)
+    const w = Math.min(box, (maxH * page.viewW) / page.viewH)
+    const h = (w * page.viewH) / page.viewW
+    const dpr = Math.min(2, window.devicePixelRatio || 1)
+    view.style.width = `${w}px`
+    view.style.height = `${h}px`
+    view.width = Math.round(w * dpr)
+    view.height = Math.round(h * dpr)
+    pixel = w / page.viewW
+    context.setTransform(dpr * pixel, 0, 0, dpr * pixel, 0, 0)
+    sizeProfile(h)
+  }
+
+  function drawScene(time) {
+    const scroll = settings.scroll
+    // sky
+    const sky = context.createLinearGradient(0, 0, 0, page.viewH)
+    const t = scroll / page.maxScroll
+    sky.addColorStop(0, `rgb(${15 + 6 * t}, ${11 + 4 * t}, ${34 + 10 * t})`)
+    sky.addColorStop(1, `rgb(${27 + 16 * t}, ${20 + 10 * t}, ${64 - 6 * t})`)
+    context.globalCompositeOperation = 'source-over'
+    context.fillStyle = sky
+    context.fillRect(0, 0, page.viewW, page.viewH)
+    // the fire and its ground, at the fire's depth
+    const [fx, fy] = toScreen(page.fireWX, page.fireWY, FIRE_DEPTH, scroll)
+    if (fy < page.viewH + 200) {
+      context.fillStyle = '#07050a'
+      context.fillRect(0, fy, page.viewW, page.viewH - fy + 10)
+      context.globalCompositeOperation = 'lighter'
+      const flame = 34 * (1 + 0.08 * noise(5, time * 7))
+      const glow = context.createRadialGradient(fx, fy - 10, 0, fx, fy - 10, flame * 2.4)
+      glow.addColorStop(0, 'rgba(255, 210, 140, 0.9)')
+      glow.addColorStop(0.25, 'rgba(255, 130, 50, 0.45)')
+      glow.addColorStop(1, 'rgba(255, 90, 30, 0)')
+      context.fillStyle = glow
+      context.fillRect(fx - flame * 2.4, fy - 10 - flame * 2.4, flame * 4.8, flame * 4.8)
+    }
+    // embers
+    context.globalCompositeOperation = 'lighter'
+    const shown = []
+    let count = 0
+    alive(time, (e, age, life) => {
+      count++
+      const place = placeAt(e, age, time)
+      const [x, y] = toScreen(page.fireWX + place.across, page.fireWY - place.up, place.depth, scroll)
+      if (y < -40 || y > page.viewH + 40 || x < -40 || x > page.viewW + 40) return
+      shown.push({ e, age, life, place, x, y })
+    })
+    shown.sort((a, b) => a.place.depth - b.place.depth)
+    for (const item of shown) drawEmber(item, time, scroll)
+    return { count, shown: shown.length }
+  }
+
+  function drawEmber({ e, age, life, place, x, y }, time, scroll) {
+    const s = place.depth
+    const heat = heatAt(e, age, life)
+    if (heat < 0.03) return
+    // where it was a moment ago, for its streak
+    const dt = 1 / 60
+    const before = placeAt(e, Math.max(0, age - dt), time - dt)
+    const [px, py] = toScreen(page.fireWX + before.across, page.fireWY - before.up, before.depth, scroll)
+    const vx = (x - px) / dt
+    const vy = (y - py) / dt
+    const [f1, f2, p1, p2] = e.flick
+    const flare = Math.max(0, noise(e.id + 3e6, time * 2.5) - 0.75) * 2.8
+    const flicker = 1 + 0.18 * Math.sin(time * f1 + p1) * Math.sin(time * f2 + p2) + 0.7 * flare
+    const radius = e.size * (0.75 + 0.25 * heat / e.heat0)
+    const total = Math.PI * radius * radius * Math.pow(heat, 2.5) * flicker
+    const received = total * s * s
+    const core = Math.max(0.6, radius * s)
+    const speed = Math.hypot(vx, vy)
+    const trail = Math.min(26, speed * 0.05)
+    const area = Math.PI * core * core + (trail > core ? 2 * core * trail : 0)
+    const light = Math.min(1, (settings.exposure * received) / area)
+    const [r, g, b] = heatColour(Math.min(1, heat + 0.12 * flare))
+    if (trail > core) {
+      const tx = x - (vx / speed) * trail
+      const ty = y - (vy / speed) * trail
+      const streak = context.createLinearGradient(x, y, tx, ty)
+      streak.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${light * 0.85})`)
+      streak.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`)
+      context.strokeStyle = streak
+      context.lineWidth = core * 1.5
+      context.lineCap = 'round'
+      context.beginPath()
+      context.moveTo(x, y)
+      context.lineTo(tx, ty)
+      context.stroke()
+    }
+    const reach = core * 1.6
+    const glow = context.createRadialGradient(x, y, 0, x, y, reach)
+    const hot = [255, Math.min(255, g + 40), Math.min(255, b + 60)]
+    for (const [at, strength] of FALLOFF) {
+      const mix = Math.min(1, at * 2.5)
+      const c = hot.map((h, k) => Math.round(h + ([r, g, b][k] - h) * mix))
+      glow.addColorStop(at, `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${light * strength})`)
+    }
+    context.fillStyle = glow
+    context.fillRect(x - reach, y - reach, reach * 2, reach * 2)
+    if (settings.flare > 0) {
+      const strength = Math.min(1, (settings.flare * settings.exposure * received) / 10)
+      if (strength > 0.02) {
+        const sprite = GLARE[Math.min(GLARE.length - 1, Math.round(heat * (GLARE.length - 1)))]
+        context.globalAlpha = strength
+        context.drawImage(sprite, x - GLARE_SIZE / 2, y - GLARE_SIZE / 2, GLARE_SIZE, GLARE_SIZE)
+        context.globalAlpha = 1
+      }
+    }
+  }
+
+  // ---- the height profile beside the window ----
+  const profileCanvas = document.getElementById('profile')
+  const profileContext = profileCanvas.getContext('2d')
+  function sizeProfile(h) {
+    const dpr = Math.min(2, window.devicePixelRatio || 1)
+    profileCanvas.style.height = `${h}px`
+    profileCanvas.width = Math.round(profileCanvas.clientWidth * dpr)
+    profileCanvas.height = Math.round(h * dpr)
+    profileContext.setTransform(dpr, 0, 0, dpr, 0, 0)
+  }
+  function drawProfile() {
+    const w = profileCanvas.clientWidth
+    const h = profileCanvas.clientHeight
+    const c = profileContext
+    c.clearRect(0, 0, w, h)
+    const pad = { top: 16, bottom: 16, left: 6, right: 8 }
+    const plotH = h - pad.top - pad.bottom
+    // the whole page from top to bottom, by scroll position; the fire near the bottom
+    const yOfPage = (pageY) => pad.top + (pageY / page.pageH) * plotH
+    // window bracket
+    c.fillStyle = 'rgba(243, 208, 143, 0.12)'
+    c.fillRect(0, yOfPage(settings.scroll), w, (page.viewH / page.pageH) * plotH)
+    c.strokeStyle = 'rgba(243, 208, 143, 0.6)'
+    c.lineWidth = 1
+    c.strokeRect(0.5, yOfPage(settings.scroll) + 0.5, w - 1, (page.viewH / page.pageH) * plotH - 1)
+    // embers per screen against height, drawn at each height's place on the page (at the fire's depth)
+    const prof = fire.profile
+    const most = Math.max(settings.atFire * 1.2, ...prof)
+    c.beginPath()
+    const fireY = page.fireY
+    for (let k = 0; k < prof.length; k++) {
+      const height = (page.topHeight * (k + 0.5)) / prof.length
+      const pageY = fireY - height * FIRE_DEPTH
+      const x = pad.left + (prof[k] / most) * (w - pad.left - pad.right)
+      if (k === 0) c.moveTo(pad.left, yOfPage(fireY))
+      c.lineTo(x, yOfPage(Math.max(0, pageY)))
+    }
+    c.lineTo(pad.left, yOfPage(0))
+    c.closePath()
+    c.fillStyle = 'rgba(240, 162, 74, 0.35)'
+    c.fill()
+    c.strokeStyle = 'rgba(240, 162, 74, 0.9)'
+    c.stroke()
+    // labels
+    c.fillStyle = '#b9ab92'
+    c.font = '12px "Crimson Pro", Georgia, serif'
+    c.fillText('top', pad.left, 12)
+    c.fillText('fire', pad.left, Math.min(h - 4, yOfPage(fireY) + 14))
+    c.fillStyle = '#ff9a3c'
+    c.beginPath()
+    c.arc(pad.left + 2, yOfPage(fireY), 3, 0, Math.PI * 2)
+    c.fill()
+  }
+
+  // ======================= page: settings, controls and the clock =======================
+  const settings = { scroll: 0, atFire: 40, atTop: 6, bursts: 5, rise: 1, exposure: 3, flare: 0.6 }
+  let fire = { rate: 10, lifeScale: 10, maxLife: 80, profile: [], reached: true }
+  usePreset('desktop')
+  settings.scroll = page.maxScroll
+
+  const scrollInput = document.getElementById('scroll')
+  function setScroll(value) {
+    settings.scroll = Math.max(0, Math.min(page.maxScroll, value))
+    scrollInput.value = String(Math.round(settings.scroll))
+    document.getElementById('scrollOut').textContent = `${Math.round(settings.scroll)} px`
+    const pct = Math.round((settings.scroll / page.maxScroll) * 100)
+    document.getElementById('where').textContent = pct >= 99 ? 'At the bottom of the page, by the fire' : pct <= 1 ? 'At the top of the page' : `${pct}% of the way down the page`
+  }
+  function refresh() {
+    fire = solve()
+    document.getElementById('outRate').textContent = fire.rate.toFixed(1)
+    document.getElementById('outLife').textContent = Math.round(fire.maxLife)
+    const note = document.getElementById('solveNote')
+    note.hidden = fire.reached
+    note.textContent = fire.reached ? '' : 'Even the longest lifespans do not get that many embers to the top at this rise speed. Raise the rise speed or lower the top figure.'
+  }
+  function applyPreset(name) {
+    usePreset(name)
+    scrollInput.max = String(page.maxScroll)
+    sizeView()
+    refresh()
+    setScroll(page.maxScroll)
+  }
+
+  const bind = (id, key, format, after) => {
+    const input = document.getElementById(id)
+    const out = document.getElementById(id + 'Out')
+    const update = () => { settings[key] = Number(input.value); out.textContent = format(settings[key]); if (after) after() }
+    input.addEventListener('input', update)
+    settings[key] = Number(input.value)
+    out.textContent = format(settings[key])
+  }
+  let pending = 0
+  const resolveSoon = () => { clearTimeout(pending); pending = setTimeout(refresh, 120) }
+  bind('atFire', 'atFire', (v) => `${v}`, resolveSoon)
+  bind('atTop', 'atTop', (v) => `${v}`, resolveSoon)
+  bind('bursts', 'bursts', (v) => `${v}`)
+  bind('rise', 'rise', (v) => `×${v.toFixed(1)}`, resolveSoon)
+  bind('exposure', 'exposure', (v) => `×${v.toFixed(1)}`)
+  bind('flare', 'flare', (v) => (v === 0 ? 'off' : `×${v.toFixed(1)}`))
+  scrollInput.addEventListener('input', () => { flying = false; syncFly(); setScroll(Number(scrollInput.value)) })
+  document.getElementById('preset').addEventListener('change', (event) => applyPreset(event.target.value))
+  document.getElementById('toTop').addEventListener('click', () => { flying = false; syncFly(); setScroll(0) })
+  document.getElementById('toFire').addEventListener('click', () => { flying = false; syncFly(); setScroll(page.maxScroll) })
+
+  // scrolling the window itself: wheel, drag and keys
+  view.addEventListener('wheel', (event) => { event.preventDefault(); flying = false; syncFly(); setScroll(settings.scroll + event.deltaY) }, { passive: false })
+  let dragFrom = null
+  view.addEventListener('pointerdown', (event) => { dragFrom = { y: event.clientY, scroll: settings.scroll }; view.setPointerCapture(event.pointerId) })
+  view.addEventListener('pointermove', (event) => { if (dragFrom) { flying = false; syncFly(); setScroll(dragFrom.scroll - (event.clientY - dragFrom.y) / pixel) } })
+  view.addEventListener('pointerup', () => { dragFrom = null })
+  view.addEventListener('keydown', (event) => {
+    const step = { ArrowDown: 80, ArrowUp: -80, PageDown: page.viewH * 0.9, PageUp: -page.viewH * 0.9, Home: -1e9, End: 1e9 }[event.key]
+    if (step !== undefined) { event.preventDefault(); setScroll(settings.scroll + step) }
+  })
+
+  let flying = false
+  const flyButton = document.getElementById('fly')
+  const syncFly = () => { flyButton.setAttribute('aria-pressed', String(flying)); flyButton.textContent = flying ? 'Stop gliding' : 'Glide up the page' }
+  flyButton.addEventListener('click', () => { flying = !flying; if (flying && settings.scroll <= 0) setScroll(page.maxScroll); syncFly() })
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  let playing = !reduced
+  if (reduced) document.getElementById('motionNote').hidden = false
+  const play = document.getElementById('play')
+  const syncPlay = () => { play.textContent = playing ? 'Pause' : 'Play' }
+  play.addEventListener('click', () => { playing = !playing; syncPlay() })
+  syncPlay()
+  let timeScale = 1
+  const slow = document.getElementById('slow')
+  slow.addEventListener('click', () => {
+    timeScale = timeScale === 1 ? 0.25 : 1
+    slow.setAttribute('aria-pressed', String(timeScale !== 1))
+    slow.textContent = timeScale === 1 ? 'Slow motion' : 'Normal speed'
+  })
+
+  // The fire has been burning a while before the page opens, so start the clock well past the longest life.
+  let clock = 1000
+  let last = 0
+  let evict = 0
+  function frame(now) {
+    const real = last ? Math.min(0.1, (now - last) / 1000) : 1 / 60
+    last = now
+    if (playing) clock += real * timeScale
+    if (flying) {
+      setScroll(settings.scroll - real * 260)
+      if (settings.scroll <= 0) { flying = false; syncFly() }
+    }
+    const { count, shown } = drawScene(clock)
+    drawProfile()
+    document.getElementById('outAlive').textContent = String(count)
+    document.getElementById('outShown').textContent = String(shown)
+    // forget the properties of embers long dead
+    if (++evict % 120 === 0) {
+      const first = Math.floor((clock - fire.maxLife) * fire.rate)
+      for (const id of cache.keys()) if (id < first) cache.delete(id)
+    }
+    requestAnimationFrame(frame)
+  }
+
+  applyPreset('desktop')
+  window.addEventListener('resize', () => sizeView())
+  requestAnimationFrame(frame)
+</script>
+</body>
+</html>
