@@ -152,6 +152,20 @@ export function ohBottom(deck: Deck): Deck {
   return result
 }
 
+/**
+ * Cut: lift the deck at a random spot, anywhere from one card down to one card from the bottom, and put the bottom part
+ * on top. Every card keeps the card after it, except at the cut and where the old bottom now meets the old top.
+ */
+export function cutDeck(deck: Deck): Deck {
+  const cutAt = 1 + Math.floor(Math.random() * (deck.length - 1))
+  const lifted = deck.length - cutAt
+  const result: Deck = new Array<number>(deck.length)
+  for (let position = 0; position < deck.length; position++) {
+    result[position] = position < lifted ? deck[cutAt + position] : deck[position - lifted]
+  }
+  return result
+}
+
 /** Off-centre riffle: the halves merge offset by `offset` cards, so both new ends come from the middle. */
 export function offCentreRiffle(deck: Deck, offset: number): Deck {
   const deckSize = deck.length
@@ -168,6 +182,7 @@ export const OPS = {
   pile,
   ohr: ohTop,
   ohb: ohBottom,
+  cut: cutDeck,
 } as const
 
 export type OpKey = keyof typeof OPS

@@ -116,8 +116,8 @@ describe('metric & calibration structure', () => {
 })
 
 describe('cost accounting', () => {
-  test('move costs match the ratified units (M/T/B = 1, O = 2, P = 4)', () => {
-    expect(OP_COST).toEqual({ mash: 1, ohr: 1, ohb: 1, overhand: 2, pile: 4 })
+  test('move costs match the ratified units (M/T/B = 1, O = 2, P = 4, C = 0.5)', () => {
+    expect(OP_COST).toEqual({ mash: 1, ohr: 1, ohb: 1, overhand: 2, pile: 4, cut: 0.5 })
   })
 })
 
