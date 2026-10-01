@@ -1,16 +1,16 @@
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { useTitle } from '../../hooks/useTitle'
 import Campfire from './Campfire'
 import DATA from './data.json'
 import Cost, { PIP_CLASS, type Pip } from './Cost'
-import Embers from './Embers'
+import EmberField from './embers/EmberField'
 import Hero from './Hero'
 import { Vista } from './Landscape'
 import MoveChart, { MoveTable } from './MoveChart'
 import { CHART_MOVES, MOVE_COLOR, type Reading } from './moveCharts'
 import { startMoveDemo, type DemoMove } from './moveDemo'
-import { BACK_EMBERS, FRONT_EMBERS, SPEED, startBackdropParallax } from './parallax'
+import { SPEED, startBackdropParallax } from './parallax'
 import { RECOMMENDATIONS } from './recommendations'
 import { VISTAS } from './vistas'
 import './home.css'
@@ -116,10 +116,13 @@ function ChanceGlyph() {
 
 /** A sword: a move that does its job by force. */
 function ForceGlyph() {
+  // The score runs from the tip to 1/φ of the way down the blade (tip at y=-38, crossguard at y=15) and ends in a
+  // sharp point.
   return (
     <svg className="glyph" viewBox="-40 -40 80 80" aria-hidden="true">
       <g transform="rotate(40)" fill="currentColor">
-        <path d="M-4,-36 L4,-36 L5,14 L0,20 L-5,14 Z" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinejoin="round" />
+        <path d="M0,-38 L4,-31 L5,14 L0,20 L-5,14 L-4,-31 Z" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinejoin="miter" strokeMiterlimit="8" />
+        <path d="M-0.6,-38 L0.6,-38 L0.6,-9.24 L0,-5.24 L-0.6,-9.24 Z" />
         <rect x="-16" y="15" width="32" height="5" rx="2.5" />
         <rect x="-3" y="20" width="6" height="12" />
         <circle cy="35" r="4.5" />
@@ -128,30 +131,69 @@ function ForceGlyph() {
   )
 }
 
-/** Two forearms clasped, each hand round the other's wrist: the two kinds of move joined. */
+/** Two hands locked in an arm-wrestler's grip, as a line drawing: the two kinds of move joined. */
 function ReunionGlyph() {
-  // The arms come in from the sides, off the edge of the frame, and cross at the wrists in the middle. Each forearm
-  // narrows from elbow to wrist and has a bracer. The left arm lies on top: its fist closes over the crossing, thumb
-  // up. The right arm is its mirror, underneath, so its fist is tucked under the left wrist with only its edges showing.
-  const arm = (
-    <g transform="translate(-52 26) rotate(-32)">
-      {/* A solid backing, so the arm hides what is under it. */}
-      <path d="M0,-8 L58,-5.5 A5.5,5.5 0 0 1 58,5.5 L0,8 Z" fill="#120c22" />
-      <path d="M0,-8 L58,-5.5 A5.5,5.5 0 0 1 58,5.5 L0,8 Z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
-      <path d="M22,-7.3 L31,-6.9 L31,6.9 L22,7.3 Z" fill="currentColor" />
-      <rect x="54" y="-10" width="17" height="20" rx="6" fill="currentColor" />
-      <rect x="61" y="-14.5" width="13" height="6.5" rx="3.2" fill="currentColor" />
-      <g stroke="#120c22" strokeWidth="1.4" strokeLinecap="round">
-        <line x1="58.5" y1="-2" x2="58.5" y2="8" />
-        <line x1="62.5" y1="-2" x2="62.5" y2="8" />
-        <line x1="66.5" y1="-2" x2="66.5" y2="8" />
-      </g>
-    </g>
+  // Drawn in the left man's frame: x runs up his forearm from the elbow, +y is his little-finger side. We see the back
+  // of his hand, with three slits where his fingers start before they turn away behind the grip. The right man's hand
+  // is behind it: only his fingers show, coming round the far edge with their tips on the back of the left man's hand,
+  // and his thumb, folded over the left man's thumb and lying across his own fingers. His forearm passes behind the
+  // left man's. Hidden lines are cut out with masks, leaving a small gap, so nothing needs a fill.
+  const id = useId().replace(/:/g, '')
+  const frame = 'translate(0 16) rotate(-62)'
+  const hand = 'M-60,-7.5 L0,-6 Q3,-7.5 8.2,-11.7 L22,-16.5 Q24.6,-15.3 25.5,-8.7 Q25.1,1 22.7,2 L0,6 L-60,7.5'
+  const fingers =
+    'M18.5,-13.6 L18.5,-17.8 Q18.5,-20.8 15.5,-20.8 L6,-13.6 Q3,-13.6 3,-10.6 L3,-6.4 ' +
+    'A1.94,1.94 0 0 0 6.9,-9.2 A1.94,1.94 0 0 0 10.8,-11 A1.94,1.94 0 0 0 14.6,-12.3 A1.94,1.94 0 0 0 18.5,-13.6 Z'
+  const thumb =
+    'M22.8,-17.2 Q22.8,-18.4 21.6,-18.4 L20.6,-18.4 A2.13,2.13 0 0 0 20.6,-14.1 L21.6,-14.1 Q22.8,-14.1 22.8,-15.3 Z'
+  const line = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.86, strokeLinejoin: 'round', strokeLinecap: 'round' } as const
+  // A mask cut is the shape plus a stroke wide enough to leave a gap round the line in front.
+  const cut = { fill: 'black', stroke: 'black', strokeWidth: 4.14, strokeLinejoin: 'round' } as const
+  const mask = (name: string, shapes: ReactNode) => (
+    <mask id={`${id}-${name}`} maskUnits="userSpaceOnUse" x="-60" y="-60" width="120" height="120">
+      <rect x="-60" y="-60" width="120" height="120" fill="white" />
+      <g transform={frame}>{shapes}</g>
+    </mask>
   )
   return (
     <svg className="glyph" viewBox="-40 -40 80 80" aria-hidden="true">
-      <g transform="scale(-1 1)">{arm}</g>
-      {arm}
+      <g transform="scale(1.4)">
+        {mask(
+          'front',
+          <g {...cut}>
+            <path d={`${hand} Z`} />
+            <path d={fingers} />
+            <path d={thumb} />
+          </g>,
+        )}
+        {mask(
+          'grip',
+          <g {...cut}>
+            <path d={fingers} />
+            <path d={thumb} />
+          </g>,
+        )}
+        {mask('thumb', <path d={thumb} fill="black" />)}
+        {/* The right man's forearm, behind everything else. */}
+        <g mask={`url(#${id}-front)`}>
+          <path d="M-60,-7.5 L8,-6 M8,6 L-60,7.5" transform={`translate(7 0) scale(-1 1) ${frame}`} {...line} />
+        </g>
+        {/* The left man's arm and the back of his hand, with the slits where his fingers start. */}
+        <g mask={`url(#${id}-grip)`}>
+          <g transform={frame} {...line}>
+            <path d={hand} />
+            <path d="M23.4,-8.7 l-3.2,0 M23.4,-4.7 l-3.2,0 M22.4,-0.6 l-3.2,0" />
+          </g>
+        </g>
+        {/* The right man's fingers, and his thumb lying over them. */}
+        <g mask={`url(#${id}-thumb)`}>
+          <g transform={frame} {...line}>
+            <path d={fingers} />
+            <path d="M6.9,-13.8 L6.9,-9.6 M10.8,-15.6 L10.8,-11.4 M14.6,-17 L14.6,-12.7" />
+          </g>
+        </g>
+        <path d={thumb} transform={frame} {...line} />
+      </g>
     </svg>
   )
 }
@@ -190,10 +232,10 @@ export default function Home() {
       </Hero>
 
       <main>
-        {/* The night goes on below the hero, one stretch of sky and ridges per section, with sparks drifting through
-            all of it, down to a campfire on the ground the footer stands on. Each layer moves at its own speed, for parallax: the sky,
-            the ridges, three sizes of ember with the campfire among the largest, the sections, and a few large
-            embers in front. */}
+        {/* The night goes on below the hero, one stretch of sky and ridges per section, down to a campfire on the
+            ground the footer stands on. Each layer moves at its own speed, for parallax: the sky, the ridges, the
+            campfire and the sections. The campfire's embers rise through all of it, each at its own distance, some
+            behind the sections and some in front. */}
         <div className="world" ref={world}>
           <div className="world-backdrop" aria-hidden="true">
             {/* Each strip has one panel per section and one for the footer, in their order. */}
@@ -230,15 +272,14 @@ export default function Home() {
             </div>
           </div>
           <div className="world-embers">
-            <Embers count={44} bands={BACK_EMBERS} className="world-embers-canvas" />
+            <EmberField side="back" className="world-embers-canvas" />
           </div>
           <div className="world-embers front">
-            <Embers count={5} bands={FRONT_EMBERS} className="world-embers-canvas" />
+            <EmberField side="front" className="world-embers-canvas" />
           </div>
           <section className="realm" id="routines">
             <div className="wrap">
               <h2>Two routines worth learning</h2>
-              <p className="intro">Use the first after every game. Use the second when a deck is new or sorted, or when you don&rsquo;t know where it&rsquo;s been.</p>
               <div className="rec-grid">
                 {RECOMMENDATIONS.map((card) => (
                   <article key={card.name} className="block rec">
@@ -247,11 +288,6 @@ export default function Home() {
                       <Cost moves={card.moves} />
                     </div>
                     <p className="block-sub">{card.name}</p>
-                    {card.when && (
-                      <p className="when">
-                        <b>Use on</b> {card.when}
-                      </p>
-                    )}
                     <p>{card.blurb}</p>
                     <Link className="card-cta" to="/simulator">
                       Test it in the simulator

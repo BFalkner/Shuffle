@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { kindle } from './embers/field'
 import { SPEED, startFooterParallax } from './parallax'
 
 const W = 1600
@@ -19,19 +20,30 @@ const TONGUES = [
   { x: -2, height: 40, width: 10, className: 'inner' },
 ]
 
-const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
 /**
  * A campfire on a black ridge just above the footer, and the dark ground below it that the footer stands on. It goes
- * inside the footer, behind its text. It moves at the large embers' speed, nearer than everything but the content, so
- * as the footer comes up the fire sinks into place. The fire throws sparks that rise into the embers above, and its
- * light falls on the ground around it.
+ * inside the footer, behind its text. It is a little farther away than the content, so it scrolls a little slower, and
+ * as the footer comes up the fire sinks into place. Its light falls on the ground around it, and it throws the embers
+ * that rise up the whole page.
  */
 export default function Campfire() {
   const layer = useRef<HTMLDivElement>(null)
-  const sparks = useRef<HTMLCanvasElement>(null)
-  useEffect(() => startFooterParallax(layer.current!, layer.current!.parentElement!, SPEED.largeEmbers), [])
-  useEffect(() => (reducedMotion() ? undefined : startSparks(sparks.current!, layer.current!)), [])
+  const coals = useRef<SVGEllipseElement>(null)
+  useEffect(() => startFooterParallax(layer.current!, layer.current!.parentElement!, SPEED.campfire), [])
+  // The fire's base is the middle of its coals. The parallax lifts the layer until the page reaches the bottom, so take
+  // the lift back off to find where it rests.
+  useEffect(
+    () =>
+      kindle({
+        depth: SPEED.campfire,
+        base: () => {
+          const box = coals.current!.getBoundingClientRect()
+          const lift = new DOMMatrixReadOnly(getComputedStyle(layer.current!).transform).m42
+          return { x: box.left + box.width / 2 + window.scrollX, y: box.top + box.height / 2 - lift + window.scrollY }
+        },
+      }),
+    [],
+  )
 
   return (
     <div className="campfire" ref={layer} aria-hidden="true">
@@ -56,7 +68,7 @@ export default function Campfire() {
         <path className="campfire-ridge" d={`M0,196 Q300,184 600,190 T1000,176 Q1100,160 1170,151 Q${FIRE.x},144 1290,152 Q1380,164 1460,180 Q1530,190 ${W},186 L${W},${H} L0,${H} Z`} />
         <ellipse className="campfire-glow" cx={FIRE.x} cy={FIRE.y + 8} rx="320" ry="44" fill="url(#campfire-ground)" />
         <g className="campfire-fire" transform={`translate(${FIRE.x},${FIRE.y})`}>
-          <ellipse className="campfire-coals" cx="0" cy="2" rx="52" ry="9" filter="url(#campfire-blur)" />
+          <ellipse className="campfire-coals" ref={coals} cx="0" cy="2" rx="52" ry="9" filter="url(#campfire-blur)" />
           <g className="campfire-logs">
             <rect x="-56" y="-9" width="112" height="16" rx="7" transform="rotate(-13)" />
             <rect x="-56" y="-9" width="112" height="16" rx="7" transform="rotate(15)" />
@@ -68,113 +80,6 @@ export default function Campfire() {
         </g>
       </svg>
       <div className="campfire-foot" />
-      {/* After the fire, so the sparks fly in front of the flames. */}
-      <canvas className="campfire-sparks" ref={sparks} />
     </div>
   )
-}
-
-/** sparks thrown a second */
-const SPARK_RATE = 22
-/** the canvas the sparks fly in, centred over the fire, px */
-const SPARK_FIELD = { width: 900, height: 900 }
-
-/**
- * Sparks thrown up from the fire. They rise fast and slow down, drift on the air, and cool from white-gold to red as
- * they climb, then go out. The canvas sits in the campfire's layer, so it moves with the fire, and runs only while it
- * is on screen.
- */
-function startSparks(canvas: HTMLCanvasElement, layer: HTMLElement): () => void {
-  const context = canvas.getContext('2d')!
-  const scale = Math.min(2, window.devicePixelRatio || 1)
-  canvas.width = SPARK_FIELD.width * scale
-  canvas.height = SPARK_FIELD.height * scale
-  context.setTransform(scale, 0, 0, scale, 0, 0)
-  const fire = layer.querySelector<SVGElement>('.campfire-fire')!
-
-  // Where the flames are in the canvas: the canvas is placed so its bottom centre is at the fire's base.
-  let flameWidth = 40
-  let flameHeight = 100
-  const place = () => {
-    const layerBox = layer.getBoundingClientRect()
-    const fireBox = fire.getBoundingClientRect()
-    flameWidth = fireBox.width * 0.5
-    flameHeight = fireBox.height
-    canvas.style.left = `${(fireBox.left - layerBox.left + fireBox.width / 2 - SPARK_FIELD.width / 2).toFixed(0)}px`
-    canvas.style.top = `${(fireBox.bottom - layerBox.top - SPARK_FIELD.height).toFixed(0)}px`
-  }
-
-  type Spark = { x: number; y: number; velocityX: number; velocityY: number; size: number; age: number; life: number; phase: number }
-  let sparks: Spark[] = []
-  const throwSpark = (): Spark => {
-    const roll = Math.random()
-    return {
-      x: SPARK_FIELD.width / 2 + (Math.random() - 0.5) * flameWidth,
-      y: SPARK_FIELD.height - flameHeight * (0.3 + Math.random() * 0.4),
-      velocityX: (Math.random() - 0.5) * 1.2,
-      velocityY: -(2 + Math.random() * 3),
-      // mostly small sparks, some medium, a few large
-      size: roll < 0.6 ? 0.7 + Math.random() * 0.7 : roll < 0.9 ? 1.4 + Math.random() * 0.9 : 2.6 + Math.random() * 1.2,
-      age: 0,
-      life: 90 + Math.random() * 150,
-      phase: Math.random() * Math.PI * 2,
-    }
-  }
-
-  let frame = 0
-  let running = false
-  let owed = 0
-  let last = 0
-  const draw = (time: number) => {
-    const elapsed = last ? Math.min(100, time - last) : 16
-    last = time
-    owed += (SPARK_RATE * elapsed) / 1000
-    const due = Math.floor(owed)
-    owed -= due
-    // Sparks that have burned out or flown off the top are gone.
-    sparks = [...sparks.filter((spark) => spark.age < spark.life && spark.y > 0), ...Array.from({ length: due }, throwSpark)]
-
-    context.clearRect(0, 0, SPARK_FIELD.width, SPARK_FIELD.height)
-    context.globalCompositeOperation = 'lighter'
-    sparks.forEach((spark) => {
-      spark.age++
-      // The heat's lift dies away, and the air pushes the spark from side to side.
-      spark.velocityY *= 0.985
-      spark.velocityX += Math.sin(time / 500 + spark.phase) * 0.03
-      spark.x += spark.velocityX
-      spark.y += spark.velocityY
-      const cooled = spark.age / spark.life
-      const light = (1 - cooled) * Math.min(1, spark.age / 8)
-      const green = Math.round(230 - cooled * 160)
-      const blue = Math.round(160 - cooled * 140)
-      const reach = spark.size * 3.5
-      const gradient = context.createRadialGradient(spark.x, spark.y, 0, spark.x, spark.y, reach)
-      gradient.addColorStop(0, `rgba(255, ${green}, ${blue}, ${light})`)
-      gradient.addColorStop(0.3, `rgba(255, ${green - 60}, ${Math.max(0, blue - 60)}, ${light * 0.5})`)
-      gradient.addColorStop(1, 'rgba(255, 90, 30, 0)')
-      context.fillStyle = gradient
-      context.fillRect(spark.x - reach, spark.y - reach, reach * 2, reach * 2)
-    })
-    frame = requestAnimationFrame(draw)
-  }
-
-  const observer = new IntersectionObserver(([entry]) => {
-    if (entry.isIntersecting && !running) {
-      running = true
-      last = 0
-      frame = requestAnimationFrame(draw)
-    } else if (!entry.isIntersecting && running) {
-      running = false
-      cancelAnimationFrame(frame)
-    }
-  })
-  observer.observe(canvas)
-  const resize = new ResizeObserver(place)
-  resize.observe(layer)
-  place()
-  return () => {
-    observer.disconnect()
-    resize.disconnect()
-    cancelAnimationFrame(frame)
-  }
 }

@@ -81,13 +81,18 @@
   height: 100%;
 }
 
+/* The embers behind the copy go over the fade at the hero's foot, so they carry on unbroken into the sections. */
 .home .embers {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: -1;
+  z-index: 0;
   pointer-events: none;
+}
+
+.home .embers.front {
+  z-index: 2;
 }
 
 .home .hero::after {
@@ -396,8 +401,8 @@
   margin: 0.7rem 0 2.6rem;
 }
 
-/* Below the hero: one stacking context, so the backdrop (z -2) sits under the sparks (z -1), and both sit under the
-   content. */
+/* Below the hero: one stacking context, so the backdrop and the campfire (z -2) sit under the embers behind the
+   content (z -1), and all of them under the content. */
 .home .world {
   position: relative;
   isolation: isolate;
@@ -410,7 +415,7 @@
   pointer-events: none;
 }
 
-/* One screen of sparks that stays put while the sections scroll past behind it. */
+/* One screen of embers that stays put while the sections scroll past behind it. */
 .home .world-embers-canvas {
   position: sticky;
   top: 0;
@@ -489,14 +494,14 @@
 }
 
 /* The campfire on its ridge, standing on the footer's top edge, with its ground filling the footer. parallax.ts lifts
-   it while the footer comes up. */
+   it while the footer comes up. It is behind the embers, which rise out of its flames. */
 .home .campfire {
   position: absolute;
   top: calc(var(--campfire-drop) - var(--campfire-height));
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: -1;
+  z-index: -2;
   display: flex;
   flex-direction: column;
   pointer-events: none;
@@ -513,14 +518,6 @@
   width: 100%;
   height: var(--campfire-height);
   overflow: visible;
-}
-
-/* Campfire.tsx places this over the fire. It is wider and taller than the fire, so the sparks have room to fly. */
-.home .campfire-sparks {
-  position: absolute;
-  z-index: 2;
-  width: 900px;
-  height: 900px;
 }
 
 /* The ridge carried on down to the bottom of the page, the same black, so the footer stands on one piece of ground.
@@ -636,12 +633,6 @@
   font-style: italic;
 }
 
-.home .block .when b {
-  font-family: var(--display);
-  font-size: 0.85rem;
-  color: var(--gilt);
-}
-
 /* Pips: the simulator's move tokens, a disc lit from the top left. */
 .home .pip {
   --pip-ink: #f6eedb;
@@ -712,7 +703,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2.4rem;
   max-width: 1020px;
-  margin: 0 auto;
+  margin: 2.6rem auto 0;
 }
 
 .home .card-cta {
