@@ -171,8 +171,12 @@ export default function Home() {
       </p>
       <p className="opsintro">
         Combining them covers each move&rsquo;s weakness. Mashes before the forced move mean it works on an order nobody knows, and mashes after it
-        scatter its fixed result. From a played deck, 2 mashes, a half overhand of each half and 3 mashes left the top and bottom cards near their ends
-        no more often than a random deck does. That routine passed every test in 127 of 200 runs, and seven plain mashes passed in 3.
+        scatter its fixed result. From a played deck, the between-games routine left the old top card in the top five in 5% of games, as often as a
+        random deck. The half overhand doesn&rsquo;t touch the bottom half, so the old bottom card stayed in the bottom five in 15%.
+      </p>
+      <p className="opsintro">
+        Overhanding both halves fixes that. With 2 mashes, a half overhand of each half and 3 mashes, both end cards stayed near their ends no more
+        often than in a random deck. That routine passed every test in 127 of 200 runs, and seven plain mashes passed in 3.
       </p>
 
       <div className="rule" />
