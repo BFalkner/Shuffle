@@ -21,6 +21,7 @@ import { DECK_KINDS, type DeckKind } from '../src/engine/decks.ts'
 import { CATEGORIES } from '../src/engine/metrics.ts'
 import { OPS, type OpKey } from '../src/engine/moves.ts'
 import { OP_COST, compressSeq, parseRoutine } from '../src/engine/routines.ts'
+import { byTotal, costOf } from '../src/engine/tree.ts'
 import type { Message, RunResult, RunTask, Settings, TreeResult, TreeTask } from './search-worker.ts'
 
 const { values } = parseArgs({
@@ -60,7 +61,6 @@ const fromDecks = kinds.length === allKinds.length ? 'from each starting deck' :
 // The cut isn't searched yet. At half a unit it multiplies the routines to score: up to 7 units, 169,175 instead of
 // 5,793, about 29 times as long. Name routines with C in them with --routine to test them.
 const moves = (Object.keys(OPS) as OpKey[]).filter((op) => op !== 'cut')
-const costOf = (seq: OpKey[]) => seq.reduce((total, op) => total + OP_COST[op], 0)
 const label = (seq: OpKey[]) => `${compressSeq(seq)} (${costOf(seq)}u)`
 
 const named = values.routine?.map(parseRoutine)
@@ -70,12 +70,21 @@ const named = values.routine?.map(parseRoutine)
  * Together they cover every routine within the cost limit once. The cheapest prefixes have the most routines under
  * them, so they go first and the pool ends on small tasks.
  */
-function stageOneTasks(): TreeTask[] {
+function stageOneTasks(keep: number): TreeTask[] {
   const single = moves.filter((op) => OP_COST[op] <= maxCost)
   const pairs = single.flatMap((first) => single.filter((op) => OP_COST[first] + OP_COST[op] <= maxCost).map((second) => [first, second]))
-  return [...pairs.map((seq) => ({ seq, descend: true })), ...single.map((op) => ({ seq: [op], descend: false }))].toSorted(
+  return [...pairs.map((seq) => ({ seq, descend: true, keep })), ...single.map((op) => ({ seq: [op], descend: false, keep }))].toSorted(
     (a, b) => costOf(a.seq) - costOf(b.seq),
   )
+}
+
+/** How many routines cost at most `budget`: each move that fits, alone or followed by any routine of what's left. */
+const counted = new Map<number, number>()
+function routineCount(budget: number): number {
+  if (!counted.has(budget)) {
+    counted.set(budget, moves.filter((op) => OP_COST[op] <= budget).reduce((total, op) => total + 1 + routineCount(budget - OP_COST[op]), 0))
+  }
+  return counted.get(budget)!
 }
 
 const settings: Settings = { seed: values.seed, from, deckSize, maxCost, moves, raceDecks }
@@ -87,27 +96,36 @@ workers.forEach((worker) =>
   }),
 )
 
-/** Run tasks on the workers, each worker taking the next task when it finishes one. Results come back in task order. */
-function runOnPool<Result>(job: Message['job'], tasks: Message['task'][]): Promise<Result[]> {
-  const results: Result[] = new Array(tasks.length)
+/**
+ * Run tasks on the workers, each worker taking the next task when it finishes one, and call `onResult` with each result
+ * as it arrives, with the index of its task.
+ */
+function runTasks<Result>(job: Message['job'], tasks: Message['task'][], onResult: (result: Result, index: number) => void): Promise<void> {
   let next = 0
   let done = 0
   return new Promise((resolve) => {
-    if (tasks.length === 0) return resolve(results)
+    if (tasks.length === 0) return resolve()
     const feed = (worker: Worker) => {
       if (next >= tasks.length) return
       const index = next++
       worker.once('message', (result: Result) => {
-        results[index] = result
+        onResult(result, index)
         done++
         progress(done, tasks.length)
-        if (done === tasks.length) resolve(results)
+        if (done === tasks.length) resolve()
         else feed(worker)
       })
       worker.postMessage({ job, task: tasks[index] } as Message)
     }
     workers.forEach(feed)
   })
+}
+
+/** Run tasks on the workers and collect the results in task order. */
+async function runOnPool<Result>(job: Message['job'], tasks: Message['task'][]): Promise<Result[]> {
+  const results: Result[] = new Array(tasks.length)
+  await runTasks<Result>(job, tasks, (result, index) => (results[index] = result))
+  return results
 }
 
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length
@@ -200,11 +218,14 @@ async function search(): Promise<Ranked[]> {
   // first few starting decks, and only the best go on to a full run. A reading on fewer decks isn't a true level (even a
   // random deck reads above 0), so the first round only ranks, and its numbers aren't printed.
   console.log(`Stage 1: every routine costing up to ${maxCost} units, one run each from the ${from} deck (${deckSize} cards), on ${workerCount} workers.`)
-  const byTotal = (a: { seq: OpKey[]; total: number }, b: { seq: OpKey[]; total: number }) => a.total - b.total || costOf(a.seq) - costOf(b.seq)
-  const raced = (await runOnPool<TreeResult>('tree', stageOneTasks())).flat().toSorted(byTotal)
-  const keep = Math.min(raced.length, Math.max(Math.ceil(raced.length * raceKeep), 4 * leaderCount))
+  const routines = routineCount(maxCost)
+  const keep = Math.min(routines, Math.max(Math.ceil(routines * raceKeep), 4 * leaderCount))
+  // Each task sends back its best `keep`, and they join the best so far as they arrive, so the main thread never holds
+  // more than twice `keep`, however many routines there are.
+  let raced: TreeResult = []
+  await runTasks<TreeResult>('tree', stageOneTasks(keep), (best) => (raced = [...raced, ...best].toSorted(byTotal).slice(0, keep)))
   clearProgress()
-  console.log(`  ${raced.length} routines read on ${raceDecks} decks in ${elapsed()}. The best ${keep} go on to a full run.`)
+  console.log(`  ${routines} routines read on ${raceDecks} decks in ${elapsed()}. The best ${keep} go on to a full run.`)
   const survivors = raced.slice(0, keep).map(({ seq }) => seq)
   const fullTasks = Array.from({ length: Math.ceil(survivors.length / 16) }, (_, index) => ({ seqs: survivors.slice(index * 16, index * 16 + 16) }))
   const scored = (await runOnPool<TreeResult>('full', fullTasks)).flat().toSorted(byTotal)

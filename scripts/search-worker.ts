@@ -9,7 +9,7 @@ import { OPS, type Deck, type OpKey } from '../src/engine/moves.ts'
 import { compressSeq } from '../src/engine/routines.ts'
 import { hash, seed } from '../src/engine/seeded.ts'
 import { T_TOTAL, computeResult, scoreDecks, scoreResult } from '../src/engine/simulate.ts'
-import { walkRoutines } from '../src/engine/tree.ts'
+import { byTotal, walkRoutines, type ScoredRoutine } from '../src/engine/tree.ts'
 
 export interface Settings {
   seed: string
@@ -21,12 +21,17 @@ export interface Settings {
   raceDecks: number
 }
 
-/** Stage 1, first round: score `seq`, and with `descend` every routine that extends it within the cost limit. */
+/**
+ * Stage 1, first round: score `seq`, and with `descend` every routine that extends it within the cost limit. Only the
+ * best `keep` come back. The best `keep` overall are always among the best `keep` of each task, so nothing is lost, and
+ * the main thread never holds every routine.
+ */
 export interface TreeTask {
   seq: OpKey[]
   descend: boolean
+  keep: number
 }
-export type TreeResult = { seq: OpKey[]; total: number }[]
+export type TreeResult = ScoredRoutine[]
 
 /** Stage 1, second round: score each routine on all of stage 1's starting decks. */
 export interface FullTask {
@@ -66,12 +71,12 @@ function stageOneStarts(): Deck[] {
   return starts
 }
 
-function scoreTree({ seq, descend }: TreeTask): TreeResult {
+function scoreTree({ seq, descend, keep }: TreeTask): TreeResult {
   const from = stageOneStarts().slice(0, settings.raceDecks)
   const scored: TreeResult = []
   seedFrom(`tree ${compressSeq(seq)}`)
   walkRoutines(from, seq, settings.moves, settings.maxCost, descend, (routine, decks) => scored.push({ seq: routine, total: scoreDecks(decks, from).total }))
-  return scored
+  return scored.toSorted(byTotal).slice(0, keep)
 }
 
 /** Deal each routine on its own from all of stage 1's starting decks, seeded by the routine, and score it. */
