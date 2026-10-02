@@ -1,6 +1,6 @@
 """Can a random forest tell a routine's decks from truly random ones?
 
-For each routine, scripts/forest-features.ts shuffles many decks from sorted and writes 38 features per deck. This
+For each routine and starting deck, scripts/forest-features.ts shuffles many decks and writes 38 features per deck. This
 script trains a random forest to separate those decks from truly random ones and reports its accuracy under 5-fold
 cross-validation, so every deck is tested once by a forest that never saw it. 50% means the forest can't tell them
 apart. A control compares two sets of truly random decks, which shows how high the forest reads by chance. A logistic
@@ -8,12 +8,16 @@ regression on the same features is reported alongside as a simpler baseline.
 
 Requires scikit-learn and numpy (pip install -r scripts/requirements.txt).
 
-Usage: python scripts/forest.py --routine "M×12" --routine "M×5·P·M×5" [--decks 50000] [--trees 300] [--jobs 8]
+Usage: python scripts/forest.py --routine "M×12" --routine "M×5·P·M×5" [--from sorted,played] [--decks 50000] [--trees 300] [--jobs n]
+
+The decks are seeded from --seed, so the same options give the same accuracies. Run one at a time: two forests
+training at once took about 2.6 times as long as the same two in turn.
 """
 
 import argparse
 import json
 import math
+import os
 import subprocess
 import sys
 import time
@@ -36,16 +40,17 @@ def parse_args():
     parser.add_argument("--folds", type=int, default=5)
     parser.add_argument("--trees", type=int, default=300)
     parser.add_argument("--leaf", type=int, default=20, help="minimum decks per leaf; keeps trees small (default 20)")
-    parser.add_argument("--jobs", type=int, default=8, help="parallel jobs for the forest (default 8)")
-    parser.add_argument("--seed", type=int, default=0, help="seed for the folds and the forest (default 0)")
+    parser.add_argument("--from", dest="starts", default="sorted", help="starting decks, comma-separated (default sorted)")
+    parser.add_argument("--jobs", type=int, default=os.cpu_count(), help="parallel jobs for the forest (default: every processor)")
+    parser.add_argument("--seed", type=int, default=0, help="seed for the decks, the folds and the forest (default 0)")
     parser.add_argument("--out", default="logs/forest", help="folder for the feature files and results (default logs/forest)")
     return parser.parse_args()
 
 
-def make_features(label, args_for_node, decks, out_dir):
+def make_features(label, args_for_node, decks, out_dir, seed):
     """Run the TypeScript feature script and load its CSV."""
     path = out_dir / f"{label}.csv"
-    command = ["node", str(ROOT / "scripts" / "forest-features.ts"), *args_for_node, "--decks", str(decks), "--out", str(path)]
+    command = ["node", str(ROOT / "scripts" / "forest-features.ts"), *args_for_node, "--decks", str(decks), "--out", str(path), "--seed", str(seed)]
     subprocess.run(command, check=True, cwd=ROOT)
     with open(path, encoding="utf-8") as handle:
         header = handle.readline().strip().split(",")
@@ -110,16 +115,21 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
     started = time.time()
 
-    print(f"Making {args.decks} decks per set: two truly random sets, then each routine from sorted.")
-    header, random_a = make_features("random_a", ["--random"], args.decks, out_dir)
-    _, random_b = make_features("random_b", ["--random"], args.decks, out_dir)
-    results = [compare("Control: random vs random", random_a, random_b, header, args)]
+    starts = [start.strip() for start in args.starts.split(",")]
+    # Each set of decks gets its own seed, so adding a routine doesn't change the others' decks.
+    seed_of = lambda index: args.seed * 1000 + index
+    print(f"Making {args.decks} decks per set: two truly random sets, then each routine from {' and '.join(starts)}.")
+    header, random_a = make_features("random_a", ["--random"], args.decks, out_dir, seed_of(0))
+    _, random_b = make_features("random_b", ["--random"], args.decks, out_dir, seed_of(1))
+    results = [{"routine": None, "from": None, **compare("Control: random vs random", random_a, random_b, header, args)}]
     report(results[-1])
 
     for index, routine in enumerate(args.routine):
-        _, decks = make_features(f"routine_{index}", ["--routine", routine], args.decks, out_dir)
-        results.append(compare(f"{routine} vs random", decks, random_b, header, args))
-        report(results[-1])
+        for offset, start in enumerate(starts):
+            set_index = 2 + index * len(starts) + offset
+            _, decks = make_features(f"routine_{index}_{start}", ["--routine", routine, "--from", start], args.decks, out_dir, seed_of(set_index))
+            results.append({"routine": routine, "from": start, **compare(f"{routine} from {start} vs random", decks, random_b, header, args)})
+            report(results[-1])
 
     summary = {"options": vars(args), "features": header, "seconds": round(time.time() - started), "results": results}
     (out_dir / "results.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")

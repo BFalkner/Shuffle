@@ -163,18 +163,24 @@ The search runs on one worker thread per processor (`--workers` sets the
 number) and seeds every run from `--seed`, so the same options print the
 same numbers on any machine. Stage 1 reads every routine on 300 decks
 first and gives only the best 5% a full run (`--race-decks`,
-`--race-keep`).
+`--race-keep`). Add `--forest` to run `scripts/forest.py` on the
+finalists after stage 3, from each starting deck. It takes about a minute
+per comparison and adds the results to the JSON. It doesn't change the
+ranking.
 
 `scripts/forest.py` asks whether a random forest can tell a routine's decks
 from truly random ones. It needs Python with scikit-learn and numpy
-(`pip install -r scripts/requirements.txt`). For each routine,
-`scripts/forest-features.ts` shuffles decks from sorted with the engine and
+(`pip install -r scripts/requirements.txt`). For each routine and starting
+deck, `scripts/forest-features.ts` shuffles decks with the engine and
 writes 38 features per deck: the per-deck measures of the old test battery
 (`scripts/forest-measures.ts`), old-neighbour distances,
-and where tracked cards ended up. The forest's accuracy
+and where the cards from tracked starting places ended up. As in the
+engine, order and old neighbours go by card number, and positions go by
+starting place. The forest's accuracy
 comes from 5-fold cross-validation, next to a random-against-random control
 and a logistic regression on the same features. Run it with
-`python scripts/forest.py --routine "M×12" --routine "M×5·P·M×5"`. Results
+`python scripts/forest.py --routine "M×12" --routine "M×5·P·M×5" --from sorted,played`.
+It uses every processor and seeds its decks from `--seed`. Results
 go to `logs/forest/results.json`.
 
 The other precomputed data (the chart series, the move demos and the

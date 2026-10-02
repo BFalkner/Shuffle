@@ -1,7 +1,7 @@
 // Recommendation search: score every routine up to a cost limit, then rerun the leaders from every starting deck.
 // This reproduces the numbers behind the home page recommendations and footnote.
 //
-// Usage: npm run search -- [--max-cost 7] [--from played] [--size 99] [--leaders 32] [--leader-runs 5] [--finalists 6] [--final-runs 200] [--decks played] [--json file] [--workers n] [--seed text] [--race-decks 300] [--race-keep 0.05]
+// Usage: npm run search -- [--max-cost 7] [--from played] [--size 99] [--leaders 32] [--leader-runs 5] [--finalists 6] [--final-runs 200] [--decks played] [--json file] [--workers n] [--seed text] [--race-decks 300] [--race-keep 0.05] [--forest] [--python python]
 //        npm run search -- --routine "M×4·P·M×4" [--routine M×8 ...] [--final-runs 200]   (skip the search, test these)
 //
 // --decks limits which starting decks are run and ranked (comma-separated). A routine is ranked by its weakest listed
@@ -13,8 +13,13 @@
 // Stage 1 deals every routine from the same starting decks, and routines that share a prefix share the decks dealt
 // through it. Every task seeds its own random numbers from --seed and its description, so the same options give the
 // same output, whatever the number of workers.
-import { execSync } from 'node:child_process'
-import { writeFileSync } from 'node:fs'
+//
+// --forest runs scripts/forest.py on the finalists after stage 3: a random forest trained on 50,000 decks of each
+// finalist from each starting deck against truly random ones, one comparison at a time on every processor. It takes
+// about 48 s per comparison and doesn't change the ranking. It needs Python with scikit-learn (--python names the
+// interpreter), and writes its files to logs/forest-search.
+import { execSync, spawnSync } from 'node:child_process'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { availableParallelism, cpus } from 'node:os'
 import { parseArgs } from 'node:util'
 import { Worker } from 'node:worker_threads'
@@ -25,6 +30,7 @@ import { OPS, type OpKey } from '../src/engine/moves.ts'
 import { OP_COST, compressSeq, parseRoutine } from '../src/engine/routines.ts'
 import { byTotal, costOf } from '../src/engine/tree.ts'
 import { noiseLevel } from '../src/engine/scoring.ts'
+import { hash } from '../src/engine/seeded.ts'
 import { ENGINE_FINGERPRINT, ENGINE_VERSION } from '../src/engine/version.ts'
 import type { Message, RunResult, RunTask, Settings, TreeResult, TreeTask } from './search-worker.ts'
 
@@ -44,6 +50,8 @@ const { values } = parseArgs({
     seed: { type: 'string', default: '1' },
     'race-decks': { type: 'string', default: '300' },
     'race-keep': { type: 'string', default: '0.05' },
+    forest: { type: 'boolean', default: false },
+    python: { type: 'string', default: 'python' },
   },
 })
 const maxCost = Number(values['max-cost'])
@@ -297,6 +305,21 @@ for (const { seq, perDeck, weakest, clean } of stage3) {
   console.log(`  ${label(seq)}  weakest deck total ${weakest.toFixed(3)}, clean ${clean}/${finalRuns * kinds.length}`)
   kinds.forEach((kind, i) => console.log(deckLine(kind, perDeck[i])))
 }
+
+// The forest check: one comparison at a time, each on every processor. Two forests training at once took about 2.6 times
+// as long as the same two in turn. Its seed comes from --seed, so the same options give the same accuracies.
+const forestFolder = 'logs/forest-search'
+let forest: unknown = null
+if (values.forest) {
+  console.log(`\nRandom forest: each finalist ${fromDecks} against truly random decks, about 48 s per comparison.`)
+  const forestSeed = parseInt(hash(values.seed), 16) % 1_000_000
+  const routineFlags = stage3.flatMap(({ seq }) => ['--routine', compressSeq(seq)])
+  const forestArgs = ['scripts/forest.py', ...routineFlags, '--from', kinds.join(','), '--jobs', String(workerCount), '--seed', String(forestSeed), '--out', forestFolder]
+  const ran = spawnSync(values.python, forestArgs, { stdio: 'inherit' })
+  if (ran.status !== 0) throw new Error(`scripts/forest.py failed${ran.error ? `: ${ran.error.message}` : ''}`)
+  forest = JSON.parse(readFileSync(`${forestFolder}/results.json`, 'utf8'))
+  mark('forest')
+}
 console.log(`\nFinished in ${elapsed()}.`)
 
 if (values.json) {
@@ -360,6 +383,7 @@ if (values.json) {
       workerCount,
       seed: values.seed,
       routines: named?.map(compressSeq) ?? null,
+      forest: values.forest,
     },
     // A metric is within the noise of random at or below its noise line, on the level scale.
     noiseLine: Object.fromEntries(METRICS.map((metric) => [metric.key, noiseLevel(metric, base)])),
@@ -368,6 +392,9 @@ if (values.json) {
     reference: summarise(reference),
     stage2: stage2.map(summarise),
     stage3: stage3.map(summarise),
+    // From scripts/forest.py with --forest: its options, and for each comparison the forest's and the logistic model's
+    // cross-validated accuracies with 95% intervals. null without --forest.
+    forest,
   }
   writeFileSync(values.json, JSON.stringify(output, null, 2))
   console.log(`Wrote ${values.json}.`)
