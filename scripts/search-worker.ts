@@ -1,10 +1,11 @@
-// One worker thread for search.ts. It scores whole subtrees of routines for stage 1, and single runs for stages 2 and 3.
+// One worker thread for search.ts. For stage 1 it scores whole subtrees of routines on a few decks, then single routines
+// on all the decks. For stages 2 and 3 it scores single runs.
 // Every task seeds the random numbers from its own description, so results don't depend on which worker runs it or
 // how many workers there are.
 import { parentPort, workerData } from 'node:worker_threads'
 import { randomFeatures } from '../src/engine/classifier.ts'
 import { fisher, startDeck, type DeckKind } from '../src/engine/decks.ts'
-import type { Deck, OpKey } from '../src/engine/moves.ts'
+import { OPS, type Deck, type OpKey } from '../src/engine/moves.ts'
 import { compressSeq } from '../src/engine/routines.ts'
 import { hash, seed } from '../src/engine/seeded.ts'
 import { T_TOTAL, computeResult, scoreDecks, scoreResult } from '../src/engine/simulate.ts'
@@ -16,14 +17,21 @@ export interface Settings {
   deckSize: number
   maxCost: number
   moves: OpKey[]
+  /** how many of stage 1's starting decks the first round reads */
+  raceDecks: number
 }
 
-/** Stage 1: score `seq`, and with `descend` every routine that extends it within the cost limit. */
+/** Stage 1, first round: score `seq`, and with `descend` every routine that extends it within the cost limit. */
 export interface TreeTask {
   seq: OpKey[]
   descend: boolean
 }
 export type TreeResult = { seq: OpKey[]; total: number }[]
+
+/** Stage 1, second round: score each routine on all of stage 1's starting decks. */
+export interface FullTask {
+  seqs: OpKey[][]
+}
 
 /** Stages 2 and 3: one run of `seq` from `kind`. With `perfect`, every move is a perfect shuffle, for the reference. */
 export interface RunTask {
@@ -39,7 +47,7 @@ export interface RunResult {
   level: Record<string, number>
 }
 
-export type Message = { job: 'tree'; task: TreeTask } | { job: 'run'; task: RunTask }
+export type Message = { job: 'tree'; task: TreeTask } | { job: 'full'; task: FullTask } | { job: 'run'; task: RunTask }
 
 const settings = workerData as Settings
 const seedFrom = (text: string) => seed(parseInt(hash(`${settings.seed} ${text}`), 16))
@@ -59,11 +67,21 @@ function stageOneStarts(): Deck[] {
 }
 
 function scoreTree({ seq, descend }: TreeTask): TreeResult {
-  const from = stageOneStarts()
+  const from = stageOneStarts().slice(0, settings.raceDecks)
   const scored: TreeResult = []
   seedFrom(`tree ${compressSeq(seq)}`)
   walkRoutines(from, seq, settings.moves, settings.maxCost, descend, (routine, decks) => scored.push({ seq: routine, total: scoreDecks(decks, from).total }))
   return scored
+}
+
+/** Deal each routine on its own from all of stage 1's starting decks, seeded by the routine, and score it. */
+function scoreFull({ seqs }: FullTask): TreeResult {
+  const from = stageOneStarts()
+  return seqs.map((seq) => {
+    seedFrom(`full ${compressSeq(seq)}`)
+    const decks = seq.reduce((dealt, op) => dealt.map((deck) => OPS[op](deck)), from)
+    return { seq, total: scoreDecks(decks, from).total }
+  })
 }
 
 function scoreRun({ seq, kind, run, perfect }: RunTask): RunResult {
@@ -77,5 +95,7 @@ function scoreRun({ seq, kind, run, perfect }: RunTask): RunResult {
 }
 
 parentPort!.on('message', (message: Message) => {
-  parentPort!.postMessage(message.job === 'tree' ? scoreTree(message.task) : scoreRun(message.task))
+  if (message.job === 'tree') parentPort!.postMessage(scoreTree(message.task))
+  else if (message.job === 'full') parentPort!.postMessage(scoreFull(message.task))
+  else parentPort!.postMessage(scoreRun(message.task))
 })

@@ -79,13 +79,14 @@ export function scoreResult(result: MethodResult): Scored {
 
 /**
  * Score decks dealt elsewhere, such as by walkRoutines, as one step: each metric reads the first `trials` of them, and
- * each deck's starting deck is the one at the same place in `starts`. The metrics give their values in metric order, as
- * computeResult does.
+ * each deck's starting deck is the one at the same place in `starts`. Distinguishability belongs to no category, so it
+ * adds nothing to the score: it reads NaN and costs nothing. The other metrics draw no random numbers.
  */
 export function scoreDecks(decks: Deck[], starts: Deck[]): Scored {
   const deckSize = decks[0].length
   const avg = Object.fromEntries(
     METRICS.map((metric) => {
+      if (!metric.category) return [metric.key, [NaN]]
       const batch = metric.batch(deckSize)
       decks.slice(0, metric.trials).forEach((deck, trial) => batch.add(deck, starts[trial]))
       return [metric.key, [batch.value()]]

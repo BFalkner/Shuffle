@@ -204,7 +204,7 @@
 <h2 id="s9"><span class="num">9</span>Two scripts run outside the browser</h2>
 <p>You run these in a terminal with Node. They use the same engine functions as the page.</p>
 <p><code>npm run calibrate</code> produces the stored baselines. For each deck size it reads 1,000 batches of 1,200 random decks, and it seeds the random numbers so the output is the same every time. It writes the results to <code>engine/baselines.ts</code>. Distinguishability doesn't need decks for its baseline. It uses fixed values: 50% for random and 100% for sorted.</p>
-<p><code>npm run search</code> finds the routines the home page recommends. It measures only the first and last steps, which makes each run much faster. Each stage keeps fewer routines and runs each one more times. Stage 1 deals every routine from the same 1,200 starting decks, and <code>walkRoutines</code> in <code>engine/tree.ts</code> deals each shared prefix once, so a routine costs one more move and one measurement. The work runs on one worker thread per processor, and every task seeds its own random numbers, so the output doesn't depend on the number of workers.</p>
+<p><code>npm run search</code> finds the routines the home page recommends. It measures only the first and last steps, which makes each run much faster. Each stage keeps fewer routines and runs each one more times. Stage 1 deals every routine from the same 1,200 starting decks, and it races. First it reads every routine on the first 300 of those decks. <code>walkRoutines</code> in <code>engine/tree.ts</code> deals each shared prefix once, so a routine costs one more move and one measurement. Then the best 5% get a full run on all 1,200 decks. The first round only ranks the routines: on 300 decks even a random deck reads above 0, so the search doesn't print those numbers. The work runs on one worker thread per processor, and every task seeds its own random numbers, so the output doesn't depend on the number of workers.</p>
 <figure class="diagram" data-diagram="s9"></figure>
 <p class="files">Files: <code>scripts/calibrate.ts</code>, <code>scripts/search.ts</code>, <code>scripts/search-worker.ts</code>, <code>engine/tree.ts</code>. The options for the search are listed at the top of its file.</p>
 
@@ -376,7 +376,7 @@ s9: `flowchart TD
   end
   subgraph search ["npm run search"]
     direction TB
-    s1["Stage 1: every routine costing up to 7<br/>(mash 1, half overhand 1, overhand 2, pile 4)<br/>one run each from the same played decks,<br/>dealing each shared prefix once"]
+    s1["Stage 1: every routine costing up to 7<br/>(mash 1, half overhand 1, overhand 2, pile 4)<br/>every routine read on 300 played decks,<br/>then the best 5% on all 1,200"]
     s2["Stage 2: the best 32, 5 runs from each<br/>starting deck, ranked by the weakest deck"]
     s3["Stage 3: the best 6, 200 runs from each deck.<br/>Mean total, and clear runs with a 95% interval"]
     s4["Reference row: the same measurements<br/>with a perfect shuffle as the move"]

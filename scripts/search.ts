@@ -1,7 +1,7 @@
 // Recommendation search: score every routine up to a cost limit, then rerun the leaders from every starting deck.
 // This reproduces the numbers behind the home page recommendations and footnote.
 //
-// Usage: npm run search -- [--max-cost 7] [--from played] [--size 99] [--leaders 32] [--leader-runs 5] [--finalists 6] [--final-runs 200] [--decks played] [--json file] [--workers n] [--seed text]
+// Usage: npm run search -- [--max-cost 7] [--from played] [--size 99] [--leaders 32] [--leader-runs 5] [--finalists 6] [--final-runs 200] [--decks played] [--json file] [--workers n] [--seed text] [--race-decks 300] [--race-keep 0.05]
 //        npm run search -- --routine "M×4·P·M×4" [--routine M×8 ...] [--final-runs 200]   (skip the search, test these)
 //
 // --decks limits which starting decks are run and ranked (comma-separated). A routine is ranked by its weakest listed
@@ -37,6 +37,8 @@ const { values } = parseArgs({
     routine: { type: 'string', multiple: true },
     workers: { type: 'string', default: String(availableParallelism()) },
     seed: { type: 'string', default: '1' },
+    'race-decks': { type: 'string', default: '300' },
+    'race-keep': { type: 'string', default: '0.05' },
   },
 })
 const maxCost = Number(values['max-cost'])
@@ -47,6 +49,8 @@ const leaderRuns = Number(values['leader-runs'])
 const finalistCount = Number(values.finalists)
 const finalRuns = Number(values['final-runs'])
 const workerCount = Number(values.workers)
+const raceDecks = Number(values['race-decks'])
+const raceKeep = Number(values['race-keep'])
 const allKinds = DECK_KINDS.map((deckKind) => deckKind.value)
 if (!allKinds.includes(from)) throw new Error(`--from must be one of: ${allKinds.join(', ')}`)
 const kinds = values.decks ? (values.decks.split(',').map((kind) => kind.trim()) as DeckKind[]) : allKinds
@@ -74,7 +78,7 @@ function stageOneTasks(): TreeTask[] {
   )
 }
 
-const settings: Settings = { seed: values.seed, from, deckSize, maxCost, moves }
+const settings: Settings = { seed: values.seed, from, deckSize, maxCost, moves, raceDecks }
 const workers = Array.from({ length: workerCount }, () => new Worker(new URL('./search-worker.ts', import.meta.url), { workerData: settings }))
 workers.forEach((worker) =>
   worker.on('error', (error) => {
@@ -84,7 +88,7 @@ workers.forEach((worker) =>
 )
 
 /** Run tasks on the workers, each worker taking the next task when it finishes one. Results come back in task order. */
-function runOnPool<Result>(job: Message['job'], tasks: (TreeTask | RunTask)[]): Promise<Result[]> {
+function runOnPool<Result>(job: Message['job'], tasks: Message['task'][]): Promise<Result[]> {
   const results: Result[] = new Array(tasks.length)
   let next = 0
   let done = 0
@@ -192,12 +196,20 @@ const clearProgress = () => process.stdout.write('\r' + ' '.repeat(40) + '\r')
 
 /** Stages 1 and 2: score every routine from one deck, then rerun the leaders from every deck. Returns stage 2, ranked. */
 async function search(): Promise<Ranked[]> {
-  // Stage 1: one run of every routine from the chosen deck, ranked by its total.
+  // Stage 1: one run of every routine from the chosen deck, ranked by its total. It races: every routine is read on the
+  // first few starting decks, and only the best go on to a full run. A reading on fewer decks isn't a true level (even a
+  // random deck reads above 0), so the first round only ranks, and its numbers aren't printed.
   console.log(`Stage 1: every routine costing up to ${maxCost} units, one run each from the ${from} deck (${deckSize} cards), on ${workerCount} workers.`)
-  const scored = (await runOnPool<TreeResult>('tree', stageOneTasks())).flat()
-  scored.sort((a, b) => a.total - b.total || costOf(a.seq) - costOf(b.seq))
+  const byTotal = (a: { seq: OpKey[]; total: number }, b: { seq: OpKey[]; total: number }) => a.total - b.total || costOf(a.seq) - costOf(b.seq)
+  const raced = (await runOnPool<TreeResult>('tree', stageOneTasks())).flat().toSorted(byTotal)
+  const keep = Math.min(raced.length, Math.max(Math.ceil(raced.length * raceKeep), 4 * leaderCount))
   clearProgress()
-  console.log(`  ${scored.length} routines, done in ${elapsed()}. The lowest total was ${scored[0].total.toFixed(3)}, from ${label(scored[0].seq)}.`)
+  console.log(`  ${raced.length} routines read on ${raceDecks} decks in ${elapsed()}. The best ${keep} go on to a full run.`)
+  const survivors = raced.slice(0, keep).map(({ seq }) => seq)
+  const fullTasks = Array.from({ length: Math.ceil(survivors.length / 16) }, (_, index) => ({ seqs: survivors.slice(index * 16, index * 16 + 16) }))
+  const scored = (await runOnPool<TreeResult>('full', fullTasks)).flat().toSorted(byTotal)
+  clearProgress()
+  console.log(`  done in ${elapsed()}. The lowest total was ${scored[0].total.toFixed(3)}, from ${label(scored[0].seq)}.`)
 
   // Stage 2: rerun the leaders from every starting deck.
   const leaders = scored.slice(0, leaderCount)

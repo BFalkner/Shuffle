@@ -159,7 +159,9 @@ routine for one situation, limit the decks: a between-games search is
 match the footnote. The options are listed at the top of `scripts/search.ts`.
 The search runs on one worker thread per processor (`--workers` sets the
 number) and seeds every run from `--seed`, so the same options print the
-same numbers on any machine.
+same numbers on any machine. Stage 1 reads every routine on 300 decks
+first and gives only the best 5% a full run (`--race-decks`,
+`--race-keep`).
 
 `scripts/forest.py` asks whether a random forest can tell a routine's decks
 from truly random ones. It needs Python with scikit-learn and numpy
