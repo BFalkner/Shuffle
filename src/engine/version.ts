@@ -27,4 +27,4 @@
  *    readings and baselines don't change, but the category's levels, totals and clean runs can
  */
 export const ENGINE_VERSION = 11
-export const ENGINE_FINGERPRINT = 'eead305b'
+export const ENGINE_FINGERPRINT = '2619d92c'

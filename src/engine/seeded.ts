@@ -10,15 +10,20 @@ export function seed(state: number): void {
   }
 }
 
+/** Significant digits canonicalJson keeps. Node versions can round Math.exp and the like differently in the last bits. */
+const DIGITS = 10
+
 /**
  * JSON with every object's keys sorted, so the text depends only on the values, not on the order code added the keys.
- * Arrays keep their order.
+ * Arrays keep their order. Numbers are rounded to DIGITS significant digits, so the text is the same on every Node version.
  */
 export function canonicalJson(value: unknown): string {
   return JSON.stringify(value, (_key, item) =>
-    item && typeof item === 'object' && !Array.isArray(item)
-      ? Object.fromEntries(Object.keys(item).sort().map((key) => [key, (item as Record<string, unknown>)[key]]))
-      : item,
+    typeof item === 'number'
+      ? Number(item.toPrecision(DIGITS))
+      : item && typeof item === 'object' && !Array.isArray(item)
+        ? Object.fromEntries(Object.keys(item).sort().map((key) => [key, (item as Record<string, unknown>)[key]]))
+        : item,
   )
 }
 

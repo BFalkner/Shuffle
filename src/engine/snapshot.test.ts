@@ -22,8 +22,8 @@ afterAll(() => {
 })
 
 /**
- * Hash of a value's JSON, with keys sorted so only values count. Numbers print to full precision, so any change in any
- * digit changes the hash.
+ * Hash of a value's JSON, with keys sorted so only values count. Numbers keep 10 significant digits, so a change in any
+ * of those digits changes the hash, but last-bit rounding differences between Node versions don't.
  */
 const hashOf = (value: unknown) => hash(canonicalJson(value))
 
@@ -77,18 +77,18 @@ const EXPECTED: Record<string, string> = {
   'move ohr': '488b7903',
   'move ohb': '9b6eeb47',
   'move cut': 'cdf74e9f',
-  'calibrate 52 cards, 20 batches': '74690c09',
-  'M×8 from sorted': '497e1775',
-  'M×8 from played': 'd558fd1d',
-  'M×4·P·M×4 from sorted': 'fba07e52',
-  'M×4·P·M×4 from played': '55db19d7',
-  'M×3·OHt·M from sorted': '6634dbd1',
-  'M×3·OHt·M from played': '41f294cd',
-  'OH×2·OHb·M×2 from sorted': '2bcbceae',
-  'OH×2·OHb·M×2 from played': '7075b32c',
+  'calibrate 52 cards, 20 batches': '611074e1',
+  'M×8 from sorted': 'b0e94891',
+  'M×8 from played': 'a1b7d388',
+  'M×4·P·M×4 from sorted': 'd5767644',
+  'M×4·P·M×4 from played': '9c6e8881',
+  'M×3·OHt·M from sorted': '9fc6e02c',
+  'M×3·OHt·M from played': 'f210ab6a',
+  'OH×2·OHb·M×2 from sorted': '0919be24',
+  'OH×2·OHb·M×2 from played': 'f745242e',
   'metric metadata': 'ae5608a6',
-  'levels, noise and formatting': '159c2058',
-  'M×3·OHt·M from played, every step': '9e904f71',
+  'levels, noise and formatting': '9f6bb2cd',
+  'M×3·OHt·M from played, every step': 'd56293f4',
 }
 
 test('engine output matches the seeded snapshot', () => {
