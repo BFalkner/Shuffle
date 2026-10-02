@@ -5,11 +5,11 @@
 import { parentPort, workerData } from 'node:worker_threads'
 import { randomFeatures } from '../src/engine/classifier.ts'
 import { fisher, startDeck, type DeckKind } from '../src/engine/decks.ts'
-import { OPS, type Deck, type OpKey } from '../src/engine/moves.ts'
+import type { Deck, OpKey } from '../src/engine/moves.ts'
 import { compressSeq } from '../src/engine/routines.ts'
 import { hash, seed } from '../src/engine/seeded.ts'
 import { T_TOTAL, computeResult, scoreDecks, scoreResult } from '../src/engine/simulate.ts'
-import { byTotal, walkRoutines, type ScoredRoutine } from '../src/engine/tree.ts'
+import { byTotal, walkListed, walkRoutines, type ScoredRoutine } from '../src/engine/tree.ts'
 
 export interface Settings {
   seed: string
@@ -33,7 +33,10 @@ export interface TreeTask {
 }
 export type TreeResult = ScoredRoutine[]
 
-/** Stage 1, second round: score each routine on all of stage 1's starting decks. */
+/**
+ * Stage 1, second round: score each routine on all of stage 1's starting decks. Routines listed next to each other
+ * should share prefixes, which are dealt once.
+ */
 export interface FullTask {
   seqs: OpKey[][]
 }
@@ -79,14 +82,13 @@ function scoreTree({ seq, descend, keep }: TreeTask): TreeResult {
   return scored.toSorted(byTotal).slice(0, keep)
 }
 
-/** Deal each routine on its own from all of stage 1's starting decks, seeded by the routine, and score it. */
+/** Deal the routines from all of stage 1's starting decks, seeded by the first routine, and score each one. */
 function scoreFull({ seqs }: FullTask): TreeResult {
   const from = stageOneStarts()
-  return seqs.map((seq) => {
-    seedFrom(`full ${compressSeq(seq)}`)
-    const decks = seq.reduce((dealt, op) => dealt.map((deck) => OPS[op](deck)), from)
-    return { seq, total: scoreDecks(decks, from).total }
-  })
+  const scored: TreeResult = []
+  seedFrom(`full ${compressSeq(seqs[0])}`)
+  walkListed(from, seqs, (seq, decks) => scored.push({ seq, total: scoreDecks(decks, from).total }))
+  return scored
 }
 
 function scoreRun({ seq, kind, run, perfect }: RunTask): RunResult {

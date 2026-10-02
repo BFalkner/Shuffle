@@ -232,8 +232,10 @@ async function search(): Promise<Ranked[]> {
   await runTasks<TreeResult>('tree', stageOneTasks(keep), (best) => (raced = [...raced, ...best].toSorted(byTotal).slice(0, keep)))
   clearProgress()
   console.log(`  ${routines} routines read on ${raceDecks} decks in ${elapsed()}. The best ${keep} go on to a full run.`)
-  const survivors = raced.slice(0, keep).map(({ seq }) => seq)
-  const fullTasks = Array.from({ length: Math.ceil(survivors.length / 16) }, (_, index) => ({ seqs: survivors.slice(index * 16, index * 16 + 16) }))
+  // Sorted by their moves, survivors next to each other share prefixes, so each chunk deals its shared prefixes once.
+  const survivors = raced.map(({ seq }) => seq).toSorted((a, b) => (a.join(' ') < b.join(' ') ? -1 : 1))
+  const chunk = Math.max(16, Math.ceil(survivors.length / (workerCount * 8)))
+  const fullTasks = Array.from({ length: Math.ceil(survivors.length / chunk) }, (_, index) => ({ seqs: survivors.slice(index * chunk, (index + 1) * chunk) }))
   const scored = (await runOnPool<TreeResult>('full', fullTasks)).flat().toSorted(byTotal)
   clearProgress()
   console.log(`  done in ${elapsed()}. The lowest total was ${scored[0].total.toFixed(3)}, from ${label(scored[0].seq)}.`)

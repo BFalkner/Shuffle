@@ -3,7 +3,7 @@ import { sortedDeck, startDeck } from './decks.ts'
 import { OPS, type Deck, type OpKey } from './moves.ts'
 import { OP_COST, compressSeq } from './routines.ts'
 import { T_TOTAL, computeResult, scoreDecks, scoreResult } from './simulate.ts'
-import { walkRoutines } from './tree.ts'
+import { walkListed, walkRoutines } from './tree.ts'
 
 /** Every routine of `moves` costing at most maxCost, listed one by one. */
 function listRoutines(moves: OpKey[], maxCost: number, seq: OpKey[] = [], cost = 0): OpKey[][] {
@@ -32,6 +32,24 @@ describe('walkRoutines', () => {
     // The pile draws no random numbers, so dealing it through the tree and on its own must agree card for card.
     const starts = Array.from({ length: 5 }, () => startDeck('played', 99))
     walkRoutines(starts, ['pile'], ['pile'], 12, true, (seq, decks) => {
+      const dealt = starts.map((start) => seq.reduce((deck: Deck, op) => OPS[op](deck), start))
+      expect(decks, compressSeq(seq)).toEqual(dealt)
+    })
+  })
+})
+
+describe('walkListed', () => {
+  test('visits each listed routine once, and nothing else', () => {
+    const listed: OpKey[][] = [['mash', 'pile'], ['mash'], ['pile', 'ohr', 'mash'], ['mash', 'pile', 'pile']]
+    const visited: string[] = []
+    walkListed([sortedDeck(20)], listed, (seq) => visited.push(compressSeq(seq)))
+    expect(visited.toSorted()).toEqual(listed.map(compressSeq).toSorted())
+  })
+
+  test('each routine gets the decks it would get dealt on its own', () => {
+    const starts = Array.from({ length: 5 }, () => startDeck('played', 99))
+    const listed: OpKey[][] = [['pile'], ['pile', 'pile', 'pile'], ['pile', 'pile']]
+    walkListed(starts, listed, (seq, decks) => {
       const dealt = starts.map((start) => seq.reduce((deck: Deck, op) => OPS[op](deck), start))
       expect(decks, compressSeq(seq)).toEqual(dealt)
     })

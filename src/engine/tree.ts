@@ -32,11 +32,40 @@ export function walkRoutines(
   descend: boolean,
   visit: (seq: OpKey[], decks: Deck[]) => void,
 ): void {
-  const deal = (decks: Deck[], op: OpKey) => decks.map((deck) => OPS[op](deck))
   const walk = (seq: OpKey[], decks: Deck[], cost: number) => {
     visit(seq, decks)
     if (!descend) return
     moves.filter((op) => cost + OP_COST[op] <= maxCost).forEach((op) => walk([...seq, op], deal(decks, op), cost + OP_COST[op]))
   }
   walk(prefix, prefix.reduce(deal, starts), costOf(prefix))
+}
+
+/** One move for every deck. */
+const deal = (decks: Deck[], op: OpKey) => decks.map((deck) => OPS[op](deck))
+
+/** A prefix in walkListed's tree: whether it is one of the listed routines, and the prefixes one move longer. */
+interface Prefix {
+  listed: boolean
+  next: Map<OpKey, Prefix>
+}
+
+/**
+ * Deal `starts` through each of `routines` and call `visit` with the routine and its decks. Routines that share a
+ * prefix share the decks dealt through it, as in walkRoutines, but only the prefixes of listed routines are dealt.
+ * The walk is depth first, and takes the routines in the order they are listed.
+ */
+export function walkListed(starts: Deck[], routines: OpKey[][], visit: (seq: OpKey[], decks: Deck[]) => void): void {
+  const root: Prefix = { listed: false, next: new Map() }
+  routines.forEach((seq) => {
+    const last = seq.reduce((prefix, op) => {
+      if (!prefix.next.has(op)) prefix.next.set(op, { listed: false, next: new Map() })
+      return prefix.next.get(op)!
+    }, root)
+    last.listed = true
+  })
+  const walk = (prefix: Prefix, seq: OpKey[], decks: Deck[]) => {
+    if (prefix.listed) visit(seq, decks)
+    prefix.next.forEach((longer, op) => walk(longer, [...seq, op], deal(decks, op)))
+  }
+  walk(root, [], starts)
 }
