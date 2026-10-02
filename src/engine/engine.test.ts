@@ -2,7 +2,7 @@
 // the engine is random, with tolerances wide enough to be stable run to run.
 import { describe, expect, test } from 'vitest'
 import { getBase } from './calibrate.ts'
-import { posOf, sortedDeck } from './decks.ts'
+import { fisher, posOf, sortedDeck } from './decks.ts'
 import { METRICS } from './metrics.ts'
 import { kendallTau } from './metrics/pairOrder.ts'
 import { orderBalance } from './metrics/neighbourOrder.ts'
@@ -112,6 +112,60 @@ describe('metric & calibration structure', () => {
       expect(level(metric, baseline.sorted, base), metric.key).toBeCloseTo(1, 10)
       expect(noiseLevel(metric, base), metric.key).toBeLessThan(0.2)
     }
+  })
+})
+
+describe('proximity reads both ways', () => {
+  // An early version only failed decks whose old neighbours stayed too close. A mash model fitted to real mashing then
+  // spread old neighbours more evenly than random decks do, and proximity passed those decks while the classifier caught
+  // them. Too even is as far from random as too close, so both must read above the noise line.
+  const deckSize = 99
+  const proximity = METRICS.find((metric) => metric.key === 'proximity')!
+  const base = getBase(deckSize)
+
+  /** Proximity's level over 1,200 decks from makeDeck. */
+  function proximityLevel(makeDeck: () => number[]) {
+    const batch = proximity.batch(deckSize)
+    Array.from({ length: 1200 }, makeDeck).forEach((deck) => batch.add(deck, deck))
+    return level(proximity, batch.value(), base)
+  }
+
+  /** The first card whose old neighbour (the next card) sits right beside it, or -1. */
+  function adjacentNeighbour(deck: number[]) {
+    const positions = posOf(deck)
+    return positions.findIndex((position, card) => card < deckSize - 1 && Math.abs(position - positions[card + 1]) === 1)
+  }
+
+  /** A random deck with each old neighbour that landed beside its card swapped somewhere at random, until none are. */
+  function tooEven() {
+    const deck = fisher(deckSize)
+    for (let card = adjacentNeighbour(deck); card >= 0; card = adjacentNeighbour(deck)) {
+      const from = deck.indexOf(card + 1)
+      const to = Math.floor(Math.random() * deckSize)
+      ;[deck[from], deck[to]] = [deck[to], deck[from]]
+    }
+    return deck
+  }
+
+  /** A random deck with about 2% of old neighbours moved beside their card. */
+  function tooClose() {
+    return Array.from({ length: deckSize - 1 }, (_, card) => card)
+      .filter(() => Math.random() < 0.02)
+      .reduce((deck, card) => {
+        const at = deck.indexOf(card)
+        const target = at + 1 < deckSize ? at + 1 : at - 1
+        const from = deck.indexOf(card + 1)
+        ;[deck[from], deck[target]] = [deck[target], deck[from]]
+        return deck
+      }, fisher(deckSize))
+  }
+
+  test('decks with no old neighbours side by side read above the noise line', () => {
+    expect(proximityLevel(tooEven)).toBeGreaterThan(2 * noiseLevel(proximity, base))
+  })
+
+  test('decks with 2% of old neighbours pulled together read above the noise line', () => {
+    expect(proximityLevel(tooClose)).toBeGreaterThan(2 * noiseLevel(proximity, base))
   })
 })
 
