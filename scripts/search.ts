@@ -65,17 +65,23 @@ const label = (seq: OpKey[]) => `${compressSeq(seq)} (${costOf(seq)}u)`
 
 const named = values.routine?.map(parseRoutine)
 
+/** How many routines a task scores: its prefix, and with `descend` every routine that extends it. */
+const taskSize = ({ seq, descend }: TreeTask) => (descend ? 1 + routineCount(maxCost - costOf(seq)) : 1)
+
 /**
- * Stage 1's tasks: each one-move routine on its own, and each two-move routine with every routine that extends it.
- * Together they cover every routine within the cost limit once. The cheapest prefixes have the most routines under
- * them, so they go first and the pool ends on small tasks.
+ * Stage 1's tasks, which together cover every routine within the cost limit once. A prefix with at most `target`
+ * routines under it is one task. A bigger one is scored on its own, and each prefix one move longer is split the same
+ * way, so no task holds much more than its share and every worker stays busy. The biggest tasks go first, so the pool
+ * ends on small ones.
  */
 function stageOneTasks(keep: number): TreeTask[] {
-  const single = moves.filter((op) => OP_COST[op] <= maxCost)
-  const pairs = single.flatMap((first) => single.filter((op) => OP_COST[first] + OP_COST[op] <= maxCost).map((second) => [first, second]))
-  return [...pairs.map((seq) => ({ seq, descend: true, keep })), ...single.map((op) => ({ seq: [op], descend: false, keep }))].toSorted(
-    (a, b) => costOf(a.seq) - costOf(b.seq),
-  )
+  const target = Math.ceil(routineCount(maxCost) / (workerCount * 8))
+  const split = (seq: OpKey[]): TreeTask[] =>
+    taskSize({ seq, descend: true, keep }) <= target
+      ? [{ seq, descend: true, keep }]
+      : [{ seq, descend: false, keep }, ...extensions(seq).flatMap(split)]
+  const extensions = (seq: OpKey[]) => moves.filter((op) => costOf(seq) + OP_COST[op] <= maxCost).map((op) => [...seq, op])
+  return extensions([]).flatMap(split).toSorted((a, b) => taskSize(b) - taskSize(a))
 }
 
 /** How many routines cost at most `budget`: each move that fits, alone or followed by any routine of what's left. */
