@@ -136,7 +136,7 @@
   line-height: 0.95;
   letter-spacing: 0.01em;
   /* Brushed gold. brushed-metal.jpg is ambientCG's Metal009 (CC0), a seamless brushed steel, turned grey, centred on
-     mid-grey and with its contrast raised five times. The 1024 px file shows at 512 px, so the grain stays sharp on
+     mid-grey and with its contrast raised 2.5 times. The 1024 px file shows at 512 px, so the grain stays sharp on
      high-density screens. Overlay lightens or darkens the gold under it along the grain. */
   background:
     url('./brushed-metal.jpg'),
