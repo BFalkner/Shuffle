@@ -39,6 +39,8 @@ In VS Code, install the extensions it recommends when you open the folder
 
 ```
 index.html                  HTML shell; everything renders into <div id="root">
+demo/
+  ember-study.html          a standalone model of the home page's embers, with controls; open it in a browser
 src/
   main.tsx                  entry point: mounts <App> inside the router
   App.tsx                   the list of pages (routes)
@@ -47,7 +49,7 @@ src/
   engine/                   the maths — plain TypeScript, no React
     moves.ts                the shuffle moves (mash, overhand, pile, …) and the riffle model
     routines.ts             move costs and names, and the "M×4·P·M×4" notation
-    decks.ts                starting decks and card types
+    decks.ts                the starting decks (sorted and played) and a random shuffle
     metrics/                one file per metric: what it measures and how it reads a run's decks
     metrics.ts              the list of metrics, in display order, and the three categories
     runs.ts                 deals starting decks and puts them through a routine
@@ -190,7 +192,7 @@ that each extra pair of mashes brings a sorted deck closer to random.
 The engine is random, so the statistical checks use tolerances wide enough
 to be stable from run to run.
 
-`src/engine/snapshot.test.ts` seeds Math.random for each of 17 cases and
+`src/engine/snapshot.test.ts` seeds Math.random for each of 18 cases and
 hashes everything the engine produces: every move, a calibration, four
 routines from every starting deck, and each metric's metadata, levels
 and formatting. A change that should only reorganise code must leave
