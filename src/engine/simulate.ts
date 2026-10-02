@@ -3,12 +3,12 @@ import { getBase, type Base } from './calibrate.ts'
 import type { DeckKind } from './decks.ts'
 import { METRICS } from './metrics.ts'
 import type { Batch } from './metrics/types.ts'
-import type { OpKey } from './moves.ts'
+import type { Deck, OpKey } from './moves.ts'
 import { applyMove, dealRuns, type Apply } from './runs.ts'
 import { categoryReadings, totalLevel, type Averages, type CategoryReading } from './scoring.ts'
 
 /** Decks per run: as many as the metric that reads the most. Each metric reads the first `trials` of them. */
-const T_TOTAL = Math.max(...METRICS.map((metric) => metric.trials))
+export const T_TOTAL = Math.max(...METRICS.map((metric) => metric.trials))
 
 export interface MethodResult {
   deckSize: number
@@ -74,6 +74,27 @@ export interface Scored {
 }
 
 export function scoreResult(result: MethodResult): Scored {
-  const categories = categoryReadings(result.avg, result.base, result.moveCount)
+  return scoreAt(result.avg, result.base, result.moveCount)
+}
+
+/**
+ * Score decks dealt elsewhere, such as by walkRoutines, as one step: each metric reads the first `trials` of them, and
+ * each deck's starting deck is the one at the same place in `starts`. The metrics give their values in metric order, as
+ * computeResult does.
+ */
+export function scoreDecks(decks: Deck[], starts: Deck[]): Scored {
+  const deckSize = decks[0].length
+  const avg = Object.fromEntries(
+    METRICS.map((metric) => {
+      const batch = metric.batch(deckSize)
+      decks.slice(0, metric.trials).forEach((deck, trial) => batch.add(deck, starts[trial]))
+      return [metric.key, [batch.value()]]
+    }),
+  ) as Averages
+  return scoreAt(avg, getBase(deckSize), 0)
+}
+
+function scoreAt(avg: Averages, base: Base, step: number): Scored {
+  const categories = categoryReadings(avg, base, step)
   return { categories, total: totalLevel(categories), clearCount: categories.filter((reading) => reading.clear).length }
 }
