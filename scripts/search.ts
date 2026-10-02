@@ -13,15 +13,19 @@
 // Stage 1 deals every routine from the same starting decks, and routines that share a prefix share the decks dealt
 // through it. Every task seeds its own random numbers from --seed and its description, so the same options give the
 // same output, whatever the number of workers.
+import { execSync } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
-import { availableParallelism } from 'node:os'
+import { availableParallelism, cpus } from 'node:os'
 import { parseArgs } from 'node:util'
 import { Worker } from 'node:worker_threads'
 import { DECK_KINDS, type DeckKind } from '../src/engine/decks.ts'
-import { CATEGORIES } from '../src/engine/metrics.ts'
+import { getBase } from '../src/engine/calibrate.ts'
+import { CATEGORIES, METRICS } from '../src/engine/metrics.ts'
 import { OPS, type OpKey } from '../src/engine/moves.ts'
 import { OP_COST, compressSeq, parseRoutine } from '../src/engine/routines.ts'
 import { byTotal, costOf } from '../src/engine/tree.ts'
+import { noiseLevel } from '../src/engine/scoring.ts'
+import { ENGINE_FINGERPRINT, ENGINE_VERSION } from '../src/engine/version.ts'
 import type { Message, RunResult, RunTask, Settings, TreeResult, TreeTask } from './search-worker.ts'
 
 const { values } = parseArgs({
@@ -158,6 +162,8 @@ interface DeckStats {
   total: number[]
   /** each category's level in each run, by category title */
   level: Record<string, number[]>
+  /** every run's full result */
+  results: RunResult[]
 }
 
 /** Collect a routine's runs from one deck: its totals, category levels and clean runs. */
@@ -167,6 +173,7 @@ function deckStats(runs: RunResult[]): DeckStats {
     runs: runs.length,
     total: runs.map((run) => run.total),
     level: Object.fromEntries(CATEGORIES.map(({ title }) => [title, runs.map((run) => run.level[title])])),
+    results: runs,
   }
 }
 
@@ -215,11 +222,14 @@ function deckLine(kind: DeckKind, stats: DeckStats): string {
 
 const started = Date.now()
 const elapsed = () => `${Math.round((Date.now() - started) / 1000)}s`
+/** Seconds from the start to the end of each part of the search, for the JSON. */
+const finished: Record<string, number> = {}
+const mark = (part: string) => (finished[part] = (Date.now() - started) / 1000)
 const progress = (done: number, of: number) => process.stdout.write(`  ${done}/${of} ${elapsed()}\r`)
 const clearProgress = () => process.stdout.write('\r' + ' '.repeat(40) + '\r')
 
-/** Stages 1 and 2: score every routine from one deck, then rerun the leaders from every deck. Returns stage 2, ranked. */
-async function search(): Promise<Ranked[]> {
+/** Stages 1 and 2: score every routine from one deck, then rerun the leaders from every deck. Returns both, ranked. */
+async function search() {
   // Stage 1: one run of every routine from the chosen deck, ranked by its total. It races: every routine is read on the
   // first few starting decks, and only the best go on to a full run. A reading on fewer decks isn't a true level (even a
   // random deck reads above 0), so the first round only ranks, and its numbers aren't printed.
@@ -231,6 +241,7 @@ async function search(): Promise<Ranked[]> {
   let raced: TreeResult = []
   await runTasks<TreeResult>('tree', stageOneTasks(keep), (best) => (raced = [...raced, ...best].toSorted(byTotal).slice(0, keep)))
   clearProgress()
+  mark('stage 1, first round')
   console.log(`  ${routines} routines read on ${raceDecks} decks in ${elapsed()}. The best ${keep} go on to a full run.`)
   // Sorted by their moves, survivors next to each other share prefixes, so each chunk deals its shared prefixes once.
   const survivors = raced.map(({ seq }) => seq).toSorted((a, b) => (a.join(' ') < b.join(' ') ? -1 : 1))
@@ -238,6 +249,7 @@ async function search(): Promise<Ranked[]> {
   const fullTasks = Array.from({ length: Math.ceil(survivors.length / chunk) }, (_, index) => ({ seqs: survivors.slice(index * chunk, (index + 1) * chunk) }))
   const scored = (await runOnPool<TreeResult>('full', fullTasks)).flat().toSorted(byTotal)
   clearProgress()
+  mark('stage 1')
   console.log(`  done in ${elapsed()}. The lowest total was ${scored[0].total.toFixed(3)}, from ${label(scored[0].seq)}.`)
 
   // Stage 2: rerun the leaders from every starting deck.
@@ -255,19 +267,26 @@ async function search(): Promise<Ranked[]> {
   for (const { seq, perDeck } of shown) console.log(`  ${label(seq).padEnd(30)} ${kinds.map((kind, i) => `${kind} ${deckBrief(perDeck[i])}`.padEnd(28)).join('')}`)
   if (stage2.length > shown.length) console.log(`  … and ${stage2.length - shown.length} more.`)
   console.log(`  done in ${elapsed()}.`)
-  return stage2
+  mark('stage 2')
+  // The first round's totals read only raceDecks decks, so they rank but aren't levels.
+  const firstRound = new Map(raced.map(({ seq, total }) => [compressSeq(seq), total]))
+  const survivorsScored = scored.map(({ seq, total }) => ({ routine: compressSeq(seq), cost: costOf(seq), total, firstRound: firstRound.get(compressSeq(seq)) }))
+  return { stage1: { routines, raceDecks, kept: keep, survivors: survivorsScored }, stage2 }
 }
 
 // With --routines, skip the search and run stage 3 on the named routines.
-const stage2 = named ? [] : await search()
+const searched = named ? undefined : await search()
+const stage2 = searched?.stage2 ?? []
 const finalists = named ?? stage2.slice(0, finalistCount).map(({ seq }) => seq)
 console.log(`${named ? '' : '\n'}Stage 3: ${named ? 'the named routines' : `the top ${finalists.length}`}, ${finalRuns} runs ${fromDecks}, ranked by the weakest deck.`)
 const stage3 = await routineStats(finalists, finalRuns)
 stage3.sort(byWeakestDeck)
+mark('stage 3')
 // Reference: one perfect shuffle, measured the same way. A random deck's total averages 0 and varies a little either
 // side, so this shows how close to 0 a finalist can be expected to get.
 const [reference] = await routineStats([['mash']], finalRuns, true)
 await Promise.all(workers.map((worker) => worker.terminate()))
+mark('reference')
 clearProgress()
 console.log(`  Each category's level is how far it sits from random: 0 is a random deck, and 1 is a sorted deck that was never`)
 console.log(`  shuffled. The total adds up the three categories, mean ± SD over the runs. "clean" counts the runs with every`)
@@ -282,6 +301,7 @@ console.log(`\nFinished in ${elapsed()}.`)
 
 if (values.json) {
   const spread = (xs: number[]) => ({ mean: mean(xs), sd: sd(xs), max: Math.max(...xs) })
+  const tally = (flags: boolean[]) => flags.filter(Boolean).length
   const summarise = ({ seq, perDeck, weakest, overall, clean }: Ranked) => ({
     routine: compressSeq(seq),
     cost: costOf(seq),
@@ -299,12 +319,56 @@ if (values.json) {
             interval: wilson(stats.clean, stats.runs),
             total: spread(stats.total),
             level: Object.fromEntries(Object.entries(stats.level).map(([title, xs]) => [title, spread(xs)])),
+            cleanByCategory: Object.fromEntries(CATEGORIES.map(({ title }) => [title, tally(stats.results.map((run) => run.clear[title]))])),
+            value: Object.fromEntries(METRICS.map(({ key }) => [key, spread(stats.results.map((run) => run.value[key]))])),
+            metricLevel: Object.fromEntries(METRICS.map(({ key }) => [key, spread(stats.results.map((run) => run.metricLevel[key]))])),
+            runResults: stats.results,
           },
         ]
       }),
     ),
   })
-  const options = { maxCost, from, decks: kinds, deckSize, leaderCount, leaderRuns, finalistCount, finalRuns, workerCount, seed: values.seed }
-  writeFileSync(values.json, JSON.stringify({ options, seconds: (Date.now() - started) / 1000, reference: summarise(reference), stage2: stage2.map(summarise), stage3: stage3.map(summarise) }, null, 2))
+  const git = (command: string) => {
+    try {
+      return execSync(`git ${command}`, { encoding: 'utf8' }).trim()
+    } catch {
+      return null
+    }
+  }
+  const status = git('status --porcelain')
+  const base = getBase(deckSize)
+  const output = {
+    engineVersion: ENGINE_VERSION,
+    engineFingerprint: ENGINE_FINGERPRINT,
+    commit: git('rev-parse HEAD'),
+    uncommittedChanges: status === null ? null : status.length > 0,
+    startedAt: new Date(started).toISOString(),
+    node: process.version,
+    cpu: cpus()[0]?.model ?? null,
+    options: {
+      maxCost,
+      from,
+      decks: kinds,
+      deckSize,
+      moves,
+      raceDecks,
+      raceKeep,
+      leaderCount,
+      leaderRuns,
+      finalistCount,
+      finalRuns,
+      workerCount,
+      seed: values.seed,
+      routines: named?.map(compressSeq) ?? null,
+    },
+    // A metric is within the noise of random at or below its noise line, on the level scale.
+    noiseLine: Object.fromEntries(METRICS.map((metric) => [metric.key, noiseLevel(metric, base)])),
+    seconds: { ...finished, total: (Date.now() - started) / 1000 },
+    stage1: searched?.stage1 ?? null,
+    reference: summarise(reference),
+    stage2: stage2.map(summarise),
+    stage3: stage3.map(summarise),
+  }
+  writeFileSync(values.json, JSON.stringify(output, null, 2))
   console.log(`Wrote ${values.json}.`)
 }

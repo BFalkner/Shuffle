@@ -150,7 +150,9 @@ averages 0 and varies a little either side, which shows how close to 0 a
 finalist can be expected to get.
 To change the limits, pass options after `--`, for example
 `npm run search -- --max-cost 6 --from sorted`. Add `--json results.json`
-to save the full statistics for every category. To test specific routines
+to save everything the search measured: the engine version and commit,
+the options, each stage's times, every stage 1 survivor, and every run of
+stages 2 and 3 with each metric's reading. To test specific routines
 without the search, name them:
 `npm run search -- --routine "M×4·P·M×4" --routine M×8`. With both
 starting decks, the sorted deck usually decides the ranking. To judge a

@@ -5,8 +5,11 @@
 import { parentPort, workerData } from 'node:worker_threads'
 import { randomFeatures } from '../src/engine/classifier.ts'
 import { fisher, startDeck, type DeckKind } from '../src/engine/decks.ts'
+import { METRICS } from '../src/engine/metrics.ts'
+import type { MetricKey } from '../src/engine/metrics/types.ts'
 import type { Deck, OpKey } from '../src/engine/moves.ts'
 import { compressSeq } from '../src/engine/routines.ts'
+import { level } from '../src/engine/scoring.ts'
 import { hash, seed } from '../src/engine/seeded.ts'
 import { T_TOTAL, computeResult, scoreDecks, scoreResult } from '../src/engine/simulate.ts'
 import { byTotal, walkListed, walkRoutines, type ScoredRoutine } from '../src/engine/tree.ts'
@@ -53,6 +56,12 @@ export interface RunResult {
   clearCount: number
   /** each category's level, by category title */
   level: Record<string, number>
+  /** whether each category is within the noise of random, by category title */
+  clear: Record<string, boolean>
+  /** each metric's reading at the last step, by metric key, distinguishability included */
+  value: Record<MetricKey, number>
+  /** each metric's level at the last step, by metric key */
+  metricLevel: Record<MetricKey, number>
 }
 
 export type Message = { job: 'tree'; task: TreeTask } | { job: 'full'; task: FullTask } | { job: 'run'; task: RunTask }
@@ -93,11 +102,16 @@ function scoreFull({ seqs }: FullTask): TreeResult {
 
 function scoreRun({ seq, kind, run, perfect }: RunTask): RunResult {
   seedFrom(`run ${compressSeq(seq)} ${kind} ${run}${perfect ? ' perfect' : ''}`)
-  const scored = scoreResult(computeResult(kind, settings.deckSize, seq, 'ends', perfect ? (deck) => fisher(deck.length) : undefined))
+  const result = computeResult(kind, settings.deckSize, seq, 'ends', perfect ? (deck) => fisher(deck.length) : undefined)
+  const scored = scoreResult(result)
+  const valueOf = (key: MetricKey) => result.avg[key][result.moveCount]
   return {
     total: scored.total,
     clearCount: scored.clearCount,
-    level: Object.fromEntries(scored.categories.map(({ title, level }) => [title, level])),
+    level: Object.fromEntries(scored.categories.map((reading) => [reading.title, reading.level])),
+    clear: Object.fromEntries(scored.categories.map((reading) => [reading.title, reading.clear])),
+    value: Object.fromEntries(METRICS.map((metric) => [metric.key, valueOf(metric.key)])) as Record<MetricKey, number>,
+    metricLevel: Object.fromEntries(METRICS.map((metric) => [metric.key, level(metric, valueOf(metric.key), result.base)])) as Record<MetricKey, number>,
   }
 }
 
