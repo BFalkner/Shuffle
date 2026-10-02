@@ -1,7 +1,11 @@
 // The shuffle model: each move takes a deck (an array of card ids, index 0 = top)
 // and returns a new, shuffled copy. Nothing here mutates its input.
+//
+// A half overhand leaves the deck split: splitAt is the number of cards in the top half. The next mash or cut uses that
+// split instead of making its own, as a hand does when it overhands a half and then mashes or restacks the same halves.
+// Every move returns a new array, and slice() drops splitAt, so a split never outlives the move after it.
 
-export type Deck = number[]
+export type Deck = number[] & { splitAt?: number }
 
 /** Box–Muller normal sample. */
 export function gauss(mean: number, standardDeviation: number): number {
@@ -17,6 +21,11 @@ export function cut(deckSize: number): number {
   const lowest = Math.floor(deckSize / 3)
   const highest = Math.floor((2 * deckSize) / 3)
   return Math.max(lowest, Math.min(highest, Math.round(gauss(deckSize / 2, deckSize * 0.07))))
+}
+
+/** Where the deck is split: the split a half overhand left, or a new cut if the deck is whole. */
+function splitOf(deck: Deck): number {
+  return deck.splitAt ?? cut(deck.length)
 }
 
 // Riffle packet sizes, fitted to a hand-measured mash: mostly single cards.
@@ -89,9 +98,9 @@ export function riffle(topHalf: Deck, bottomHalf: Deck): Deck {
   return interleave(topHalf, 0, topHalf.length, bottomHalf, 0, bottomHalf.length)
 }
 
-/** Mash / riffle: cut, then interleave the halves. */
+/** Mash / riffle: split the deck, unless it is split already, then interleave the halves. */
 export function mash(deck: Deck): Deck {
-  const cutAt = cut(deck.length)
+  const cutAt = splitOf(deck)
   return interleave(deck, 0, cutAt, deck, cutAt, deck.length)
 }
 
@@ -136,28 +145,30 @@ export function pile(deck: Deck): Deck {
   return result
 }
 
-/** Overhand the top half only; the bottom half is untouched. */
+/** Overhand the top half only; the bottom half is untouched. The deck stays split. */
 export function ohTop(deck: Deck): Deck {
-  const cutAt = cut(deck.length)
-  const result = deck.slice()
+  const cutAt = splitOf(deck)
+  const result: Deck = deck.slice()
   overhandInto(deck, 0, cutAt, result)
+  result.splitAt = cutAt
   return result
 }
 
-/** Overhand the bottom half only; the top half is untouched. */
+/** Overhand the bottom half only; the top half is untouched. The deck stays split. */
 export function ohBottom(deck: Deck): Deck {
-  const cutAt = cut(deck.length)
-  const result = deck.slice()
+  const cutAt = splitOf(deck)
+  const result: Deck = deck.slice()
   overhandInto(deck, cutAt, deck.length, result)
+  result.splitAt = cutAt
   return result
 }
 
 /**
- * Cut: lift the deck at a random spot, anywhere from one card down to one card from the bottom, and put the bottom part
- * on top. Every card keeps the card after it, except at the cut and where the old bottom now meets the old top.
+ * Cut: split the deck, unless it is split already, and put the bottom half on top. Every card keeps the card after it,
+ * except at the cut and where the old bottom now meets the old top.
  */
 export function cutDeck(deck: Deck): Deck {
-  const cutAt = 1 + Math.floor(Math.random() * (deck.length - 1))
+  const cutAt = splitOf(deck)
   const lifted = deck.length - cutAt
   const result: Deck = new Array<number>(deck.length)
   for (let position = 0; position < deck.length; position++) {

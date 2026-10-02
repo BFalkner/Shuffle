@@ -149,14 +149,16 @@
 <div class="table-wrap">
 <table>
   <tr><th>Name in <code>seq</code></th><th>Token</th><th>Function</th><th>What it does</th></tr>
-  <tr><td><code>mash</code></td><td>M</td><td><code>mash</code></td><td>Cut the deck, then interleave the halves with <code>riffle</code> (diagram below).</td></tr>
+  <tr><td><code>mash</code></td><td>M</td><td><code>mash</code></td><td>Split the deck, then interleave the halves with <code>riffle</code> (diagram below).</td></tr>
   <tr><td><code>overhand</code></td><td>OH</td><td><code>overhand</code></td><td>Take packets off the top and drop each one on the last. Packet sizes are random with an average of 3 and a limit of 8. The packets end up in reverse order.</td></tr>
   <tr><td><code>pile</code></td><td>P</td><td><code>pile</code></td><td>Deal into 6 piles in turn, each card on top of its pile, then stack the piles. It uses no random numbers, so a given deck always gives the same result.</td></tr>
-  <tr><td><code>ohr</code></td><td>OHt</td><td><code>ohTop</code></td><td>Cut the deck and overhand only the top half.</td></tr>
-  <tr><td><code>ohb</code></td><td>OHb</td><td><code>ohBottom</code></td><td>Cut the deck and overhand only the bottom half.</td></tr>
+  <tr><td><code>ohr</code></td><td>OHt</td><td><code>ohTop</code></td><td>Split the deck and overhand only the top half. The deck stays split.</td></tr>
+  <tr><td><code>ohb</code></td><td>OHb</td><td><code>ohBottom</code></td><td>Split the deck and overhand only the bottom half. The deck stays split.</td></tr>
+  <tr><td><code>cut</code></td><td>C</td><td><code>cutDeck</code></td><td>Split the deck and put the bottom half on top.</td></tr>
 </table>
 </div>
-<p>Every cut uses <code>cut</code>. It picks a place from a bell curve centred on the middle of the deck, with a standard deviation of 7% of the deck, and keeps the cut inside the middle third.</p>
+<p>A half overhand leaves the deck split. The deck carries the split as <code>splitAt</code>, the number of cards in the top half. A mash, half overhand, or cut that comes next uses that split and doesn't make its own. So <code>OHb·OHt·M</code> splits the deck once, overhands both halves, and mashes those same two halves, as a hand does. The overhand and the pile ignore the split. Every move except a half overhand returns a whole deck.</p>
+<p>A move that needs a split and gets a whole deck calls <code>cut</code>. It picks a place from a bell curve centred on the middle of the deck, with a standard deviation of 7% of the deck, and keeps the cut inside the middle third.</p>
 
 <h3>How <code>riffle</code> interleaves two halves</h3>
 <p>The riffle is the core of the mash model. The packet sizes come from a mash the project's author measured by hand. A packet is scaled by how many cards its half still holds, so the thicker half drops faster and both halves run out at about the same time.</p>
@@ -307,7 +309,7 @@ s4: `flowchart TD
   next -- no --> done`,
 
 s5: `flowchart TD
-  cut["cut(deck size) picks where to split"]
+  cut["The split a half overhand left,<br/>or cut(deck size) picks one"]
   halves["top half, bottom half"]
   side["Pick a random half to start"]
   both{"Do both halves<br/>still hold cards?"}

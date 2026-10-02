@@ -25,6 +25,9 @@
  * 11 the sequence category gains a second metric, pair order (Kendall's tau over every pair of cards), and reads the
  *    worse of the two. The category is renamed order, and its first metric neighbour order. The other metrics'
  *    readings and baselines don't change, but the category's levels, totals and clean runs can
+ * 12 a half overhand leaves the deck split, and the next mash or cut uses that split instead of making its own. On a
+ *    whole deck, a cut now splits near the middle with cut(), not anywhere from 1 to 98. A single mash, overhand, pile
+ *    or half overhand gives the same deck as before
  */
-export const ENGINE_VERSION = 11
-export const ENGINE_FINGERPRINT = '2619d92c'
+export const ENGINE_VERSION = 12
+export const ENGINE_FINGERPRINT = '05c06a5c'

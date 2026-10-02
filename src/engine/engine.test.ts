@@ -7,7 +7,7 @@ import { METRICS } from './metrics.ts'
 import { kendallTau } from './metrics/pairOrder.ts'
 import { orderBalance } from './metrics/neighbourOrder.ts'
 import { OPS, type OpKey } from './moves.ts'
-import { OP_COST } from './routines.ts'
+import { OP_COST, parseRoutine } from './routines.ts'
 import { level, noiseLevel } from './scoring.ts'
 import { computeResult, scoreResult } from './simulate.ts'
 
@@ -15,6 +15,18 @@ function runSeq(seq: OpKey[], deckSize: number) {
   let deck = sortedDeck(deckSize)
   for (const op of seq) deck = OPS[op](deck)
   return deck
+}
+
+/** Whether a run of cards, read top to bottom, is an overhand of consecutive cards: packets in order, stacked in reverse. */
+function isOverhanded(cards: number[]): boolean {
+  const packets = cards.reduce<number[][]>((found, card) => {
+    const packet = found.at(-1)
+    if (packet && card === packet[packet.length - 1] + 1) packet.push(card)
+    else found.push([card])
+    return found
+  }, [])
+  const restacked = packets.reverse().flat()
+  return restacked.every((card, index) => card === restacked[0] + index)
 }
 
 describe('engine identity & conservation', () => {
@@ -59,6 +71,65 @@ describe('engine identity & conservation', () => {
         }
       }
       expect(matched).toBe(true)
+    }
+  })
+
+  test('OHb·OHt·M splits the deck once, overhands both halves and mashes those same halves', () => {
+    // By hand, the split is the only cut: no restack and no fresh split for the mash. The cards from each half, read
+    // top to bottom, are then that half overhanded, for one split shared by both halves.
+    const deckSize = 99
+    const splits = Array.from({ length: deckSize - 1 }, (_, index) => index + 1)
+    for (let trial = 0; trial < 30; trial++) {
+      const after = runSeq(parseRoutine('OHb·OHt·M'), deckSize)
+      const matched = splits.some(
+        (split) => isOverhanded(after.filter((card) => card < split)) && isOverhanded(after.filter((card) => card >= split)),
+      )
+      expect(matched).toBe(true)
+    }
+  })
+
+  test('half overhands leave the deck split where they split it', () => {
+    const deckSize = 99
+    const deck = sortedDeck(deckSize)
+    for (let trial = 0; trial < 30; trial++) {
+      const top = OPS.ohr(deck)
+      expect(top.splitAt).toBeDefined()
+      expect(top.slice(top.splitAt)).toEqual(deck.slice(top.splitAt))
+      expect(isOverhanded(top.slice(0, top.splitAt))).toBe(true)
+      const bottom = OPS.ohb(deck)
+      expect(bottom.splitAt).toBeDefined()
+      expect(bottom.slice(0, bottom.splitAt)).toEqual(deck.slice(0, bottom.splitAt))
+      expect(isOverhanded(bottom.slice(bottom.splitAt))).toBe(true)
+    }
+  })
+
+  test('every other move leaves the deck whole', () => {
+    const split = OPS.ohr(sortedDeck(99))
+    for (const key of ['mash', 'overhand', 'pile', 'cut'] as const) expect(OPS[key](split).splitAt, key).toBeUndefined()
+  })
+
+  test('pile ignores a split', () => {
+    const split = OPS.ohr(sortedDeck(99))
+    expect(OPS.pile(split)).toEqual(OPS.pile(split.slice()))
+  })
+
+  test('OHt·C overhands the top half and drops the bottom half on top of it', () => {
+    // The cut uses the split the half overhand left, and puts the bottom half on top.
+    const deckSize = 99
+    for (let trial = 0; trial < 30; trial++) {
+      const after = runSeq(parseRoutine('OHt·C'), deckSize)
+      const split = after[0]
+      expect(after.slice(0, deckSize - split)).toEqual(sortedDeck(deckSize).slice(split))
+      expect(isOverhanded(after.slice(deckSize - split))).toBe(true)
+    }
+  })
+
+  test('a cut on a whole deck lifts it in the middle third', () => {
+    const deckSize = 99
+    for (let trial = 0; trial < 200; trial++) {
+      const lifted = OPS.cut(sortedDeck(deckSize))[0]
+      expect(lifted).toBeGreaterThanOrEqual(Math.floor(deckSize / 3))
+      expect(lifted).toBeLessThanOrEqual(Math.floor((2 * deckSize) / 3))
     }
   })
 
