@@ -26,7 +26,7 @@
   /* how tall the campfire's ridge and fire are */
   --campfire-height: clamp(150px, 17vw, 240px);
   /* how far below the footer's top edge the campfire's ground line sits, so the fire stands beside the footer text */
-  --campfire-drop: 8rem;
+  --campfire-drop: 0px;
 
   /* One stacking context for the whole page, so the embers behind the content (z -1) sit over every backdrop (z -2
      and below) in the hero and below it. */
@@ -480,9 +480,7 @@
 }
 
 .home #simulator {
-  /* Room above the footer for the top of the fire, which stands beside the footer text. The fire is lifted by up to
-     about 60px while it comes into view, and this keeps it clear of the table. */
-  padding-bottom: 5rem;
+  padding-bottom: calc(var(--campfire-height) + 5rem);
 }
 
 /* The campfire on its ridge, standing on the footer's top edge, with its ground filling the footer. parallax.ts lifts
@@ -1223,9 +1221,8 @@
   padding: 2.5rem 0 4rem;
 }
 
-/* The footer text keeps to the left, and the fire burns to its right. */
 .home .coda .wrap > * {
-  max-width: 62%;
+  max-width: 46em;
 }
 
 .home .writeups h2 {
@@ -1275,21 +1272,6 @@
 
   .home .versus {
     justify-self: center;
-  }
-}
-
-/* On a narrow screen the footer text needs the whole width, so the fire goes back above it. */
-@media (max-width: 720px) {
-  .home {
-    --campfire-drop: 0px;
-  }
-
-  .home #simulator {
-    padding-bottom: calc(var(--campfire-height) + 5rem);
-  }
-
-  .home .coda .wrap > * {
-    max-width: none;
   }
 }
 

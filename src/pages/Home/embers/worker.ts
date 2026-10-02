@@ -5,8 +5,8 @@ import { drawEmber, REACH, type Look, type Sighting } from './draw'
 import { placeAt, plume, solve, type Output, type Plume, type Span, type Target } from './plume'
 
 /** Embers per screen by the fire and at the top of the page, and the fire's bursts and lift. */
-const TARGET: Target = { atFire: 40, atTop: 6, bursts: 5, rise: 1 }
-const LOOK: Look = { exposure: 3, flare: 0.6 }
+const TARGET: Target = { atFire: 30, atTop: 12, bursts: 6, rise: 1 }
+const LOOK: Look = { exposure: 4, flare: 0.6 }
 
 /** Behind the page's content, or in front of it. */
 export type Side = 'back' | 'front'
