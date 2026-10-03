@@ -358,8 +358,8 @@ body:has(.sim) {
 }
 
 .sim .showbox-mark {
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
   border-radius: 4px;
   border: 2px solid var(--series);
   background: var(--surface);
@@ -372,6 +372,15 @@ body:has(.sim) {
 
 .sim .showbox[data-focus-visible] .showbox-mark {
   box-shadow: var(--focus);
+}
+
+/* On touch screens, give the toggle a larger tap area than the mark.
+   The negative margin keeps the row's layout as it is. */
+@media (pointer: coarse) {
+  .sim .showbox {
+    padding: 0.625rem 0.625rem 0.625rem 0.3rem;
+    margin: -0.625rem -0.625rem -0.625rem -0.3rem;
+  }
 }
 
 .sim .methodrow-totals {
@@ -1074,12 +1083,12 @@ body:has(.sim) {
   line-height: 1;
 }
 
-/* The deck fills the space its panel has. The panel stretches to the score's height, and contain: size keeps the
-   cards from adding to it, so MiniDeck fits them into what is left. The floor is for while the score is short, as when
-   it is still being worked out. */
+/* The deck fills the space its panel has, and contain: size keeps the cards from adding to it, so MiniDeck fits them
+   into what is left. The floor is the deck's usual height: the panel grows past it when the foot wraps, so tracking
+   cards doesn't resize the deck and set the cards moving again. A score taller than the panel still stretches it. */
 .sim .deckview-deck {
   flex: 1;
-  min-height: 220px;
+  min-height: 284px;
   padding-left: 16px;
   contain: size;
 }
@@ -1094,6 +1103,12 @@ body:has(.sim) {
   min-height: 1.3rem;
   font-size: 0.82rem;
   color: var(--soft);
+}
+
+/* The clear button appears when a card is tracked. The negative margin cancels its padding, so it doesn't make the
+   foot taller (which would shrink the deck), and the padding still gives it a decent click area. */
+.sim .deckview-foot .textbtn {
+  margin-block: -0.2rem;
 }
 
 .sim .deckview-tracking {
