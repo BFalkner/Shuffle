@@ -15,7 +15,7 @@
 
 .minideck-strip {
   position: absolute;
-  left: -13px;
+  left: -15px;
   top: 0;
   height: 100%;
   width: 6px;
@@ -38,6 +38,8 @@
   outline-offset: 1px;
   border-radius: 2px;
   border: 1px solid rgba(0, 0, 0, 0.15);
+  /* A soft, wide shadow, as if the cards lay a little above the table. Tracked cards set their own. */
+  box-shadow: 0 4px 4px -2px rgba(0, 0, 0, 0.22);
 }
 
 .minideck--still .minideck-card {
