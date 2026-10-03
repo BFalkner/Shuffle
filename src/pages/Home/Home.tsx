@@ -81,6 +81,22 @@ const WRITEUPS = [
 /** The routine the closing panel plays, one pip at a time, like the simulator's move strip. */
 const TEASER: Pip[] = ['M', 'M', 'M', 'OHt', 'M', 'M']
 
+/**
+ * The boards of the wooden sign behind the closing panel, top to bottom. Each takes a share of the sign's height
+ * (`grow`), leaves an open slat under it (`gap`, px), reaches past or stops short of the sign's sides (`left` and
+ * `right`, px; negative reaches past), and sits a little crooked (`tilt`, degrees). `wood` picks where in the grain it
+ * was cut, and `shade` darkens it. `holes` names its worn holes in home.css. The fourth board has lost a nail and sags.
+ */
+const SIGN_BOARDS: { grow: number; gap: number; left: number; right: number; tilt: number; wood: string; shade: number; holes?: string; loose?: boolean }[] = [
+  { grow: 1.05, gap: 12, left: 6, right: -10, tilt: -0.25, wood: '0 0', shade: 0.1 },
+  { grow: 0.9, gap: 10, left: -8, right: 4, tilt: 0.3, wood: '-180px -170px', shade: 0.22, holes: 'knot-a' },
+  { grow: 1.15, gap: 16, left: 2, right: -6, tilt: -0.12, wood: '-60px -330px', shade: 0.05 },
+  { grow: 0.95, gap: 14, left: -4, right: 12, tilt: 0.6, wood: '-300px -90px', shade: 0.18, holes: 'knot-b', loose: true },
+  { grow: 1.1, gap: 11, left: -10, right: -2, tilt: -0.3, wood: '-120px -250px', shade: 0.12, holes: 'knot-c' },
+  { grow: 1, gap: 13, left: 4, right: -8, tilt: 0.2, wood: '-240px -410px', shade: 0.25 },
+  { grow: 1.05, gap: 0, left: -6, right: 6, tilt: -0.35, wood: '-20px -40px', shade: 0.08, holes: 'knot-d' },
+]
+
 function MoveDemo({ op }: { op: DemoMove }) {
   const host = useRef<HTMLDivElement>(null)
   const caption = useRef<HTMLDivElement>(null)
@@ -409,6 +425,15 @@ export default function Home() {
           <section className="realm" id="simulator">
             <div className="wrap">
               <div className="table">
+                <div className="sign" aria-hidden="true">
+                  {SIGN_BOARDS.map(({ grow, gap, left, right, tilt, wood, shade, holes, loose }, index) => (
+                    <i
+                      key={index}
+                      className={['board', holes, loose && 'loose'].filter(Boolean).join(' ')}
+                      style={{ flexGrow: grow, margin: `0 ${right}px ${gap}px ${left}px`, rotate: `${tilt}deg`, '--wood': wood, '--shade': shade } as CSSProperties}
+                    />
+                  ))}
+                </div>
                 <div className="table-head">
                   <h2>Test your own routine</h2>
                   <div className="teaser" aria-hidden="true">
