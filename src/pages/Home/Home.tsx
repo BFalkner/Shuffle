@@ -326,6 +326,13 @@ export default function Home() {
               </div>
 
               <div className="tome">
+                {/* Roughens the edges of the tome's paper (its ::before in home.css), so the sheet looks torn. */}
+                <svg className="tome-filter" aria-hidden="true">
+                  <filter id="tome-tear" colorInterpolationFilters="sRGB">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves={4} seed={3} />
+                    <feDisplacementMap in="SourceGraphic" scale={10} xChannelSelector="R" yChannelSelector="G" />
+                  </filter>
+                </svg>
                 <h3>What&rsquo;s left after each repeat</h3>
                 <p className="tome-intro">
                   Each line starts from a sorted deck and repeats one move ten times. The readings show how much of its order, proximity and position is left:
